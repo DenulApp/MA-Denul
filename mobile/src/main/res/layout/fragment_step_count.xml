@@ -1,0 +1,41 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
+    android:layout_height="match_parent" tools:context="de.velcommuta.denul.ui.StepCountFragment"
+    android:orientation="vertical"
+    android:elevation="4dp"
+    android:background="@drawable/background_rect">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:text="You have walked"
+        android:id="@+id/leader"
+        android:layout_gravity="center_horizontal|top" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="1337"
+        android:id="@+id/count"
+        android:layout_gravity="center_horizontal|top" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:text="steps today"
+        android:id="@+id/trailer"
+        android:layout_gravity="center_horizontal" />
+
+    <ProgressBar
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/progressBar"
+        android:layout_gravity="center_horizontal"
+        android:progress="85"
+        style="@android:style/Widget.DeviceDefault.Light.ProgressBar.Horizontal"
+        android:paddingLeft="20dp"
+        android:paddingRight="20dp" />
+</LinearLayout>

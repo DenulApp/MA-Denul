@@ -1,0 +1,29 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
+    android:layout_height="match_parent" tools:context="de.velcommuta.denul.ui.HeartRateFragment"
+    android:orientation="vertical"
+    android:elevation="4dp"
+    android:background="@drawable/background_rect">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:text="Your Heart Rate is"
+        android:id="@+id/hr_leader"
+        android:layout_gravity="center_horizontal|top" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="82 bpm"
+        android:id="@+id/bpm"
+        android:layout_gravity="center_horizontal|top" />
+
+    <!-- <com.github.mikephil.charting.charts.LineChart
+        android:id="@+id/hr_chart"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" /> -->
+
+</LinearLayout>
