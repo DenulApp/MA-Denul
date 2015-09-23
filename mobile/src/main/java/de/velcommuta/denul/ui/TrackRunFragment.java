@@ -2,6 +2,7 @@ package de.velcommuta.denul.ui;
 
 import android.app.Activity;
 import android.content.Context;
+import android.graphics.Color;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationManager;
@@ -12,6 +13,12 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.AccelerateInterpolator;
+import android.view.animation.AlphaAnimation;
+import android.view.animation.Animation;
+import android.view.animation.AnimationSet;
+import android.widget.Button;
+import android.widget.LinearLayout;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -30,11 +37,14 @@ import de.velcommuta.denul.R;
  * Use the {@link TrackRunFragment#newInstance} factory method to
  * create an instance of this fragment.
  */
-public class TrackRunFragment extends Fragment implements OnMapReadyCallback {
+public class TrackRunFragment extends Fragment implements OnMapReadyCallback, View.OnClickListener {
     private static final String TAG = "TrackRunFragment";
 
     private MapFragment mMapFragment;
     private GoogleMap mMap;
+
+    private Button mStartStopButton;
+    private LinearLayout mStatWindow;
 
     private OnFragmentInteractionListener mListener;
 
@@ -72,6 +82,9 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback {
         mMapFragment = (MapFragment) getChildFragmentManager().findFragmentById(R.id.gmaps);
         mMapFragment.getMapAsync(this);
 
+        mStartStopButton = (Button) v.findViewById(R.id.actionbutton);
+        mStartStopButton.setOnClickListener(this);
+        mStatWindow = (LinearLayout) v.findViewById(R.id.statwindow);
         return v;
     }
 
@@ -99,6 +112,22 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback {
         if (mListener != null) {
             mListener.onFragmentInteraction(uri);
         }
+    }
+
+    @Override
+    public void onClick(View v) {
+        if (mStatWindow.getVisibility() == LinearLayout.INVISIBLE) {
+            mStatWindow.setVisibility(LinearLayout.VISIBLE);
+            mStartStopButton.setBackgroundColor(Color.parseColor("#f76f6f"));
+            mStartStopButton.setText("Stop");
+            mMap.setPadding(0, 200, 0, 0);
+        } else {
+            mStatWindow.setVisibility(LinearLayout.INVISIBLE);
+            mStartStopButton.setBackgroundColor(Color.parseColor("#00D05D"));
+            mStartStopButton.setText("Start");
+            mMap.setPadding(0, 0, 0, 0);
+        }
+
     }
 
     @Override

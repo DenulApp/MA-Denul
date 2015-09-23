@@ -1,28 +1,9 @@
-<TableLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
     android:layout_height="match_parent" tools:context="de.velcommuta.denul.ui.TrackRunFragment">
-
-    <!-- TODO: Update blank fragment layout -->
-
-    <TableRow
-        android:layout_width="0dp"
-        android:layout_height="match_parent"
-        android:layout_gravity="center">
-
-
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:text="Run Tracking"
-            android:textAppearance="@android:style/TextAppearance.DeviceDefault.Large"
-            android:layout_span="2"
-            android:layout_weight="1"
-            android:gravity="center" />
-
-    </TableRow>
-
-    <TableRow
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_weight="1">
+    <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
+        android:layout_height="match_parent">
 
         <fragment class="com.google.android.gms.maps.MapFragment"
             xmlns:map="http://schemas.android.com/apk/res-auto"
@@ -30,7 +11,120 @@
             android:layout_height="fill_parent"
             android:id="@+id/gmaps"
             android:layout_span="2"
-            android:layout_weight="1" />
-    </TableRow>
+            android:layout_weight="1"/>
 
-</TableLayout>
+    </FrameLayout>
+    <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
+    android:layout_height="match_parent" tools:context="de.velcommuta.denul.ui.TrackRunFragment"
+        android:foregroundGravity="fill_horizontal">
+
+        <Button
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:text="Start"
+            android:id="@+id/actionbutton"
+            android:layout_gravity="center_horizontal|bottom"
+            android:background="#00D05D"
+            android:elevation="4dp"
+            android:padding="4dp"
+            android:layout_margin="4dp" />
+
+        <LinearLayout
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|center_horizontal"
+            android:background="@drawable/background_rect"
+            android:elevation="4dp"
+            android:padding="4dp"
+            android:layout_margin="4dp"
+            android:visibility="visible"
+            android:id="@+id/statwindow"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:orientation="vertical"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1">
+
+                <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textAppearance="?android:attr/textAppearanceMedium"
+                        android:text="Distance"
+                        android:id="@+id/distanceheader"
+                        android:layout_weight="1"
+                        android:layout_gravity="left" />
+
+                <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textAppearance="?android:attr/textAppearanceSmall"
+                        android:text="3 km"
+                        android:id="@+id/distancefield"
+                        android:layout_column="1"
+                        android:layout_weight="1" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:orientation="vertical"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="2"
+                android:layout_gravity="center">
+
+                <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textAppearance="?android:attr/textAppearanceLarge"
+                        android:text="Current Time"
+                        android:id="@+id/timeheader"
+                        android:layout_gravity="center"
+                        android:layout_weight="1"
+                        android:layout_column="1" />
+
+                <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textAppearance="?android:attr/textAppearanceMedium"
+                        android:text="13:37"
+                        android:id="@+id/timefield"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_weight="1"
+                        android:layout_column="2"
+                    android:textColor="#000000" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:orientation="vertical"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1">
+
+                <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textAppearance="?android:attr/textAppearanceMedium"
+                        android:text="Speed"
+                        android:id="@+id/speedheader"
+                        android:layout_column="3"
+                        android:layout_weight="1"
+                        android:layout_gravity="right" />
+
+                <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textAppearance="?android:attr/textAppearanceSmall"
+                        android:text="10 km/h"
+                        android:id="@+id/speedfield"
+                        android:layout_column="3"
+                        android:layout_weight="1"
+                    android:layout_gravity="right" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+    </FrameLayout>
+</RelativeLayout>
