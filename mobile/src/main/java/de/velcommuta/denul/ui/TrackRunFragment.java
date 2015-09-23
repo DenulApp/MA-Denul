@@ -9,6 +9,9 @@ import android.location.LocationManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.app.Fragment;
+import android.os.Handler;
+import android.os.Message;
+import android.os.SystemClock;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -18,6 +21,7 @@ import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
 import android.view.animation.AnimationSet;
 import android.widget.Button;
+import android.widget.Chronometer;
 import android.widget.LinearLayout;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -45,8 +49,10 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
 
     private Button mStartStopButton;
     private LinearLayout mStatWindow;
+    private Chronometer mChrono;
 
     private OnFragmentInteractionListener mListener;
+
 
     ////////// Housekeeping functions (onCreate etc)
     /**
@@ -85,6 +91,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         mStartStopButton = (Button) v.findViewById(R.id.actionbutton);
         mStartStopButton.setOnClickListener(this);
         mStatWindow = (LinearLayout) v.findViewById(R.id.statwindow);
+        mChrono = (Chronometer) v.findViewById(R.id.timer);
         return v;
     }
 
@@ -106,28 +113,39 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
     }
 
     /////////// End of housekeeping functions
-
-    // TODO: Rename method, update argument and hook method into UI event
-    public void onButtonPressed(Uri uri) {
-        if (mListener != null) {
-            mListener.onFragmentInteraction(uri);
-        }
-    }
-
     @Override
     public void onClick(View v) {
-        if (mStatWindow.getVisibility() == LinearLayout.INVISIBLE) {
+        if (mStartStopButton.getText().equals(getString(R.string.start_run))) {
+            // The user wants to start a run
+            // Show the bar with the current information
             mStatWindow.setVisibility(LinearLayout.VISIBLE);
-            mStartStopButton.setBackgroundColor(Color.parseColor("#f76f6f"));
-            mStartStopButton.setText("Stop");
+            // Set the new background color and text for the button
+            mStartStopButton.setBackgroundColor(Color.parseColor("#F76F6F"));
+            mStartStopButton.setText(getString(R.string.stop_run));
+            // Move the "my location" button of the map fragment out of the way of the information bar
             mMap.setPadding(0, 200, 0, 0);
-        } else {
+            // Reset the timer and start it
+            mChrono.setBase(SystemClock.elapsedRealtime());
+            mChrono.start();
+
+        } else if (mStartStopButton.getText().equals(getString(R.string.stop_run))) {
+            // The user wants to stop a run
+            // Stop the clock
+            mChrono.stop();
+            // Update the text and color of the button
+            mStartStopButton.setText(getString(R.string.reset_run));
+            mStartStopButton.setBackgroundColor(Color.parseColor("#FF656BFF"));
+            
+        } else if (mStartStopButton.getText().equals(getString(R.string.reset_run))) {
+            // The user wants to reset the results of a run
+            // Hide the information bar
             mStatWindow.setVisibility(LinearLayout.INVISIBLE);
+            // Change color and text of the button
             mStartStopButton.setBackgroundColor(Color.parseColor("#00D05D"));
-            mStartStopButton.setText("Start");
+            mStartStopButton.setText(R.string.start_run);
+            // Move the "my location" button back to its original location
             mMap.setPadding(0, 0, 0, 0);
         }
-
     }
 
     @Override
@@ -179,5 +197,4 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         // TODO: Update argument type and name
         public void onFragmentInteraction(Uri uri);
     }
-
 }
