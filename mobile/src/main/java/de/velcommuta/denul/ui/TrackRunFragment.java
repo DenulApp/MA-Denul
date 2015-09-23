@@ -2,6 +2,7 @@ package de.velcommuta.denul.ui;
 
 import android.app.Activity;
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.location.Criteria;
 import android.location.Location;
@@ -28,8 +29,14 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
+import com.google.android.gms.maps.model.PolylineOptions;
+import com.google.maps.android.ui.BubbleIconFactory;
+import com.google.maps.android.ui.IconGenerator;
 
 import de.velcommuta.denul.R;
 
@@ -117,6 +124,33 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
     public void onClick(View v) {
         if (mStartStopButton.getText().equals(getString(R.string.start_run))) {
             // The user wants to start a run
+            // Set a marker at the starting location
+            try {
+                // Get location from GPS if it's available
+                LocationManager lm = (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
+                Location myLocation = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+
+                // Location wasn't found, check the next most accurate place for the current location
+                // TODO Put this somewhere else, where we will also do the GPS tracking
+                if (myLocation == null) {
+                    Criteria criteria = new Criteria();
+                    criteria.setAccuracy(Criteria.ACCURACY_COARSE);
+                    // Finds a provider that matches the criteria
+                    String provider = lm.getBestProvider(criteria, true);
+                    // Use the provider to get the last known location
+                    myLocation = lm.getLastKnownLocation(provider);
+
+                    IconGenerator ig = new IconGenerator(getActivity());
+                    ig.setStyle(IconGenerator.STYLE_BLUE);
+                    Bitmap startPoint = ig.makeIcon("Start");
+                    mMap.addMarker(new MarkerOptions()
+                            .icon(BitmapDescriptorFactory.fromBitmap(startPoint))
+                            .position(new LatLng(myLocation.getLatitude(), myLocation.getLongitude())));
+                }
+            } catch (SecurityException e) {
+                Log.w(TAG, "onClick: User rejected Location permission :(");
+            }
+
             // Show the bar with the current information
             mStatWindow.setVisibility(LinearLayout.VISIBLE);
             // Set the new background color and text for the button
@@ -135,7 +169,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
             // Update the text and color of the button
             mStartStopButton.setText(getString(R.string.reset_run));
             mStartStopButton.setBackgroundColor(Color.parseColor("#FF656BFF"));
-            
+
         } else if (mStartStopButton.getText().equals(getString(R.string.reset_run))) {
             // The user wants to reset the results of a run
             // Hide the information bar
@@ -145,6 +179,8 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
             mStartStopButton.setText(R.string.start_run);
             // Move the "my location" button back to its original location
             mMap.setPadding(0, 0, 0, 0);
+            // Clear all markers and polylines
+            mMap.clear();
         }
     }
 
@@ -177,6 +213,18 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
                     .build();                   // Creates a CameraPosition from the builder
 
             mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
+
+            // TODO Polyline example (for later)
+            /*
+            PolylineOptions rectOptions = new PolylineOptions()
+                    .add(new LatLng(myLocation.getLatitude(), myLocation.getLongitude()))
+                    .add(new LatLng(myLocation.getLatitude()+0.2, myLocation.getLongitude()))
+                    .add(new LatLng(myLocation.getLatitude(), myLocation.getLongitude()+0.4))
+                    .add(new LatLng(myLocation.getLatitude(), myLocation.getLongitude()));
+            Polyline pline = mMap.addPolyline(rectOptions);
+            */
+
+
         } catch (SecurityException e) {
             Log.e(TAG, "User rejected access to position data");
             // TODO Give indication to the user that GPS tracking will not work without the perm.
