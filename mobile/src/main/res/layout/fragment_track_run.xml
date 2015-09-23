@@ -1,16 +1,36 @@
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<TableLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
-    android:layout_height="match_parent" tools:context="de.velcommuta.denul.ui.TrackRunFragment"
-    android:orientation="vertical">
+    android:layout_height="match_parent" tools:context="de.velcommuta.denul.ui.TrackRunFragment">
 
     <!-- TODO: Update blank fragment layout -->
-    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:text="@string/hello_blank_fragment" />
 
-    <fragment class="com.google.android.gms.maps.MapFragment"
-        xmlns:map="http://schemas.android.com/apk/res-auto"
-        android:layout_width="match_parent"
+    <TableRow
+        android:layout_width="0dp"
         android:layout_height="match_parent"
-        android:id="@+id/gmaps" />
+        android:layout_gravity="center">
 
-</LinearLayout>
+
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Run Tracking"
+            android:textAppearance="@android:style/TextAppearance.DeviceDefault.Large"
+            android:layout_span="2"
+            android:layout_weight="1"
+            android:gravity="center" />
+
+    </TableRow>
+
+    <TableRow
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1">
+
+        <fragment class="com.google.android.gms.maps.MapFragment"
+            xmlns:map="http://schemas.android.com/apk/res-auto"
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent"
+            android:id="@+id/gmaps"
+            android:layout_span="2"
+            android:layout_weight="1" />
+    </TableRow>
+
+</TableLayout>

@@ -38,6 +38,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback {
 
     private OnFragmentInteractionListener mListener;
 
+    ////////// Housekeeping functions (onCreate etc)
     /**
      * Use this factory method to create a new instance of
      * this fragment using the provided parameters.
@@ -74,13 +75,6 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback {
         return v;
     }
 
-    // TODO: Rename method, update argument and hook method into UI event
-    public void onButtonPressed(Uri uri) {
-        if (mListener != null) {
-            mListener.onFragmentInteraction(uri);
-        }
-    }
-
     @Override
     public void onAttach(Activity activity) {
         super.onAttach(activity);
@@ -96,6 +90,15 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback {
     public void onDetach() {
         super.onDetach();
         mListener = null;
+    }
+
+    /////////// End of housekeeping functions
+
+    // TODO: Rename method, update argument and hook method into UI event
+    public void onButtonPressed(Uri uri) {
+        if (mListener != null) {
+            mListener.onFragmentInteraction(uri);
+        }
     }
 
     @Override
