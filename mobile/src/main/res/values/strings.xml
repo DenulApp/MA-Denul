@@ -13,4 +13,9 @@
     <string name="start_run">Start</string>
     <string name="stop_run">Stop</string>
     <string name="reset_run">Reset</string>
+
+    <!-- Unit strings -->
+    <string name="distance_m">%1$d m</string>
+    <string name="distance_km">%1$.02f km</string>
+    <string name="velocity_kmh">%1$.02f km/h</string>
 </resources>

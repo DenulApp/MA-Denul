@@ -56,7 +56,7 @@ public class GPSTrackingService extends Service {
         protected LocationRequest mLocationRequest;
 
         // Data structure that will be used to store the LatLng values
-        protected List<LatLng> mPoints = new LinkedList<LatLng>();
+        protected List<Location> mPoints = new LinkedList<Location>();
         // Data structure that will be used to store the timing values
         protected List<Instant> mTimes = new LinkedList<Instant>();
 
@@ -160,7 +160,7 @@ public class GPSTrackingService extends Service {
             Log.i(TAG, "onConnected: Connected to API");
             Location cLoc = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
             if (mPoints.isEmpty()) {
-                mPoints.add(new LatLng(cLoc.getLatitude(), cLoc.getLongitude()));
+                mPoints.add(cLoc);
                 mTimes.add(Instant.now());
                 EventBus.getDefault().postSticky(new GPSLocationEvent(mPoints, mTimes, true));
             } else {
@@ -183,13 +183,12 @@ public class GPSTrackingService extends Service {
 
         @Override
         public void onLocationChanged(Location location) {
-            Log.d(TAG, "onLocationChanged: Received location Update");
             addLocationAndNotify(location);
         }
 
         private void addLocationAndNotify(Location location) {
             Log.d(TAG, "addLocationAndNotify: Sending new location to UI Thread");
-            mPoints.add(new LatLng(location.getLatitude(), location.getLongitude()));
+            mPoints.add(location);
             mTimes.add(Instant.now());
             EventBus.getDefault().postSticky(new GPSLocationEvent(mPoints, mTimes));
         }

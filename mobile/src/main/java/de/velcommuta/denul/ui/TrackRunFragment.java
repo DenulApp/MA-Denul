@@ -33,6 +33,8 @@ import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.maps.android.ui.IconGenerator;
 
+import java.util.List;
+
 import de.greenrobot.event.EventBus;
 import de.velcommuta.denul.R;
 import de.velcommuta.denul.event.GPSLocationEvent;
@@ -57,6 +59,11 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
     private Chronometer mChrono;
     private TextView mVelocity;
     private TextView mDistance;
+
+    private int mLastCheckedIndex;
+    private float mCurrentDistance;
+    private float mCurrentVelocity;
+
 
     private OnFragmentInteractionListener mListener;
 
@@ -194,6 +201,9 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
             // Clear all markers and polylines
             mMap.clear();
             mPolyLine = null;
+            mCurrentVelocity = 0;
+            mCurrentDistance = 0;
+            mLastCheckedIndex = 0;
 
             Log.d(TAG, "onClick: Reset run results");
         }
@@ -243,29 +253,60 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
     public void onEventMainThread(GPSLocationEvent ev) {
         Log.d(TAG, "onEventMainThread: Received update, updating map");
         if (ev.isInitial && ev.position.size() == 1) {
+            Location start = ev.position.get(0);
+
             // Set icon for start of route
             IconGenerator ig = new IconGenerator(getActivity());
             ig.setStyle(IconGenerator.STYLE_BLUE);
             Bitmap startPoint = ig.makeIcon("Start");
             mMap.addMarker(new MarkerOptions()
                     .icon(BitmapDescriptorFactory.fromBitmap(startPoint))
-                    .position(ev.position.get(0)));
+                    .position(new LatLng(start.getLatitude(), start.getLongitude())));
         }
         if (mPolyLine == null) {
             // Set first element of polyline
             PolylineOptions poptions = new PolylineOptions();
-            for (LatLng l : ev.position) {
-                poptions.add(l);
+            for (Location l : ev.position) {
+                poptions.add(new LatLng(l.getLatitude(), l.getLongitude()));
             }
             mPolyLine = mMap.addPolyline(poptions);
         } else {
             // Update PolyLine with new points (can only be done through complete refresh, sadly)
-            mPolyLine.setPoints(ev.position);
+            List<LatLng> points = mPolyLine.getPoints();
+            for (int i=mLastCheckedIndex+1; i < ev.position.size(); i++) {
+                Location element = ev.position.get(i);
+                points.add(new LatLng(element.getLatitude(), element.getLongitude()));
+            }
+            mPolyLine.setPoints(points);
         }
+        // Re-center the camera
+        Location current = ev.position.get(ev.position.size() - 1);
+        CameraPosition cameraPosition = new CameraPosition.Builder()
+                .target(new LatLng(current.getLatitude(), current.getLongitude()))      // Sets the center of the map to location user
+                .zoom(17)                   // Sets the zoom
+                .bearing(current.getBearing()) // Set bearing
+                .build();                   // Creates a CameraPosition from the builder
+        mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
 
-        // TODO Center Camera on new position / setup camera to follow user
-        // TODO Calculate and update distance
-        // TODO Calculate and update speed
+        // Update current distance
+        for (int i=mLastCheckedIndex+1; i < ev.position.size(); i++) {
+            mCurrentDistance = mCurrentDistance + ev.position.get(i).distanceTo(ev.position.get(i-1));
+        }
+        // Calculate average speed
+        // Get elapsed time in minutes
+        float elapsedSeconds = (SystemClock.elapsedRealtime() - mChrono.getBase()) / 1000.0f;
+        // Divide distance in metres by elapsed minutes, multiply with 3.6 to get km/h
+        mCurrentVelocity = (mCurrentDistance / elapsedSeconds) * 3.6f;
+        // Update Velocity and Distance widgets
+        if (mCurrentDistance < 1000) {
+            mDistance.setText(String.format(getString(R.string.distance_m), (int) mCurrentDistance));
+        } else {
+            mDistance.setText(String.format(getString(R.string.distance_km), mCurrentDistance / 1000.0f));
+        }
+        mVelocity.setText(String.format(getString(R.string.velocity_kmh), mCurrentVelocity));
+
+        // Update last checked index
+        mLastCheckedIndex = ev.position.size()-1;
     }
 
     /**
