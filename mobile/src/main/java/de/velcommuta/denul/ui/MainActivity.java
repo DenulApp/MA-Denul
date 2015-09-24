@@ -26,6 +26,7 @@ import com.google.android.gms.maps.model.MarkerOptions;
 
 import net.sqlcipher.database.SQLiteDatabase;
 
+import de.greenrobot.event.EventBus;
 import de.velcommuta.denul.R;
 import de.velcommuta.denul.db.DbInitTask;
 
@@ -47,18 +48,15 @@ public class MainActivity extends AppCompatActivity
         SQLiteDatabase.loadLibs(this);
         new DbInitTask().execute(this);
 
+        // Configure default EventBus instance
+        // FIXME This may have to be moved to the new launch activity if it is ever changed
+        EventBus.builder().logNoSubscriberMessages(false)
+                .sendNoSubscriberEvent(false)
+                .installDefaultEventBus();
+
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-
-        /* FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-            }
-        }); */
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
@@ -69,7 +67,7 @@ public class MainActivity extends AppCompatActivity
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
 
-        Fragment fragment = StartScreenFragment.newInstance("a", "b");
+        Fragment fragment = StartScreenFragment.newInstance();
         FragmentManager fragmentManager = getFragmentManager();
         fragmentManager.beginTransaction()
                 .replace(R.id.content_frame, fragment)
@@ -115,7 +113,7 @@ public class MainActivity extends AppCompatActivity
         int id = item.getItemId();
 
         if (id == R.id.nav_start) {
-            Fragment fragment = StartScreenFragment.newInstance("a", "b");
+            Fragment fragment = StartScreenFragment.newInstance();
             FragmentManager fragmentManager = getFragmentManager();
             fragmentManager.beginTransaction()
                     .replace(R.id.content_frame, fragment)
