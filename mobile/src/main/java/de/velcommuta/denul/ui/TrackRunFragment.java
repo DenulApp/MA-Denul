@@ -11,21 +11,14 @@ import android.location.LocationManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.app.Fragment;
-import android.os.Handler;
-import android.os.Message;
 import android.os.SystemClock;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.AccelerateInterpolator;
-import android.view.animation.AlphaAnimation;
-import android.view.animation.Animation;
-import android.view.animation.AnimationSet;
 import android.widget.Button;
 import android.widget.Chronometer;
 import android.widget.LinearLayout;
-import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -222,17 +215,6 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
                     .build();                   // Creates a CameraPosition from the builder
 
             mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
-
-            // TODO Polyline example (for later)
-            /*
-            PolylineOptions rectOptions = new PolylineOptions()
-                    .add(new LatLng(myLocation.getLatitude(), myLocation.getLongitude()))
-                    .add(new LatLng(myLocation.getLatitude()+0.2, myLocation.getLongitude()))
-                    .add(new LatLng(myLocation.getLatitude(), myLocation.getLongitude()+0.4))
-                    .add(new LatLng(myLocation.getLatitude(), myLocation.getLongitude()));
-            Polyline pline = mMap.addPolyline(rectOptions);
-            */
-
 
         } catch (SecurityException e) {
             Log.e(TAG, "User rejected access to position data");
