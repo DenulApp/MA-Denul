@@ -2,6 +2,7 @@ package de.velcommuta.denul.ui;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.location.Criteria;
@@ -40,6 +41,7 @@ import com.google.maps.android.ui.IconGenerator;
 import de.greenrobot.event.EventBus;
 import de.velcommuta.denul.R;
 import de.velcommuta.denul.event.GPSLocationEvent;
+import de.velcommuta.denul.service.GPSTrackingService;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -62,6 +64,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
     private OnFragmentInteractionListener mListener;
 
 
+    // TODO Lifecycle management
     ////////// Housekeeping functions (onCreate etc)
     /**
      * Use this factory method to create a new instance of
@@ -69,7 +72,6 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
      *
      * @return A new instance of fragment TrackRunFragment.
      */
-    // TODO: Rename and change types and number of parameters
     public static TrackRunFragment newInstance() {
         TrackRunFragment fragment = new TrackRunFragment();
         Bundle args = new Bundle();
@@ -118,12 +120,14 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
     public void onStart() {
         super.onStart();
         // Register with EventBus
+        Log.d(TAG, "onStart: Register with EventBus");
         EventBus.getDefault().register(this);
     }
 
     @Override
     public void onStop() {
         // Unregister from EventBus
+        Log.d(TAG, "onStop: Unregister from EventBus");
         EventBus.getDefault().unregister(this);
         super.onStop();
     }
@@ -169,7 +173,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
             // Show the bar with the current information
             mStatWindow.setVisibility(LinearLayout.VISIBLE);
             // Set the new background color and text for the button
-            mStartStopButton.setBackgroundColor(Color.parseColor("#F76F6F"));
+            mStartStopButton.setBackgroundColor(Color.parseColor("#F76F6F")); // FIXME Port to XML
             mStartStopButton.setText(getString(R.string.stop_run));
             // Move the "my location" button of the map fragment out of the way of the information bar
             mMap.setPadding(0, 200, 0, 0);
@@ -177,25 +181,39 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
             mChrono.setBase(SystemClock.elapsedRealtime());
             mChrono.start();
 
+            // Start GPS tracking service
+            Intent intent = new Intent(getActivity(), GPSTrackingService.class);
+            getActivity().startService(intent);
+
+            Log.d(TAG, "onClick: Started run");
+
         } else if (mStartStopButton.getText().equals(getString(R.string.stop_run))) {
             // The user wants to stop a run
             // Stop the clock
             mChrono.stop();
             // Update the text and color of the button
             mStartStopButton.setText(getString(R.string.reset_run));
-            mStartStopButton.setBackgroundColor(Color.parseColor("#FF656BFF"));
+            mStartStopButton.setBackgroundColor(Color.parseColor("#FF656BFF")); // FIXME Port to XML
+
+            // Stop GPS tracking service
+            Intent intent = new Intent(getActivity(), GPSTrackingService.class);
+            getActivity().stopService(intent);
+
+            Log.d(TAG, "onClick: Stopped run");
 
         } else if (mStartStopButton.getText().equals(getString(R.string.reset_run))) {
             // The user wants to reset the results of a run
             // Hide the information bar
             mStatWindow.setVisibility(LinearLayout.INVISIBLE);
             // Change color and text of the button
-            mStartStopButton.setBackgroundColor(Color.parseColor("#00D05D"));
+            mStartStopButton.setBackgroundColor(Color.parseColor("#00D05D")); // FIXME Port to XML
             mStartStopButton.setText(R.string.start_run);
             // Move the "my location" button back to its original location
             mMap.setPadding(0, 0, 0, 0);
             // Clear all markers and polylines
             mMap.clear();
+
+            Log.d(TAG, "onClick: Reset run results");
         }
     }
 
