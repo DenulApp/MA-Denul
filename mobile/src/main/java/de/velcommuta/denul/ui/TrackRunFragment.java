@@ -1,6 +1,7 @@
 package de.velcommuta.denul.ui;
 
 import android.app.Activity;
+import android.app.usage.UsageEvents;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -134,6 +135,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
                 mCurrentVelocity = savedInstanceState.getFloat(VALUE_CURRENT_VELOCITY);
                 setButtonStateStopped();
                 updateVelocityAndDistanceWidgets();
+                // markFinalPosition();
                 mStatWindow.setVisibility(View.VISIBLE);
                 mChrono.setText(savedInstanceState.getString(VALUE_CURRENT_CHRONO_TEXT));
             }
@@ -229,6 +231,9 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
             Intent intent = new Intent(getActivity(), GPSTrackingService.class);
             getActivity().stopService(intent);
 
+            // Mark final position during the run
+            markFinalPosition();
+
             Log.d(TAG, "onClick: Stopped run");
 
         } else if (mStartStopButton.getText().equals(getString(R.string.reset_run))) {
@@ -303,7 +308,14 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
             Log.e(TAG, "User rejected access to position data");
             // TODO Give indication to the user that GPS tracking will not work without the perm.
         }
-
+        // If the tracking is stopped (but not reset), we are returning from a prior instance.
+        // Since it is not possible to store the PolyLine in the Bundle, we re-request the last
+        // location update to take care of redrawing everything
+        if (isStopped()) {
+            Log.d(TAG, "OnMapReady: Requesting sticky event to redraw path");
+            mLastCheckedIndex = 1;
+            onEventMainThread(EventBus.getDefault().getStickyEvent(GPSLocationEvent.class));
+        }
     }
 
     /**
@@ -317,7 +329,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
 
             // Set icon for start of route
             IconGenerator ig = new IconGenerator(getActivity());
-            ig.setStyle(IconGenerator.STYLE_BLUE);
+            ig.setStyle(IconGenerator.STYLE_GREEN);
             Bitmap startPoint = ig.makeIcon("Start");
             mStartMarker = mMap.addMarker(new MarkerOptions()
                     .icon(BitmapDescriptorFactory.fromBitmap(startPoint))
@@ -350,20 +362,38 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
 
         // Update current distance
-        for (int i=mLastCheckedIndex+1; i < ev.position.size(); i++) {
-            mCurrentDistance = mCurrentDistance + ev.position.get(i).distanceTo(ev.position.get(i-1));
-        }
-        // Calculate average speed
-        // Get elapsed time in minutes
-        float elapsedSeconds = (SystemClock.elapsedRealtime() - mChrono.getBase()) / 1000.0f;
-        // Divide distance in metres by elapsed minutes, multiply with 3.6 to get km/h
-        mCurrentVelocity = (mCurrentDistance / elapsedSeconds) * 3.6f;
+        if (!isStopped()) {
+            for (int i = mLastCheckedIndex + 1; i < ev.position.size(); i++) {
+                mCurrentDistance = mCurrentDistance + ev.position.get(i).distanceTo(ev.position.get(i - 1));
+            }
+            // Calculate average speed
+            // Get elapsed time in minutes
+            float elapsedSeconds = (SystemClock.elapsedRealtime() - mChrono.getBase()) / 1000.0f;
+            // Divide distance in metres by elapsed minutes, multiply with 3.6 to get km/h
+            mCurrentVelocity = (mCurrentDistance / elapsedSeconds) * 3.6f;
 
-        // Update widgets to display the new values
-        updateVelocityAndDistanceWidgets();
+            // Update widgets to display the new values
+            updateVelocityAndDistanceWidgets();
+        } else {
+            markFinalPosition();
+        }
 
         // Update last checked index
         mLastCheckedIndex = ev.position.size()-1;
+    }
+
+    private void markFinalPosition() {
+        // Get final position
+        LatLng finalPos = mPolyLine.getPoints().get(mPolyLine.getPoints().size()-1);
+        // Get Icon Generator
+        IconGenerator ig = new IconGenerator(getActivity());
+        // Set up style
+        ig.setStyle(IconGenerator.STYLE_RED);
+        Bitmap startPoint = ig.makeIcon("Finish");
+        // Create marker
+        mStartMarker = mMap.addMarker(new MarkerOptions()
+                .icon(BitmapDescriptorFactory.fromBitmap(startPoint))
+                .position(finalPos));
     }
 
     private void updateVelocityAndDistanceWidgets() {
@@ -374,6 +404,18 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
             mDistance.setText(String.format(getString(R.string.distance_km), mCurrentDistance / 1000.0f));
         }
         mVelocity.setText(String.format(getString(R.string.velocity_kmh), mCurrentVelocity));
+    }
+
+    private boolean isReset() {
+        return mStartStopButton.getText().equals(getString(R.string.start_run));
+    }
+
+    private boolean isRunning() {
+        return mStartStopButton.getText().equals(getString(R.string.stop_run));
+    }
+
+    private boolean isStopped() {
+        return mStartStopButton.getText().equals(getString(R.string.reset_run));
     }
 
     /**
