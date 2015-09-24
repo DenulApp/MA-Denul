@@ -29,6 +29,8 @@ dependencies {
     compile 'com.github.PhilJay:MPAndroidChart:v2.1.4'
     compile files('libs/sqlcipher.jar')
     compile 'com.google.maps.android:android-maps-utils:0.4+'
+    compile 'de.greenrobot:eventbus:2.4.0'
+    compile 'joda-time:joda-time:2.8.2'
 }
 
 

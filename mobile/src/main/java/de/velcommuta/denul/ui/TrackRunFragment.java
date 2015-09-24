@@ -35,10 +35,11 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
-import com.google.maps.android.ui.BubbleIconFactory;
 import com.google.maps.android.ui.IconGenerator;
 
+import de.greenrobot.event.EventBus;
 import de.velcommuta.denul.R;
+import de.velcommuta.denul.event.GPSLocationEvent;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -111,6 +112,20 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
             throw new ClassCastException(activity.toString()
                     + " must implement OnFragmentInteractionListener");
         }
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        // Register with EventBus
+        EventBus.getDefault().register(this);
+    }
+
+    @Override
+    public void onStop() {
+        // Unregister from EventBus
+        EventBus.getDefault().unregister(this);
+        super.onStop();
     }
 
     @Override
@@ -229,6 +244,14 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
             Log.e(TAG, "User rejected access to position data");
             // TODO Give indication to the user that GPS tracking will not work without the perm.
         }
+    }
+
+    /**
+     * Event Handling function for EventBus. Called on Main (UI) Thread => Allows updating the UI
+     * @param ev A GPSLocationEvent containing the current location and a timestamp
+     */
+    public void onEventMainThread(GPSLocationEvent ev) {
+        // TODO Do something useful
     }
 
     /**

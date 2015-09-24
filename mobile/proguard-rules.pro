@@ -16,3 +16,6 @@
 #   public *;
 #}
 -keep class com.github.mikephil.charting.** { *; }
+-keepclassmembers class ** {
+    public void onEvent*(**);
+}
