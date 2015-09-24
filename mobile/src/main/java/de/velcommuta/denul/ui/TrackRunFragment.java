@@ -25,6 +25,7 @@ import android.view.animation.AnimationSet;
 import android.widget.Button;
 import android.widget.Chronometer;
 import android.widget.LinearLayout;
+import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -62,6 +63,8 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
     private Chronometer mChrono;
 
     private OnFragmentInteractionListener mListener;
+
+    private Polyline mPolyLine;
 
 
     // TODO Lifecycle management
@@ -143,33 +146,6 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
     public void onClick(View v) {
         if (mStartStopButton.getText().equals(getString(R.string.start_run))) {
             // The user wants to start a run
-            // Set a marker at the starting location
-            try {
-                // Get location from GPS if it's available
-                LocationManager lm = (LocationManager) getActivity().getSystemService(Context.LOCATION_SERVICE);
-                Location myLocation = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-
-                // Location wasn't found, check the next most accurate place for the current location
-                // TODO Put this somewhere else, where we will also do the GPS tracking
-                if (myLocation == null) {
-                    Criteria criteria = new Criteria();
-                    criteria.setAccuracy(Criteria.ACCURACY_COARSE);
-                    // Finds a provider that matches the criteria
-                    String provider = lm.getBestProvider(criteria, true);
-                    // Use the provider to get the last known location
-                    myLocation = lm.getLastKnownLocation(provider);
-
-                    IconGenerator ig = new IconGenerator(getActivity());
-                    ig.setStyle(IconGenerator.STYLE_BLUE);
-                    Bitmap startPoint = ig.makeIcon("Start");
-                    mMap.addMarker(new MarkerOptions()
-                            .icon(BitmapDescriptorFactory.fromBitmap(startPoint))
-                            .position(new LatLng(myLocation.getLatitude(), myLocation.getLongitude())));
-                }
-            } catch (SecurityException e) {
-                Log.w(TAG, "onClick: User rejected Location permission :(");
-            }
-
             // Show the bar with the current information
             mStatWindow.setVisibility(LinearLayout.VISIBLE);
             // Set the new background color and text for the button
@@ -269,7 +245,26 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
      * @param ev A GPSLocationEvent containing the current location and a timestamp
      */
     public void onEventMainThread(GPSLocationEvent ev) {
-        // TODO Do something useful
+        if (ev.isInitial && ev.position.size() == 1) {
+            // Set icon for start of route
+            IconGenerator ig = new IconGenerator(getActivity());
+            ig.setStyle(IconGenerator.STYLE_BLUE);
+            Bitmap startPoint = ig.makeIcon("Start");
+            mMap.addMarker(new MarkerOptions()
+                    .icon(BitmapDescriptorFactory.fromBitmap(startPoint))
+                    .position(ev.position.get(0)));
+        }
+        if (mPolyLine == null) {
+            // Set first element of polyline
+            PolylineOptions poptions = new PolylineOptions();
+            for (LatLng l : ev.position) {
+                poptions.add(l);
+            }
+            mPolyLine = mMap.addPolyline(poptions);
+        } else {
+            // Update PolyLine with new points (can only be done through complete refresh, sadly)
+            mPolyLine.setPoints(ev.position);
+        }
     }
 
     /**
