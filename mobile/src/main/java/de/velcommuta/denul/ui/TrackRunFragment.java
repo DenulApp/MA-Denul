@@ -28,6 +28,7 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
@@ -49,40 +50,43 @@ import de.velcommuta.denul.service.GPSTrackingService;
  * create an instance of this fragment.
  */
 public class TrackRunFragment extends Fragment implements OnMapReadyCallback, View.OnClickListener {
+    // Debugging Tag
     private static final String TAG = "TrackRunFragment";
 
-    private MapFragment mMapFragment;
     private GoogleMap mMap;
+    private Polyline mPolyLine;
+    private Marker mStartMarker;
 
+    // GUI elements
     private Button mStartStopButton;
     private LinearLayout mStatWindow;
     private Chronometer mChrono;
     private TextView mVelocity;
     private TextView mDistance;
 
+    // State variables
     private int mLastCheckedIndex;
     private float mCurrentDistance;
     private float mCurrentVelocity;
 
+    // Identifier Strings for Bundle
+    public static final String VALUE_RUN_ACTIVE          = "value-run-active";
+    public static final String VALUE_LAST_CHECKED_INDEX  = "value-last-checked-index";
+    public static final String VALUE_CURRENT_DISTANCE    = "value-current-distance";
+    public static final String VALUE_CURRENT_VELOCITY    = "value-current-velocity";
+    public static final String VALUE_CURRENT_CHRONO_BASE = "value-current-chrono-base";
+    public static final String VALUE_CURRENT_CHRONO_TEXT = "value-current-chrono-text";
 
     private OnFragmentInteractionListener mListener;
 
-    private Polyline mPolyLine;
 
-
-    // TODO Lifecycle management
-    ////////// Housekeeping functions (onCreate etc)
     /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @return A new instance of fragment TrackRunFragment.
+     * Factory method to create new instances of this fragment
+     * @return an instance of the fragment
      */
     public static TrackRunFragment newInstance() {
-        TrackRunFragment fragment = new TrackRunFragment();
-        Bundle args = new Bundle();
-        fragment.setArguments(args);
-        return fragment;
+        return new TrackRunFragment();
+
     }
 
     public TrackRunFragment() {
@@ -101,8 +105,8 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         View v = inflater.inflate(R.layout.fragment_track_run, container, false);
 
         // Get a reference to the Map fragment and perform an async. initialization
-        mMapFragment = (MapFragment) getChildFragmentManager().findFragmentById(R.id.gmaps);
-        mMapFragment.getMapAsync(this);
+        MapFragment mapFragment = (MapFragment) getChildFragmentManager().findFragmentById(R.id.gmaps);
+        mapFragment.getMapAsync(this);
 
         // Grab references to UI elements
         mStartStopButton = (Button)       v.findViewById(R.id.actionbutton);
@@ -113,6 +117,27 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
 
         // Set up this fragment as the OnClickListener of the start/stop/reset button
         mStartStopButton.setOnClickListener(this);
+        if (savedInstanceState != null) {
+            Log.d(TAG, "onCreate: SavedInstanceState is not empty, restoring.");
+            if (savedInstanceState.getString(VALUE_RUN_ACTIVE).equals(getString(R.string.stop_run))) {
+                mLastCheckedIndex = savedInstanceState.getInt(VALUE_LAST_CHECKED_INDEX);
+                mCurrentDistance = savedInstanceState.getFloat(VALUE_CURRENT_DISTANCE);
+                mCurrentVelocity = savedInstanceState.getFloat(VALUE_CURRENT_VELOCITY);
+                setButtonStateStarted();
+                updateVelocityAndDistanceWidgets();
+                mChrono.setBase(savedInstanceState.getLong(VALUE_CURRENT_CHRONO_BASE));
+                mChrono.start();
+                mStatWindow.setVisibility(View.VISIBLE);
+            } else if (savedInstanceState.getString(VALUE_RUN_ACTIVE).equals(getString(R.string.reset_run))) {
+                mLastCheckedIndex = savedInstanceState.getInt(VALUE_LAST_CHECKED_INDEX);
+                mCurrentDistance = savedInstanceState.getFloat(VALUE_CURRENT_DISTANCE);
+                mCurrentVelocity = savedInstanceState.getFloat(VALUE_CURRENT_VELOCITY);
+                setButtonStateStopped();
+                updateVelocityAndDistanceWidgets();
+                mStatWindow.setVisibility(View.VISIBLE);
+                mChrono.setText(savedInstanceState.getString(VALUE_CURRENT_CHRONO_TEXT));
+            }
+        }
 
         return v;
     }
@@ -153,6 +178,24 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         mListener = null;
     }
 
+    @Override
+    public void onSaveInstanceState(Bundle state) {
+        super.onSaveInstanceState(state);
+        Log.d(TAG, "onSaveInstanceState: We've been asked to save instance state. Complying");
+        // Save if we are currently tracking a run
+        state.putString(VALUE_RUN_ACTIVE, mStartStopButton.getText().toString());
+        // Save last seen index
+        state.putInt(VALUE_LAST_CHECKED_INDEX, mLastCheckedIndex);
+        // Save current distance and average velocity
+        state.putFloat(VALUE_CURRENT_DISTANCE, mCurrentDistance);
+        state.putFloat(VALUE_CURRENT_VELOCITY, mCurrentVelocity);
+        if (mStartStopButton.getText().equals(getString(R.string.reset_run))) {
+            state.putString(VALUE_CURRENT_CHRONO_TEXT, mChrono.getText().toString());
+        } else {
+            state.putLong(VALUE_CURRENT_CHRONO_BASE, mChrono.getBase());
+        }
+    }
+
     /////////// End of housekeeping functions
     @Override
     public void onClick(View v) {
@@ -160,9 +203,8 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
             // The user wants to start a run
             // Show the bar with the current information
             mStatWindow.setVisibility(LinearLayout.VISIBLE);
-            // Set the new background color and text for the button
-            mStartStopButton.setBackgroundColor(Color.parseColor("#F76F6F")); // FIXME Port to XML
-            mStartStopButton.setText(getString(R.string.stop_run));
+            // Set up button
+            setButtonStateStarted();
             // Move the "my location" button of the map fragment out of the way of the information bar
             mMap.setPadding(0, 200, 0, 0);
             // Reset the timer and start it
@@ -172,6 +214,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
             // Start GPS tracking service
             Intent intent = new Intent(getActivity(), GPSTrackingService.class);
             getActivity().startService(intent);
+            // TODO Convert to foreground service w/ notification
 
             Log.d(TAG, "onClick: Started run");
 
@@ -179,9 +222,8 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
             // The user wants to stop a run
             // Stop the clock
             mChrono.stop();
-            // Update the text and color of the button
-            mStartStopButton.setText(getString(R.string.reset_run));
-            mStartStopButton.setBackgroundColor(Color.parseColor("#FF656BFF")); // FIXME Port to XML
+            // Set up button
+            setButtonStateStopped();
 
             // Stop GPS tracking service
             Intent intent = new Intent(getActivity(), GPSTrackingService.class);
@@ -193,20 +235,38 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
             // The user wants to reset the results of a run
             // Hide the information bar
             mStatWindow.setVisibility(LinearLayout.INVISIBLE);
-            // Change color and text of the button
-            mStartStopButton.setBackgroundColor(Color.parseColor("#00D05D")); // FIXME Port to XML
-            mStartStopButton.setText(R.string.start_run);
+            // Set up button
+            setButtonStateReset();
             // Move the "my location" button back to its original location
             mMap.setPadding(0, 0, 0, 0);
             // Clear all markers and polylines
             mMap.clear();
             mPolyLine = null;
+            mStartMarker = null;
             mCurrentVelocity = 0;
             mCurrentDistance = 0;
             mLastCheckedIndex = 0;
 
-            Log.d(TAG, "onClick: Reset run results");
+            Log.d(TAG, "onClick: Reset results");
         }
+    }
+
+    private void setButtonStateStarted() {
+        // Set the new background color and text for the button
+        mStartStopButton.setBackgroundColor(Color.parseColor("#F76F6F")); // FIXME Port to XML
+        mStartStopButton.setText(getString(R.string.stop_run));
+    }
+
+    private void setButtonStateStopped() {
+        // Update the text and color of the button
+        mStartStopButton.setText(getString(R.string.reset_run));
+        mStartStopButton.setBackgroundColor(Color.parseColor("#FF656BFF")); // FIXME Port to XML
+    }
+
+    private void setButtonStateReset() {
+        // Change color and text of the button
+        mStartStopButton.setBackgroundColor(Color.parseColor("#00D05D")); // FIXME Port to XML
+        mStartStopButton.setText(R.string.start_run);
     }
 
     @Override
@@ -252,16 +312,17 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
      */
     public void onEventMainThread(GPSLocationEvent ev) {
         Log.d(TAG, "onEventMainThread: Received update, updating map");
-        if (ev.isInitial && ev.position.size() == 1) {
+        if (mStartMarker == null) {
             Location start = ev.position.get(0);
 
             // Set icon for start of route
             IconGenerator ig = new IconGenerator(getActivity());
             ig.setStyle(IconGenerator.STYLE_BLUE);
             Bitmap startPoint = ig.makeIcon("Start");
-            mMap.addMarker(new MarkerOptions()
+            mStartMarker = mMap.addMarker(new MarkerOptions()
                     .icon(BitmapDescriptorFactory.fromBitmap(startPoint))
                     .position(new LatLng(start.getLatitude(), start.getLongitude())));
+
         }
         if (mPolyLine == null) {
             // Set first element of polyline
@@ -297,6 +358,15 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         float elapsedSeconds = (SystemClock.elapsedRealtime() - mChrono.getBase()) / 1000.0f;
         // Divide distance in metres by elapsed minutes, multiply with 3.6 to get km/h
         mCurrentVelocity = (mCurrentDistance / elapsedSeconds) * 3.6f;
+
+        // Update widgets to display the new values
+        updateVelocityAndDistanceWidgets();
+
+        // Update last checked index
+        mLastCheckedIndex = ev.position.size()-1;
+    }
+
+    private void updateVelocityAndDistanceWidgets() {
         // Update Velocity and Distance widgets
         if (mCurrentDistance < 1000) {
             mDistance.setText(String.format(getString(R.string.distance_m), (int) mCurrentDistance));
@@ -304,9 +374,6 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
             mDistance.setText(String.format(getString(R.string.distance_km), mCurrentDistance / 1000.0f));
         }
         mVelocity.setText(String.format(getString(R.string.velocity_kmh), mCurrentVelocity));
-
-        // Update last checked index
-        mLastCheckedIndex = ev.position.size()-1;
     }
 
     /**
