@@ -19,6 +19,7 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.Chronometer;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -54,6 +55,8 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
     private Button mStartStopButton;
     private LinearLayout mStatWindow;
     private Chronometer mChrono;
+    private TextView mVelocity;
+    private TextView mDistance;
 
     private OnFragmentInteractionListener mListener;
 
@@ -94,10 +97,16 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         mMapFragment = (MapFragment) getChildFragmentManager().findFragmentById(R.id.gmaps);
         mMapFragment.getMapAsync(this);
 
-        mStartStopButton = (Button) v.findViewById(R.id.actionbutton);
+        // Grab references to UI elements
+        mStartStopButton = (Button)       v.findViewById(R.id.actionbutton);
+        mStatWindow      = (LinearLayout) v.findViewById(R.id.statwindow);
+        mChrono          = (Chronometer)  v.findViewById(R.id.timer);
+        mVelocity        = (TextView)     v.findViewById(R.id.speedfield);
+        mDistance        = (TextView)     v.findViewById(R.id.distancefield);
+
+        // Set up this fragment as the OnClickListener of the start/stop/reset button
         mStartStopButton.setOnClickListener(this);
-        mStatWindow = (LinearLayout) v.findViewById(R.id.statwindow);
-        mChrono = (Chronometer) v.findViewById(R.id.timer);
+
         return v;
     }
 
@@ -115,8 +124,11 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
     @Override
     public void onStart() {
         super.onStart();
-        // Register with EventBus
-        Log.d(TAG, "onStart: Register with EventBus");
+        // Theoretically, we would register with EventBus here. However, since we are using sticky
+        // events, this could lead to race conditions between the EventBus and the MapFragment.
+        // Hence, we register in the onMapReady function.
+        // Register with EventBus, for the reasons outlined in the onStart-Method
+        Log.i(TAG, "onMapReady: Registering with EventBus");
         EventBus.getDefault().register(this);
     }
 
@@ -181,6 +193,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
             mMap.setPadding(0, 0, 0, 0);
             // Clear all markers and polylines
             mMap.clear();
+            mPolyLine = null;
 
             Log.d(TAG, "onClick: Reset run results");
         }
@@ -220,6 +233,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
             Log.e(TAG, "User rejected access to position data");
             // TODO Give indication to the user that GPS tracking will not work without the perm.
         }
+
     }
 
     /**
@@ -227,6 +241,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
      * @param ev A GPSLocationEvent containing the current location and a timestamp
      */
     public void onEventMainThread(GPSLocationEvent ev) {
+        Log.d(TAG, "onEventMainThread: Received update, updating map");
         if (ev.isInitial && ev.position.size() == 1) {
             // Set icon for start of route
             IconGenerator ig = new IconGenerator(getActivity());
@@ -247,6 +262,10 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
             // Update PolyLine with new points (can only be done through complete refresh, sadly)
             mPolyLine.setPoints(ev.position);
         }
+
+        // TODO Center Camera on new position / setup camera to follow user
+        // TODO Calculate and update distance
+        // TODO Calculate and update speed
     }
 
     /**

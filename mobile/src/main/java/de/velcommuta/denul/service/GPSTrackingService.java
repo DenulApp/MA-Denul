@@ -162,7 +162,7 @@ public class GPSTrackingService extends Service {
             if (mPoints.isEmpty()) {
                 mPoints.add(new LatLng(cLoc.getLatitude(), cLoc.getLongitude()));
                 mTimes.add(Instant.now());
-                EventBus.getDefault().post(new GPSLocationEvent(mPoints, mTimes, true));
+                EventBus.getDefault().postSticky(new GPSLocationEvent(mPoints, mTimes, true));
             } else {
                 addLocationAndNotify(cLoc);
             }
@@ -191,7 +191,7 @@ public class GPSTrackingService extends Service {
             Log.d(TAG, "addLocationAndNotify: Sending new location to UI Thread");
             mPoints.add(new LatLng(location.getLatitude(), location.getLongitude()));
             mTimes.add(Instant.now());
-            EventBus.getDefault().post(new GPSLocationEvent(mPoints, mTimes));
+            EventBus.getDefault().postSticky(new GPSLocationEvent(mPoints, mTimes));
         }
 
 
