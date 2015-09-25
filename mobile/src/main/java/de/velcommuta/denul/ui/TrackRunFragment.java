@@ -2,6 +2,8 @@ package de.velcommuta.denul.ui;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
+import android.animation.ArgbEvaluator;
+import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.app.usage.UsageEvents;
 import android.content.Context;
@@ -119,12 +121,12 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         if (savedInstanceState != null) {
             Log.d(TAG, "onCreate: SavedInstanceState is not empty, restoring.");
             if (savedInstanceState.getString(VALUE_RUN_ACTIVE).equals(getString(R.string.stop_run))) {
-                setButtonStateStarted();
+                setButtonStateStarted(false);
                 mChrono.setBase(savedInstanceState.getLong(VALUE_CURRENT_CHRONO_BASE));
                 mChrono.start();
                 showStatPanel(false);
             } else if (savedInstanceState.getString(VALUE_RUN_ACTIVE).equals(getString(R.string.reset_run))) {
-                setButtonStateStopped();
+                setButtonStateStopped(false);
                 // markFinalPosition();
                 showStatPanel(false);
                 mChrono.setText(savedInstanceState.getString(VALUE_CURRENT_CHRONO_TEXT));
@@ -191,7 +193,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
             // Show the bar with the current information
             showStatPanel(true);
             // Set up button
-            setButtonStateStarted();
+            setButtonStateStarted(true);
             // Move the "my location" button of the map fragment out of the way of the information bar
             mMap.setPadding(0, 200, 0, 0);
             // Reset the timer and start it
@@ -210,7 +212,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
             // Stop the clock
             mChrono.stop();
             // Set up button
-            setButtonStateStopped();
+            setButtonStateStopped(true);
 
             // Stop GPS tracking service
             Intent intent = new Intent(getActivity(), GPSTrackingService.class);
@@ -226,7 +228,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
             // Hide the information bar
             hideStatPanel(true);
             // Set up button
-            setButtonStateReset();
+            setButtonStateReset(true);
             // Move the "my location" button back to its original location
             mMap.setPadding(0, 0, 0, 0);
             // Clear all markers and polylines
@@ -241,22 +243,71 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         }
     }
 
-    private void setButtonStateStarted() {
-        // Set the new background color and text for the button
-        mStartStopButton.setBackgroundColor(Color.parseColor("#F76F6F")); // FIXME Port to XML
-        mStartStopButton.setText(R.string.stop_run);
+    private void setButtonStateStarted(boolean animated) {
+        if (animated) {
+            Integer colorOld = Color.parseColor("#00D05D"); // FIXME Port to XML
+            Integer colorNew = Color.parseColor("#F76F6F"); // FIXME Port to XML
+            ValueAnimator colorAnimation = ValueAnimator.ofObject(new ArgbEvaluator(), colorOld, colorNew);
+            colorAnimation.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+
+                @Override
+                public void onAnimationUpdate(ValueAnimator animator) {
+                    mStartStopButton.setBackgroundColor((Integer)animator.getAnimatedValue());
+                }
+
+            });
+            colorAnimation.start();
+            mStartStopButton.setText(R.string.stop_run);
+        } else {
+            // Set the new background color and text for the button
+            mStartStopButton.setBackgroundColor(Color.parseColor("#F76F6F")); // FIXME Port to XML
+            mStartStopButton.setText(R.string.stop_run);
+        }
     }
 
-    private void setButtonStateStopped() {
-        // Update the text and color of the button
-        mStartStopButton.setText(R.string.reset_run);
-        mStartStopButton.setBackgroundColor(Color.parseColor("#FF656BFF")); // FIXME Port to XML
+    private void setButtonStateStopped(boolean animated) {
+        if (animated) {
+            Integer colorOld = Color.parseColor("#F76F6F"); // FIXME Port to XML
+            Integer colorNew = Color.parseColor("#656BFF"); // FIXME Port to XML
+            ValueAnimator colorAnimation = ValueAnimator.ofObject(new ArgbEvaluator(), colorOld, colorNew);
+            colorAnimation.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+
+                @Override
+                public void onAnimationUpdate(ValueAnimator animator) {
+                    mStartStopButton.setBackgroundColor((Integer)animator.getAnimatedValue());
+                }
+
+            });
+            colorAnimation.start();
+            mStartStopButton.setText(R.string.reset_run);
+        } else {
+            // Update the text and color of the button
+            mStartStopButton.setText(R.string.reset_run);
+            mStartStopButton.setBackgroundColor(Color.parseColor("#656BFF")); // FIXME Port to XML
+        }
     }
 
-    private void setButtonStateReset() {
-        // Change color and text of the button
-        mStartStopButton.setBackgroundColor(Color.parseColor("#00D05D")); // FIXME Port to XML
-        mStartStopButton.setText(R.string.start_run);
+    private void setButtonStateReset(boolean animated) {
+        if (animated) {
+            Integer colorOld = Color.parseColor("#656BFF"); // FIXME Port to XML
+            Integer colorNew = Color.parseColor("#00D05D"); // FIXME Port to XML
+            ValueAnimator colorAnimation = ValueAnimator.ofObject(new ArgbEvaluator(), colorOld, colorNew);
+            colorAnimation.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+
+                @Override
+                public void onAnimationUpdate(ValueAnimator animator) {
+                    mStartStopButton.setBackgroundColor((Integer)animator.getAnimatedValue());
+                }
+
+            });
+            colorAnimation.start();
+            mStartStopButton.setText(R.string.start_run);
+        } else {
+            // Change color and text of the button
+            mStartStopButton.setBackgroundColor(Color.parseColor("#00D05D")); // FIXME Port to XML
+            mStartStopButton.setText(R.string.start_run);
+        }
+
     }
 
     private void showStatPanel(boolean animated) {
