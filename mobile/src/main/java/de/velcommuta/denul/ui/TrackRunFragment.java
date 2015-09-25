@@ -1,5 +1,7 @@
 package de.velcommuta.denul.ui;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
 import android.app.Activity;
 import android.app.usage.UsageEvents;
 import android.content.Context;
@@ -120,11 +122,11 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
                 setButtonStateStarted();
                 mChrono.setBase(savedInstanceState.getLong(VALUE_CURRENT_CHRONO_BASE));
                 mChrono.start();
-                mStatWindow.setVisibility(View.VISIBLE);
+                showStatPanel(false);
             } else if (savedInstanceState.getString(VALUE_RUN_ACTIVE).equals(getString(R.string.reset_run))) {
                 setButtonStateStopped();
                 // markFinalPosition();
-                mStatWindow.setVisibility(View.VISIBLE);
+                showStatPanel(false);
                 mChrono.setText(savedInstanceState.getString(VALUE_CURRENT_CHRONO_TEXT));
             }
         }
@@ -187,7 +189,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         if (mStartStopButton.getText().equals(getString(R.string.start_run))) {
             // The user wants to start a run
             // Show the bar with the current information
-            mStatWindow.setVisibility(LinearLayout.VISIBLE);
+            showStatPanel(true);
             // Set up button
             setButtonStateStarted();
             // Move the "my location" button of the map fragment out of the way of the information bar
@@ -222,7 +224,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         } else if (mStartStopButton.getText().equals(getString(R.string.reset_run))) {
             // The user wants to reset the results of a run
             // Hide the information bar
-            mStatWindow.setVisibility(LinearLayout.INVISIBLE);
+            hideStatPanel(true);
             // Set up button
             setButtonStateReset();
             // Move the "my location" button back to its original location
@@ -242,12 +244,12 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
     private void setButtonStateStarted() {
         // Set the new background color and text for the button
         mStartStopButton.setBackgroundColor(Color.parseColor("#F76F6F")); // FIXME Port to XML
-        mStartStopButton.setText(getString(R.string.stop_run));
+        mStartStopButton.setText(R.string.stop_run);
     }
 
     private void setButtonStateStopped() {
         // Update the text and color of the button
-        mStartStopButton.setText(getString(R.string.reset_run));
+        mStartStopButton.setText(R.string.reset_run);
         mStartStopButton.setBackgroundColor(Color.parseColor("#FF656BFF")); // FIXME Port to XML
     }
 
@@ -255,6 +257,47 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         // Change color and text of the button
         mStartStopButton.setBackgroundColor(Color.parseColor("#00D05D")); // FIXME Port to XML
         mStartStopButton.setText(R.string.start_run);
+    }
+
+    private void showStatPanel(boolean animated) {
+        if (animated) {
+            mStatWindow.setTranslationY(-mStatWindow.getHeight());
+            mStatWindow.setVisibility(View.VISIBLE);
+            mStatWindow.setAlpha(0.0f);
+
+            mStatWindow.animate()
+                    .translationY(0)
+                    .alpha(1.0f)
+                    .setListener(new AnimatorListenerAdapter() {
+                        @Override
+                        public void onAnimationEnd(Animator animation) {
+                            super.onAnimationEnd(animation);
+                            mStatWindow.setAlpha(1.0f);
+                        }
+                    });
+        } else {
+            mStatWindow.setTranslationY(0);
+            mStatWindow.setVisibility(LinearLayout.VISIBLE);
+        }
+    }
+
+    private void hideStatPanel(boolean animated) {
+        if (animated) {
+            mStatWindow.animate()
+                    .translationY(-mStatWindow.getHeight())
+                    .alpha(0.0f)
+                    .setListener(new AnimatorListenerAdapter() {
+                        @Override
+                        public void onAnimationEnd(Animator animation) {
+                            super.onAnimationEnd(animation);
+                            mStatWindow.setVisibility(View.INVISIBLE);
+                            mStatWindow.setAlpha(1.0f);
+                        }
+                    });
+
+        } else {
+            mStatWindow.setVisibility(LinearLayout.INVISIBLE);
+        }
     }
 
     @Override
@@ -280,12 +323,14 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
                 // Use the provider to get the last known location
                 myLocation = lm.getLastKnownLocation(provider);
             }
-            CameraPosition cameraPosition = new CameraPosition.Builder()
-                    .target(new LatLng(myLocation.getLatitude(), myLocation.getLongitude()))      // Sets the center of the map to location user
-                    .zoom(17)                   // Sets the zoom
-                    .build();                   // Creates a CameraPosition from the builder
+            if (myLocation != null) {
+                CameraPosition cameraPosition = new CameraPosition.Builder()
+                        .target(new LatLng(myLocation.getLatitude(), myLocation.getLongitude()))      // Sets the center of the map to location user
+                        .zoom(17)                   // Sets the zoom
+                        .build();                   // Creates a CameraPosition from the builder
 
-            mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
+                mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
+            }
 
         } catch (SecurityException e) {
             Log.e(TAG, "User rejected access to position data");
@@ -299,7 +344,10 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
             mLastCheckedIndex = 0;
             mCurrentDistance = 0;
             mCurrentVelocity = 0;
-            onEventMainThread(EventBus.getDefault().getStickyEvent(GPSLocationEvent.class));
+            GPSLocationEvent ev = EventBus.getDefault().getStickyEvent(GPSLocationEvent.class);
+            if (ev != null) {
+                onEventMainThread(ev);
+            }
             if (isStopped()) {
                 markFinalPosition();
             }
