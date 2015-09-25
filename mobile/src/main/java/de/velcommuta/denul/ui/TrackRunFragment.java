@@ -64,6 +64,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
 
     // GUI elements
     private Button mStartStopButton;
+    private LinearLayout mStatButtonPanel;
     private LinearLayout mStatWindow;
     private Chronometer mChrono;
     private TextView mVelocity;
@@ -112,9 +113,11 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         // Grab references to UI elements
         mStartStopButton = (Button)       v.findViewById(R.id.actionbutton);
         mStatWindow      = (LinearLayout) v.findViewById(R.id.statwindow);
+        mStatButtonPanel = (LinearLayout) v.findViewById(R.id.stat_button_panel);
         mChrono          = (Chronometer)  v.findViewById(R.id.timer);
         mVelocity        = (TextView)     v.findViewById(R.id.speedfield);
         mDistance        = (TextView)     v.findViewById(R.id.distancefield);
+
 
         // Set up this fragment as the OnClickListener of the start/stop/reset button
         mStartStopButton.setOnClickListener(this);
@@ -262,6 +265,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
             // Set the new background color and text for the button
             mStartStopButton.setBackgroundColor(Color.parseColor("#F76F6F")); // FIXME Port to XML
             mStartStopButton.setText(R.string.stop_run);
+            mStatButtonPanel.setVisibility(View.VISIBLE);
         }
     }
 
@@ -274,11 +278,31 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
 
                 @Override
                 public void onAnimationUpdate(ValueAnimator animator) {
-                    mStartStopButton.setBackgroundColor((Integer)animator.getAnimatedValue());
+                    mStartStopButton.setBackgroundColor((Integer) animator.getAnimatedValue());
                 }
 
             });
             colorAnimation.start();
+
+            // TODO Figure out why the first slide looks different than the others
+            // TODO Move or remove the "my position" button
+            // TODO Fix orientation change problems
+            mStatButtonPanel.setVisibility(View.VISIBLE);
+            mStatButtonPanel.setTranslationY(-mStatButtonPanel.getHeight());
+            mStatButtonPanel.setAlpha(0.0f);
+            mStatButtonPanel.setTranslationZ(-1.0f);
+            mStatButtonPanel.animate()
+                    .translationY(0)
+                    .alpha(1.0f)
+                    .translationZ(mStatWindow.getTranslationZ())
+                    .setListener(new AnimatorListenerAdapter() {
+                        @Override
+                        public void onAnimationEnd(Animator animation) {
+                            super.onAnimationEnd(animation);
+                            mStatButtonPanel.setAlpha(1.0f);
+                            mStatButtonPanel.setTranslationZ(mStatWindow.getTranslationZ());
+                        }
+                    });
             mStartStopButton.setText(R.string.reset_run);
         } else {
             // Update the text and color of the button
@@ -328,7 +352,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
                     });
         } else {
             mStatWindow.setTranslationY(0);
-            mStatWindow.setVisibility(LinearLayout.VISIBLE);
+            mStatWindow.setVisibility(View.VISIBLE);
         }
     }
 
@@ -345,9 +369,20 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
                             mStatWindow.setAlpha(1.0f);
                         }
                     });
-
+            mStatButtonPanel.animate()
+                    .translationY(-(mStatButtonPanel.getHeight()+mStatWindow.getHeight()))
+                    .alpha(0.0f)
+                    .translationZ(-1.0f)
+                    .setListener(new AnimatorListenerAdapter() {
+                        @Override
+                        public void onAnimationEnd(Animator animation) {
+                            super.onAnimationEnd(animation);
+                            mStatButtonPanel.setVisibility(View.GONE);
+                        }
+                    });
         } else {
-            mStatWindow.setVisibility(LinearLayout.INVISIBLE);
+            mStatWindow.setVisibility(View.INVISIBLE);
+            mStatButtonPanel.setVisibility(View.GONE);
         }
     }
 

@@ -31,97 +31,135 @@
             android:layout_margin="4dp" />
 
         <LinearLayout
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
-            android:layout_gravity="top|center_horizontal"
-            android:background="@drawable/background_rect"
-            android:elevation="4dp"
-            android:padding="4dp"
-            android:layout_margin="4dp"
-            android:visibility="invisible"
-            android:id="@+id/statwindow"
-            android:orientation="horizontal">
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
 
             <LinearLayout
-                android:orientation="vertical"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1">
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top|center_horizontal"
+                android:background="@drawable/background_rect"
+                android:elevation="4dp"
+                android:visibility="invisible"
+                android:id="@+id/statwindow"
+                android:orientation="horizontal"
+                android:layout_marginLeft="4dp"
+                android:layout_marginTop="4dp"
+                android:layout_marginRight="4dp"
+                android:paddingLeft="4dp"
+                android:paddingTop="4dp"
+                android:paddingRight="4dp"
+                android:translationZ="2dp">
 
-                <TextView
+                <LinearLayout
+                    android:orientation="vertical"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+
+                    <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textAppearance="?android:attr/textAppearanceMedium"
+                            android:text="Distance"
+                            android:id="@+id/distanceheader"
+                            android:layout_weight="1"
+                            android:layout_gravity="left" />
+
+                    <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textAppearance="?android:attr/textAppearanceSmall"
+                            android:text="-"
+                            android:id="@+id/distancefield"
+                            android:layout_column="1"
+                            android:layout_weight="1" />
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:orientation="vertical"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="2"
+                    android:layout_gravity="center">
+
+                    <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textAppearance="?android:attr/textAppearanceLarge"
+                            android:text="Current Time"
+                            android:id="@+id/timeheader"
+                            android:layout_gravity="center"
+                            android:layout_weight="1"
+                            android:layout_column="1" />
+
+                    <Chronometer
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textAppearance="?android:attr/textAppearanceMedium"
-                        android:text="Distance"
-                        android:id="@+id/distanceheader"
-                        android:layout_weight="1"
-                        android:layout_gravity="left" />
-
-                <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textAppearance="?android:attr/textAppearanceSmall"
-                        android:text="-"
-                        android:id="@+id/distancefield"
-                        android:layout_column="1"
-                        android:layout_weight="1" />
-
-            </LinearLayout>
-
-            <LinearLayout
-                android:orientation="vertical"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="2"
-                android:layout_gravity="center">
-
-                <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textAppearance="?android:attr/textAppearanceLarge"
-                        android:text="Current Time"
-                        android:id="@+id/timeheader"
+                        android:id="@+id/timer"
                         android:layout_gravity="center"
-                        android:layout_weight="1"
-                        android:layout_column="1" />
-
-                <Chronometer
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:id="@+id/timer"
-                    android:layout_gravity="center"
-                    android:textAppearance="?android:attr/textAppearanceMedium"
-                    android:textColor="#000000" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:orientation="vertical"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1">
-
-                <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
                         android:textAppearance="?android:attr/textAppearanceMedium"
-                        android:text="Speed"
-                        android:id="@+id/speedheader"
-                        android:layout_column="3"
-                        android:layout_weight="1"
+                        android:textColor="#000000" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:orientation="vertical"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1">
+
+                    <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textAppearance="?android:attr/textAppearanceMedium"
+                            android:text="Speed"
+                            android:id="@+id/speedheader"
+                            android:layout_column="3"
+                            android:layout_weight="1"
+                            android:layout_gravity="right" />
+
+                    <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textAppearance="?android:attr/textAppearanceSmall"
+                            android:text="-"
+                            android:id="@+id/speedfield"
+                            android:layout_column="3"
+                            android:layout_weight="1"
                         android:layout_gravity="right" />
 
-                <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textAppearance="?android:attr/textAppearanceSmall"
-                        android:text="-"
-                        android:id="@+id/speedfield"
-                        android:layout_column="3"
-                        android:layout_weight="1"
-                    android:layout_gravity="right" />
+                </LinearLayout>
 
+            </LinearLayout>
+
+            <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/background_rect"
+                android:layout_marginLeft="4dp"
+                android:layout_marginRight="4dp"
+                android:layout_marginBottom="4dp"
+                android:elevation="4dp"
+                android:paddingLeft="4dp"
+                android:paddingRight="4dp"
+                android:paddingBottom="4dp"
+                android:visibility="gone"
+                android:id="@+id/stat_button_panel"
+                android:translationZ="2dp">
+
+                <Button
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="Save run"
+                    android:id="@+id/save_run_btn"
+                    android:layout_weight="1"
+                    android:background="#00D05D" />
             </LinearLayout>
 
         </LinearLayout>
+
     </FrameLayout>
 </RelativeLayout>
