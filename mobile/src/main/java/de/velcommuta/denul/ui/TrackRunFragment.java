@@ -72,9 +72,6 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
 
     // Identifier Strings for Bundle
     public static final String VALUE_RUN_ACTIVE          = "value-run-active";
-    public static final String VALUE_LAST_CHECKED_INDEX  = "value-last-checked-index";
-    public static final String VALUE_CURRENT_DISTANCE    = "value-current-distance";
-    public static final String VALUE_CURRENT_VELOCITY    = "value-current-velocity";
     public static final String VALUE_CURRENT_CHRONO_BASE = "value-current-chrono-base";
     public static final String VALUE_CURRENT_CHRONO_TEXT = "value-current-chrono-text";
 
@@ -87,7 +84,6 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
      */
     public static TrackRunFragment newInstance() {
         return new TrackRunFragment();
-
     }
 
     public TrackRunFragment() {
@@ -121,20 +117,12 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         if (savedInstanceState != null) {
             Log.d(TAG, "onCreate: SavedInstanceState is not empty, restoring.");
             if (savedInstanceState.getString(VALUE_RUN_ACTIVE).equals(getString(R.string.stop_run))) {
-                mLastCheckedIndex = savedInstanceState.getInt(VALUE_LAST_CHECKED_INDEX);
-                mCurrentDistance = savedInstanceState.getFloat(VALUE_CURRENT_DISTANCE);
-                mCurrentVelocity = savedInstanceState.getFloat(VALUE_CURRENT_VELOCITY);
                 setButtonStateStarted();
-                updateVelocityAndDistanceWidgets();
                 mChrono.setBase(savedInstanceState.getLong(VALUE_CURRENT_CHRONO_BASE));
                 mChrono.start();
                 mStatWindow.setVisibility(View.VISIBLE);
             } else if (savedInstanceState.getString(VALUE_RUN_ACTIVE).equals(getString(R.string.reset_run))) {
-                mLastCheckedIndex = savedInstanceState.getInt(VALUE_LAST_CHECKED_INDEX);
-                mCurrentDistance = savedInstanceState.getFloat(VALUE_CURRENT_DISTANCE);
-                mCurrentVelocity = savedInstanceState.getFloat(VALUE_CURRENT_VELOCITY);
                 setButtonStateStopped();
-                updateVelocityAndDistanceWidgets();
                 // markFinalPosition();
                 mStatWindow.setVisibility(View.VISIBLE);
                 mChrono.setText(savedInstanceState.getString(VALUE_CURRENT_CHRONO_TEXT));
@@ -186,11 +174,6 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         Log.d(TAG, "onSaveInstanceState: We've been asked to save instance state. Complying");
         // Save if we are currently tracking a run
         state.putString(VALUE_RUN_ACTIVE, mStartStopButton.getText().toString());
-        // Save last seen index
-        state.putInt(VALUE_LAST_CHECKED_INDEX, mLastCheckedIndex);
-        // Save current distance and average velocity
-        state.putFloat(VALUE_CURRENT_DISTANCE, mCurrentDistance);
-        state.putFloat(VALUE_CURRENT_VELOCITY, mCurrentVelocity);
         if (mStartStopButton.getText().equals(getString(R.string.reset_run))) {
             state.putString(VALUE_CURRENT_CHRONO_TEXT, mChrono.getText().toString());
         } else {
@@ -311,10 +294,15 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         // If the tracking is stopped (but not reset), we are returning from a prior instance.
         // Since it is not possible to store the PolyLine in the Bundle, we re-request the last
         // location update to take care of redrawing everything
-        if (isStopped()) {
+        if (isStopped() || isRunning()) {
             Log.d(TAG, "OnMapReady: Requesting sticky event to redraw path");
-            mLastCheckedIndex = 1;
+            mLastCheckedIndex = 0;
+            mCurrentDistance = 0;
+            mCurrentVelocity = 0;
             onEventMainThread(EventBus.getDefault().getStickyEvent(GPSLocationEvent.class));
+            if (isStopped()) {
+                markFinalPosition();
+            }
         }
     }
 
@@ -362,21 +350,30 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
 
         // Update current distance
-        if (!isStopped()) {
-            for (int i = mLastCheckedIndex + 1; i < ev.position.size(); i++) {
-                mCurrentDistance = mCurrentDistance + ev.position.get(i).distanceTo(ev.position.get(i - 1));
+        for (int i = mLastCheckedIndex + 1; i < ev.position.size(); i++) {
+            float newDistance = mCurrentDistance + ev.position.get(i).distanceTo(ev.position.get(i - 1));
+            // Check if we crossed an interval where we want to set a bubble on the map
+            if (mCurrentDistance % 1000 > newDistance % 1000) {
+                int kilometres = (int) newDistance / 1000;
+                LatLng pin = mPolyLine.getPoints().get(i);
+                IconGenerator ig = new IconGenerator(getActivity());
+                ig.setStyle(IconGenerator.STYLE_BLUE);
+                Bitmap startPoint = ig.makeIcon(kilometres + " km");
+                mStartMarker = mMap.addMarker(new MarkerOptions()
+                        .icon(BitmapDescriptorFactory.fromBitmap(startPoint))
+                        .position(pin));
             }
-            // Calculate average speed
-            // Get elapsed time in minutes
-            float elapsedSeconds = (SystemClock.elapsedRealtime() - mChrono.getBase()) / 1000.0f;
-            // Divide distance in metres by elapsed minutes, multiply with 3.6 to get km/h
-            mCurrentVelocity = (mCurrentDistance / elapsedSeconds) * 3.6f;
-
-            // Update widgets to display the new values
-            updateVelocityAndDistanceWidgets();
-        } else {
-            markFinalPosition();
+            mCurrentDistance = newDistance;
         }
+        // Calculate average speed
+        // Get elapsed time in minutes
+        float elapsedSeconds = (SystemClock.elapsedRealtime() - mChrono.getBase()) / 1000.0f;
+        // Divide distance in metres by elapsed minutes, multiply with 3.6 to get km/h
+        mCurrentVelocity = (mCurrentDistance / elapsedSeconds) * 3.6f;
+
+        // Update widgets to display the new values
+        updateVelocityAndDistanceWidgets();
+
 
         // Update last checked index
         mLastCheckedIndex = ev.position.size()-1;
