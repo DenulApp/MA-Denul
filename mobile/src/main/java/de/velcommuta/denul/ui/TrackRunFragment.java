@@ -284,12 +284,11 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
 
             });
             colorAnimation.start();
-
-            // TODO Figure out why the first slide looks different than the others
+            
             // TODO Move or remove the "my position" button
             // TODO Fix orientation change problems
             mStatButtonPanel.setVisibility(View.VISIBLE);
-            mStatButtonPanel.setTranslationY(-mStatButtonPanel.getHeight());
+            mStatButtonPanel.setTranslationY(-(mStatButtonPanel.getHeight()+mStatWindow.getHeight()));
             mStatButtonPanel.setAlpha(0.0f);
             mStatButtonPanel.setTranslationZ(-1.0f);
             mStatButtonPanel.animate()
