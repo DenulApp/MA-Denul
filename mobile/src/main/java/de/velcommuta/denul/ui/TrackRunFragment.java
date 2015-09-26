@@ -17,6 +17,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.app.Fragment;
 import android.os.SystemClock;
+import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -248,8 +249,8 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
 
     private void setButtonStateStarted(boolean animated) {
         if (animated) {
-            Integer colorOld = Color.parseColor("#00D05D"); // FIXME Port to XML
-            Integer colorNew = Color.parseColor("#F76F6F"); // FIXME Port to XML
+            Integer colorOld = ContextCompat.getColor(getActivity(), R.color.start_green);
+            Integer colorNew = ContextCompat.getColor(getActivity(), R.color.stop_red);
             ValueAnimator colorAnimation = ValueAnimator.ofObject(new ArgbEvaluator(), colorOld, colorNew);
             colorAnimation.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
 
@@ -263,7 +264,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
             mStartStopButton.setText(R.string.stop_run);
         } else {
             // Set the new background color and text for the button
-            mStartStopButton.setBackgroundColor(Color.parseColor("#F76F6F")); // FIXME Port to XML
+            mStartStopButton.setBackgroundColor(ContextCompat.getColor(getActivity(), R.color.stop_red));
             mStartStopButton.setText(R.string.stop_run);
             mStatButtonPanel.setVisibility(View.VISIBLE);
         }
@@ -271,8 +272,8 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
 
     private void setButtonStateStopped(boolean animated) {
         if (animated) {
-            Integer colorOld = Color.parseColor("#F76F6F"); // FIXME Port to XML
-            Integer colorNew = Color.parseColor("#656BFF"); // FIXME Port to XML
+            Integer colorOld = ContextCompat.getColor(getActivity(), R.color.stop_red);
+            Integer colorNew = ContextCompat.getColor(getActivity(), R.color.reset_blue);
             ValueAnimator colorAnimation = ValueAnimator.ofObject(new ArgbEvaluator(), colorOld, colorNew);
             colorAnimation.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
 
@@ -307,14 +308,15 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         } else {
             // Update the text and color of the button
             mStartStopButton.setText(R.string.reset_run);
-            mStartStopButton.setBackgroundColor(Color.parseColor("#656BFF")); // FIXME Port to XML
+            mStartStopButton.setBackgroundColor(ContextCompat.getColor(getActivity(), R.color.reset_blue));
+            mStatButtonPanel.setVisibility(View.VISIBLE);
         }
     }
 
     private void setButtonStateReset(boolean animated) {
         if (animated) {
-            Integer colorOld = Color.parseColor("#656BFF"); // FIXME Port to XML
-            Integer colorNew = Color.parseColor("#00D05D"); // FIXME Port to XML
+            Integer colorOld = ContextCompat.getColor(getActivity(), R.color.reset_blue);
+            Integer colorNew = ContextCompat.getColor(getActivity(), R.color.start_green);
             ValueAnimator colorAnimation = ValueAnimator.ofObject(new ArgbEvaluator(), colorOld, colorNew);
             colorAnimation.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
 
@@ -328,7 +330,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
             mStartStopButton.setText(R.string.start_run);
         } else {
             // Change color and text of the button
-            mStartStopButton.setBackgroundColor(Color.parseColor("#00D05D")); // FIXME Port to XML
+            mStartStopButton.setBackgroundColor(ContextCompat.getColor(getActivity(), R.color.start_green));
             mStartStopButton.setText(R.string.start_run);
         }
 
