@@ -198,8 +198,6 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
             showStatPanel(true);
             // Set up button
             setButtonStateStarted(true);
-            // Move the "my location" button of the map fragment out of the way of the information bar
-            mMap.setPadding(0, 200, 0, 0);
             // Reset the timer and start it
             mChrono.setBase(SystemClock.elapsedRealtime());
             mChrono.start();
@@ -233,8 +231,6 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
             hideStatPanel(true);
             // Set up button
             setButtonStateReset(true);
-            // Move the "my location" button back to its original location
-            mMap.setPadding(0, 0, 0, 0);
             // Clear all markers and polylines
             mMap.clear();
             mPolyLine = null;
@@ -271,6 +267,10 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
     }
 
     private void setButtonStateStopped(boolean animated) {
+        // Move the "my position" button out of the way
+        // TODO Is it possible to animate this?
+        mMap.setPadding(0, 350, 0, 0);
+
         if (animated) {
             Integer colorOld = ContextCompat.getColor(getActivity(), R.color.stop_red);
             Integer colorNew = ContextCompat.getColor(getActivity(), R.color.reset_blue);
@@ -284,9 +284,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
 
             });
             colorAnimation.start();
-            
-            // TODO Move or remove the "my position" button
-            // TODO Fix orientation change problems
+
             mStatButtonPanel.setVisibility(View.VISIBLE);
             mStatButtonPanel.setTranslationY(-(mStatButtonPanel.getHeight()+mStatWindow.getHeight()));
             mStatButtonPanel.setAlpha(0.0f);
@@ -336,6 +334,9 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
     }
 
     private void showStatPanel(boolean animated) {
+        // Move the "my location" button of the map fragment out of the way of the information bar
+        mMap.setPadding(0, 200, 0, 0);
+
         if (animated) {
             mStatWindow.setTranslationY(-mStatWindow.getHeight());
             mStatWindow.setVisibility(View.VISIBLE);
@@ -358,6 +359,8 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
     }
 
     private void hideStatPanel(boolean animated) {
+        // Move the "my location" button of the map fragment back to its old position
+        mMap.setPadding(0, 0, 0, 0);
         if (animated) {
             mStatWindow.animate()
                     .translationY(-mStatWindow.getHeight())
