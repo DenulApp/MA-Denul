@@ -29,13 +29,6 @@ public class MainActivity extends AppCompatActivity
         HeartRateFragment.OnFragmentInteractionListener,
         TrackRunFragment.OnFragmentInteractionListener
 {
-    private int mCurrentFragment;
-
-    private final static int FRAGMENT_HOME = 0;
-    private final static int FRAGMENT_TRACK = 1;
-
-    private final static String VALUE_CURRENT_FRAGMENT = "value-current-fragment";
-
     private SQLiteDatabase mLocationDatabaseHandler;
 
     @Override
@@ -132,7 +125,6 @@ public class MainActivity extends AppCompatActivity
         fragmentManager.beginTransaction()
                 .replace(R.id.content_frame, fragment)
                 .commit();
-        mCurrentFragment = FRAGMENT_HOME;
     }
 
     private void loadTrackFragment() {
@@ -141,18 +133,11 @@ public class MainActivity extends AppCompatActivity
         fragmentManager.beginTransaction()
                 .replace(R.id.content_frame, fragment)
                 .commit();
-        mCurrentFragment = FRAGMENT_TRACK;
     }
 
     @Override
     public void onFragmentInteraction(Uri uri) {
 
-    }
-
-    @Override
-    public void onSaveInstanceState(Bundle state) {
-        super.onSaveInstanceState(state);
-        state.putInt(VALUE_CURRENT_FRAGMENT, mCurrentFragment);
     }
 
     public void setLocationDatabaseHandler(SQLiteDatabase helper) {
