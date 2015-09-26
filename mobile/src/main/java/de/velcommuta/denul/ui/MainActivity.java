@@ -2,7 +2,9 @@ package de.velcommuta.denul.ui;
 
 import android.app.Fragment;
 import android.app.FragmentManager;
+import android.content.Context;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
@@ -10,6 +12,7 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
@@ -17,7 +20,7 @@ import net.sqlcipher.database.SQLiteDatabase;
 
 import de.greenrobot.event.EventBus;
 import de.velcommuta.denul.R;
-import de.velcommuta.denul.db.DbInitTask;
+import de.velcommuta.denul.db.LocationLoggingDbHelper;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener,
@@ -33,20 +36,23 @@ public class MainActivity extends AppCompatActivity
 
     private final static String VALUE_CURRENT_FRAGMENT = "value-current-fragment";
 
+    private SQLiteDatabase mLocationDatabaseHandler;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (savedInstanceState == null) {
-            // Prepare database
-            SQLiteDatabase.loadLibs(this);
-            new DbInitTask().execute(this);
-
-            // Configure default EventBus instance
             // FIXME This may have to be moved to the new launch activity if it is ever changed
+            // Load SQLCipher libs
+            SQLiteDatabase.loadLibs(this);
+            // Configure default EventBus instance
             EventBus.builder().logNoSubscriberMessages(false)
                     .sendNoSubscriberEvent(false)
                     .installDefaultEventBus();
         }
+        // Prepare DB and get handler
+        // TODO If I ever add a different launch activity with a passphrase prompt, this will have to be moved
+        new DbInitTask().execute(this);
 
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
@@ -98,7 +104,6 @@ public class MainActivity extends AppCompatActivity
         return super.onOptionsItemSelected(item);
     }
 
-    @SuppressWarnings("StatementWithEmptyBody")
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
         // Handle navigation view item clicks here.
@@ -148,5 +153,37 @@ public class MainActivity extends AppCompatActivity
     public void onSaveInstanceState(Bundle state) {
         super.onSaveInstanceState(state);
         state.putInt(VALUE_CURRENT_FRAGMENT, mCurrentFragment);
+    }
+
+    public void setLocationDatabaseHandler(SQLiteDatabase helper) {
+        mLocationDatabaseHandler = helper;
+    }
+
+    protected SQLiteDatabase getLocationDatabaseHandler() {
+        return mLocationDatabaseHandler;
+    }
+
+    /**
+     * AsyncTask to open the database and get a handler
+     */
+    private class DbInitTask extends AsyncTask<Context, Void, SQLiteDatabase> {
+        private final String TAG = "DbInitTask";
+
+        @Override
+        protected SQLiteDatabase doInBackground(Context... ctx) {
+            if (ctx.length == 0) return null;
+            LocationLoggingDbHelper dbh = new LocationLoggingDbHelper(ctx[0]);
+            Log.d(TAG, "doInBackground: Init DB - started");
+            SQLiteDatabase db = dbh.getWritableDatabase("VerySecureHardcodedPasswordOlolol123"); // TODO Replace with proper password prompt
+
+            // TODO Verify and fix contents of database (inconsistent session etc)
+            Log.d(TAG, "doInBackground: Init DB - done");
+            return db;
+        }
+
+        @Override
+        protected void onPostExecute(SQLiteDatabase hlp) {
+            setLocationDatabaseHandler(hlp);
+        }
     }
 }
