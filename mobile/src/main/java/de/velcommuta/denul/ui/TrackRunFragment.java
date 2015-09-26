@@ -5,11 +5,9 @@ import android.animation.AnimatorListenerAdapter;
 import android.animation.ArgbEvaluator;
 import android.animation.ValueAnimator;
 import android.app.Activity;
-import android.app.usage.UsageEvents;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.Color;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationManager;
@@ -26,6 +24,7 @@ import android.widget.Button;
 import android.widget.Chronometer;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -40,11 +39,15 @@ import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.maps.android.ui.IconGenerator;
 
+import net.sqlcipher.database.SQLiteDatabase;
+
 import java.util.List;
 
 import de.greenrobot.event.EventBus;
 import de.velcommuta.denul.R;
+import de.velcommuta.denul.event.DatabaseResultEvent;
 import de.velcommuta.denul.event.GPSLocationEvent;
+import de.velcommuta.denul.event.GPSTrackEvent;
 import de.velcommuta.denul.service.GPSTrackingService;
 
 /**
@@ -65,6 +68,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
 
     // GUI elements
     private Button mStartStopButton;
+    private Button mSaveRunButton;
     private LinearLayout mStatButtonPanel;
     private LinearLayout mStatWindow;
     private Chronometer mChrono;
@@ -113,6 +117,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
 
         // Grab references to UI elements
         mStartStopButton = (Button)       v.findViewById(R.id.actionbutton);
+        mSaveRunButton   = (Button)       v.findViewById(R.id.save_run_btn);
         mStatWindow      = (LinearLayout) v.findViewById(R.id.statwindow);
         mStatButtonPanel = (LinearLayout) v.findViewById(R.id.stat_button_panel);
         mChrono          = (Chronometer)  v.findViewById(R.id.timer);
@@ -122,6 +127,8 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
 
         // Set up this fragment as the OnClickListener of the start/stop/reset button
         mStartStopButton.setOnClickListener(this);
+        mSaveRunButton.setOnClickListener(this);
+
         if (savedInstanceState != null) {
             Log.d(TAG, "onCreate: SavedInstanceState is not empty, restoring.");
             if (savedInstanceState.getString(VALUE_RUN_ACTIVE).equals(getString(R.string.stop_run))) {
@@ -192,54 +199,63 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
     /////////// End of housekeeping functions
     @Override
     public void onClick(View v) {
-        if (mStartStopButton.getText().equals(getString(R.string.start_run))) {
-            // The user wants to start a run
-            // Show the bar with the current information
-            showStatPanel(true);
-            // Set up button
-            setButtonStateStarted(true);
-            // Reset the timer and start it
-            mChrono.setBase(SystemClock.elapsedRealtime());
-            mChrono.start();
+        if (v.equals(mStartStopButton)) {
+            if (mStartStopButton.getText().equals(getString(R.string.start_run))) {
+                // The user wants to start a run
+                // Show the bar with the current information
+                showStatPanel(true);
+                // Set up button
+                setButtonStateStarted(true);
+                // Reset the timer and start it
+                mChrono.setBase(SystemClock.elapsedRealtime());
+                mChrono.start();
 
-            // Start GPS tracking service
-            Intent intent = new Intent(getActivity(), GPSTrackingService.class);
-            getActivity().startService(intent);
-            // TODO Convert to foreground service w/ notification
+                // Start GPS tracking service
+                Intent intent = new Intent(getActivity(), GPSTrackingService.class);
+                getActivity().startService(intent);
+                // TODO Convert to foreground service w/ notification
 
-            Log.d(TAG, "onClick: Started run");
+                Log.d(TAG, "onClick: Started run");
 
-        } else if (mStartStopButton.getText().equals(getString(R.string.stop_run))) {
-            // The user wants to stop a run
-            // Stop the clock
-            mChrono.stop();
-            // Set up button
-            setButtonStateStopped(true);
+            } else if (mStartStopButton.getText().equals(getString(R.string.stop_run))) {
+                // The user wants to stop a run
+                // Stop the clock
+                mChrono.stop();
+                // Set up button
+                setButtonStateStopped(true);
 
-            // Stop GPS tracking service
-            Intent intent = new Intent(getActivity(), GPSTrackingService.class);
-            getActivity().stopService(intent);
+                // Stop GPS tracking service
+                Intent intent = new Intent(getActivity(), GPSTrackingService.class);
+                getActivity().stopService(intent);
 
-            // Mark final position during the run
-            markFinalPosition();
+                // Mark final position during the run
+                markFinalPosition();
 
-            Log.d(TAG, "onClick: Stopped run");
+                Log.d(TAG, "onClick: Stopped run");
 
-        } else if (mStartStopButton.getText().equals(getString(R.string.reset_run))) {
-            // The user wants to reset the results of a run
-            // Hide the information bar
-            hideStatPanel(true);
-            // Set up button
-            setButtonStateReset(true);
-            // Clear all markers and polylines
-            mMap.clear();
-            mPolyLine = null;
-            mStartMarker = null;
-            mCurrentVelocity = 0;
-            mCurrentDistance = 0;
-            mLastCheckedIndex = 0;
+            } else if (mStartStopButton.getText().equals(getString(R.string.reset_run))) {
+                // The user wants to reset the results of a run
+                // Hide the information bar
+                hideStatPanel(true);
+                // Set up button
+                setButtonStateReset(true);
+                // Clear all markers and polylines
+                mMap.clear();
+                mPolyLine = null;
+                mStartMarker = null;
+                mCurrentVelocity = 0;
+                mCurrentDistance = 0;
+                mLastCheckedIndex = 0;
 
-            Log.d(TAG, "onClick: Reset results");
+                Log.d(TAG, "onClick: Reset results");
+            }
+        } else {
+            GPSLocationEvent gpsloc = EventBus.getDefault().getStickyEvent(GPSLocationEvent.class);
+            GPSTrackEvent ev = new GPSTrackEvent(
+                    gpsloc.getPosition(),
+                    gpsloc.getTimestamps(),
+                    "Test");
+            EventBus.getDefault().post(ev);
         }
     }
 
@@ -319,7 +335,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
 
                 @Override
                 public void onAnimationUpdate(ValueAnimator animator) {
-                    mStartStopButton.setBackgroundColor((Integer)animator.getAnimatedValue());
+                    mStartStopButton.setBackgroundColor((Integer) animator.getAnimatedValue());
                 }
 
             });
@@ -374,7 +390,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
                         }
                     });
             mStatButtonPanel.animate()
-                    .translationY(-(mStatButtonPanel.getHeight()+mStatWindow.getHeight()))
+                    .translationY(-(mStatButtonPanel.getHeight() + mStatWindow.getHeight()))
                     .alpha(0.0f)
                     .translationZ(-1.0f)
                     .setListener(new AnimatorListenerAdapter() {
@@ -451,7 +467,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
     public void onEventMainThread(GPSLocationEvent ev) {
         Log.d(TAG, "onEventMainThread: Received update, updating map");
         if (mStartMarker == null) {
-            Location start = ev.position.get(0);
+            Location start = ev.getPosition().get(0);
 
             // Set icon for start of route
             IconGenerator ig = new IconGenerator(getActivity());
@@ -465,21 +481,21 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         if (mPolyLine == null) {
             // Set first element of polyline
             PolylineOptions poptions = new PolylineOptions();
-            for (Location l : ev.position) {
+            for (Location l : ev.getPosition()) {
                 poptions.add(new LatLng(l.getLatitude(), l.getLongitude()));
             }
             mPolyLine = mMap.addPolyline(poptions);
         } else {
             // Update PolyLine with new points (can only be done through complete refresh, sadly)
             List<LatLng> points = mPolyLine.getPoints();
-            for (int i=mLastCheckedIndex+1; i < ev.position.size(); i++) {
-                Location element = ev.position.get(i);
+            for (int i=mLastCheckedIndex+1; i < ev.getPosition().size(); i++) {
+                Location element = ev.getPosition().get(i);
                 points.add(new LatLng(element.getLatitude(), element.getLongitude()));
             }
             mPolyLine.setPoints(points);
         }
         // Re-center the camera
-        Location current = ev.position.get(ev.position.size() - 1);
+        Location current = ev.getPosition().get(ev.getPosition().size() - 1);
         CameraPosition cameraPosition = new CameraPosition.Builder()
                 .target(new LatLng(current.getLatitude(), current.getLongitude()))      // Sets the center of the map to location user
                 .zoom(17)                   // Sets the zoom
@@ -488,8 +504,8 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
 
         // Update current distance
-        for (int i = mLastCheckedIndex + 1; i < ev.position.size(); i++) {
-            float newDistance = mCurrentDistance + ev.position.get(i).distanceTo(ev.position.get(i - 1));
+        for (int i = mLastCheckedIndex + 1; i < ev.getPosition().size(); i++) {
+            float newDistance = mCurrentDistance + ev.getPosition().get(i).distanceTo(ev.getPosition().get(i - 1));
             // Check if we crossed an interval where we want to set a bubble on the map
             if (mCurrentDistance % 1000 > newDistance % 1000) {
                 int kilometres = (int) newDistance / 1000;
@@ -514,7 +530,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
 
 
         // Update last checked index
-        mLastCheckedIndex = ev.position.size()-1;
+        mLastCheckedIndex = ev.getPosition().size()-1;
     }
 
     private void markFinalPosition() {
@@ -551,6 +567,42 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
 
     private boolean isStopped() {
         return mStartStopButton.getText().equals(getString(R.string.reset_run));
+    }
+
+
+    public void onEventAsync(GPSTrackEvent ev) {
+        // Get a handler on the database
+        SQLiteDatabase db = ((MainActivity)getActivity()).getLocationDatabaseHandler();
+        if (db == null) {
+            EventBus.getDefault().post(new DatabaseResultEvent("Database not open - wtf?"));
+            return;
+        }
+
+        // Ensure that the event is sane
+        if (ev.getPosition().size() != ev.getPosition().size()) {
+            EventBus.getDefault().post(new DatabaseResultEvent("Position list has different size than timestsamp list - aborting"));
+            return;
+        }
+
+        // Start a transaction to get an all-or-nothing write to the database
+        db.beginTransaction();
+        // Write new database entry with metadata for the track
+        // TODO
+
+        // Write the individual steps in the track
+        for (int i = 0; i < ev.getPosition().size(); i++) {
+            // TODO
+        }
+        // Finish transaction
+        db.endTransaction();
+    }
+
+    /**
+     * Display error or success messages from the database client in a Toast
+     * @param ev The event with the message
+     */
+    public void onEventMainThread(DatabaseResultEvent ev) {
+        Toast.makeText(getActivity(), ev.getMessage(), Toast.LENGTH_SHORT).show();
     }
 
     /**

@@ -10,18 +10,30 @@ import java.util.List;
  * GPS Location Event for EventBus (https://github.com/greenrobot/EventBus)
  */
 public class GPSLocationEvent {
-    public List<Location> position;
-    public List<Instant> timestamp;
-    public boolean isInitial = false;
+    public List<Location> mPosition;
+    public List<Instant> mTimestamp;
+    public boolean mInitial = false;
 
     public GPSLocationEvent(List<Location> pos, List<Instant> time) {
-        position = pos;
-        timestamp = time;
+        mPosition = pos;
+        mTimestamp = time;
     }
 
     public GPSLocationEvent(List<Location> pos, List<Instant> time, boolean initial) {
-        isInitial = initial;
-        timestamp = time;
-        position = pos;
+        mInitial = initial;
+        mTimestamp = time;
+        mPosition = pos;
+    }
+
+    public List<Location> getPosition() {
+        return mPosition;
+    }
+
+    public List<Instant> getTimestamps() {
+        return mTimestamp;
+    }
+
+    public boolean isInitial() {
+        return mInitial;
     }
 }
