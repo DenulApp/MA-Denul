@@ -12,7 +12,6 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.LocationListener;
-import com.google.android.gms.maps.model.LatLng;
 
 import org.joda.time.Instant;
 
@@ -57,8 +56,6 @@ public class GPSTrackingService extends Service {
 
         // Data structure that will be used to store the LatLng values
         protected List<Location> mPoints = new LinkedList<Location>();
-        // Data structure that will be used to store the timing values
-        protected List<Instant> mTimes = new LinkedList<Instant>();
 
 
         // Request updates every 2 seconds
@@ -161,8 +158,7 @@ public class GPSTrackingService extends Service {
             Location cLoc = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
             if (mPoints.isEmpty()) {
                 mPoints.add(cLoc);
-                mTimes.add(Instant.now());
-                EventBus.getDefault().postSticky(new GPSLocationEvent(mPoints, mTimes, true));
+                EventBus.getDefault().postSticky(new GPSLocationEvent(mPoints, true));
             } else {
                 addLocationAndNotify(cLoc);
             }
@@ -189,8 +185,7 @@ public class GPSTrackingService extends Service {
         private void addLocationAndNotify(Location location) {
             Log.d(TAG, "addLocationAndNotify: Sending new location to UI Thread");
             mPoints.add(location);
-            mTimes.add(Instant.now());
-            EventBus.getDefault().postSticky(new GPSLocationEvent(mPoints, mTimes));
+            EventBus.getDefault().postSticky(new GPSLocationEvent(mPoints));
         }
 
 

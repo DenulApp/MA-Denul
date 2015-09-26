@@ -2,8 +2,6 @@ package de.velcommuta.denul.event;
 
 import android.location.Location;
 
-import org.joda.time.Instant;
-
 import java.util.List;
 
 /**
@@ -11,27 +9,20 @@ import java.util.List;
  */
 public class GPSTrackEvent {
     private List<Location> mPosition;
-    private List<Instant> mTimestamp;
     private String mSessionName;
 
-    public GPSTrackEvent(List<Location> pos, List<Instant> time) {
+    public GPSTrackEvent(List<Location> pos) {
         mPosition = pos;
-        mTimestamp = time;
     }
 
-    public GPSTrackEvent(List<Location> pos, List<Instant> time, String name) {
+    public GPSTrackEvent(List<Location> pos, String name) {
         mPosition = pos;
-        mTimestamp = time;
         mSessionName = name;
     }
 
 
     public List<Location> getPosition() {
         return mPosition;
-    }
-
-    public List<Instant> getTimestamp() {
-        return mTimestamp;
     }
 
     public String getSessionName() {

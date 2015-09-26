@@ -171,4 +171,11 @@ public class MainActivity extends AppCompatActivity
             setLocationDatabaseHandler(hlp);
         }
     }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        if (mLocationDatabaseHandler != null) mLocationDatabaseHandler.close();
+        mLocationDatabaseHandler = null;
+    }
 }

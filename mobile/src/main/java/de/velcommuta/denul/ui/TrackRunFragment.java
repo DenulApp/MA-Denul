@@ -5,6 +5,7 @@ import android.animation.AnimatorListenerAdapter;
 import android.animation.ArgbEvaluator;
 import android.animation.ValueAnimator;
 import android.app.Activity;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -45,6 +46,7 @@ import java.util.List;
 
 import de.greenrobot.event.EventBus;
 import de.velcommuta.denul.R;
+import de.velcommuta.denul.db.LocationLoggingContract;
 import de.velcommuta.denul.event.DatabaseResultEvent;
 import de.velcommuta.denul.event.GPSLocationEvent;
 import de.velcommuta.denul.event.GPSTrackEvent;
@@ -253,7 +255,6 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
             GPSLocationEvent gpsloc = EventBus.getDefault().getStickyEvent(GPSLocationEvent.class);
             GPSTrackEvent ev = new GPSTrackEvent(
                     gpsloc.getPosition(),
-                    gpsloc.getTimestamps(),
                     "Test");
             EventBus.getDefault().post(ev);
         }
@@ -574,7 +575,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         // Get a handler on the database
         SQLiteDatabase db = ((MainActivity)getActivity()).getLocationDatabaseHandler();
         if (db == null) {
-            EventBus.getDefault().post(new DatabaseResultEvent("Database not open - wtf?"));
+            EventBus.getDefault().post(new DatabaseResultEvent("Database not open"));
             return;
         }
 
@@ -587,14 +588,32 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         // Start a transaction to get an all-or-nothing write to the database
         db.beginTransaction();
         // Write new database entry with metadata for the track
-        // TODO
+        ContentValues metadata = new ContentValues();
+
+        metadata.put(LocationLoggingContract.LocationSessions.COLUMN_NAME_SESSION_START, ev.getPosition().get(0).getTime());
+        metadata.put(LocationLoggingContract.LocationSessions.COLUMN_NAME_SESSION_END, ev.getPosition().get(ev.getPosition().size() - 1).getTime());
+        metadata.put(LocationLoggingContract.LocationSessions.COLUMN_NAME_NAME, ev.getSessionName());
+
+        long rowid = db.insert(LocationLoggingContract.LocationSessions.TABLE_NAME, null, metadata);
 
         // Write the individual steps in the track
         for (int i = 0; i < ev.getPosition().size(); i++) {
-            // TODO
+            // Prepare ContentValues object
+            ContentValues entry = new ContentValues();
+            // Get Location object
+            Location cLoc = ev.getPosition().get(i);
+            // Set values for ContentValues
+            entry.put(LocationLoggingContract.LocationLog.COLUMN_NAME_SESSION, rowid);
+            entry.put(LocationLoggingContract.LocationLog.COLUMN_NAME_LAT, cLoc.getLatitude());
+            entry.put(LocationLoggingContract.LocationLog.COLUMN_NAME_LONG, cLoc.getLongitude());
+            entry.put(LocationLoggingContract.LocationLog.COLUMN_NAME_TIMESTAMP, cLoc.getTime());
+            // Save ContentValues into Database
+            db.insert(LocationLoggingContract.LocationLog.TABLE_NAME, null, entry);
         }
         // Finish transaction
         db.endTransaction();
+        // Notify main thread
+        EventBus.getDefault().post(new DatabaseResultEvent("Track saved"));
     }
 
     /**
