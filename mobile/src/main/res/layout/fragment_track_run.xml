@@ -135,7 +135,7 @@
             </LinearLayout>
 
             <LinearLayout
-                android:orientation="vertical"
+                android:orientation="horizontal"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
                 android:background="@drawable/background_rect"
@@ -148,12 +148,6 @@
                 android:translationZ="2dp"
                 android:id="@+id/stat_save_panel"
                 android:visibility="invisible">
-
-                <LinearLayout
-                    android:orientation="horizontal"
-                    android:layout_width="fill_parent"
-                    android:layout_height="wrap_content">
-
 
                     <EditText
                         android:layout_width="0dp"
@@ -172,7 +166,6 @@
                         android:layout_height="wrap_content"
                         android:id="@+id/btn_cycling"
                         android:src="@drawable/ic_cycling"/>
-                </LinearLayout>
             </LinearLayout>
 
             <LinearLayout
