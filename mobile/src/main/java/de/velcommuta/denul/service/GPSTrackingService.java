@@ -20,11 +20,17 @@ import java.util.Observable;
 import de.greenrobot.event.EventBus;
 import de.velcommuta.denul.event.GPSLocationEvent;
 
+/**
+ * Service to perform GPS tracking, using the Google Apps location API
+ */
 public class GPSTrackingService extends Service {
     public static final String TAG = "GPSTrackingService";
     private Thread mRunningThread;
 
 
+    /**
+     * Required empty constructor
+     */
     public GPSTrackingService() {
     }
 
@@ -41,6 +47,9 @@ public class GPSTrackingService extends Service {
     }
 
 
+    /**
+     * Runnable to perform the GPS tracking in its own thread to free up the main thread.
+     */
     private class GPSTrackingRunnable extends Observable implements
             Runnable,
             GoogleApiClient.ConnectionCallbacks,
@@ -53,7 +62,7 @@ public class GPSTrackingService extends Service {
         protected LocationRequest mLocationRequest;
 
         // Data structure that will be used to store the LatLng values
-        protected List<Location> mPoints = new LinkedList<Location>();
+        protected List<Location> mPoints = new LinkedList<>();
 
 
         // Request updates every 2 seconds
@@ -66,6 +75,9 @@ public class GPSTrackingService extends Service {
         public static final long FASTEST_UPDATE_INTERVAL_IN_MILLISECONDS =
                 UPDATE_INTERVAL_IN_MILLISECONDS / 2;
 
+        /**
+         * Build the Google API client that is used for location requests
+         */
         private synchronized void buildGoogleApiClient() {
             Log.i(TAG, "Building GoogleApiClient");
             mGoogleApiClient = new GoogleApiClient.Builder(getBaseContext())
@@ -129,12 +141,16 @@ public class GPSTrackingService extends Service {
         }
 
         @Override
+        /**
+         * Main loop of the thread. Sets up everything and then loops, waiting for a kill signal
+         */
         public void run() {
             Log.d(TAG, "Runnable: Thread running");
 
             buildGoogleApiClient();
             mGoogleApiClient.connect();
 
+            // TODO Check if the loop can be avoided somehow - it's not very nice
             try {
                 while (!Thread.currentThread().isInterrupted()) {
                     Thread.sleep(1000);
@@ -150,6 +166,9 @@ public class GPSTrackingService extends Service {
         }
 
         @Override
+        /**
+         * Called when the Google API client has successfully connected
+         */
         public void onConnected(Bundle bundle) {
             startLocationUpdates();
             Log.i(TAG, "onConnected: Connected to API");
@@ -158,12 +177,18 @@ public class GPSTrackingService extends Service {
         }
 
         @Override
+        /**
+         * Called when the Google API client was suspended for some reason.
+         */
         public void onConnectionSuspended(int i) {
             Log.w(TAG, "onConnectionSuspended: Connection lost, attempting to reconnect");
             mGoogleApiClient.connect();
         }
 
         @Override
+        /**
+         * Called when the connection to the API client has failed
+         */
         public void onConnectionFailed(ConnectionResult connectionResult) {
             Log.e(TAG, "onConnectionFailed: Connection to API failed. Quitting.");
             // TODO Notify main thread
@@ -171,10 +196,17 @@ public class GPSTrackingService extends Service {
         }
 
         @Override
+        /**
+         * Called when new location data is available
+         */
         public void onLocationChanged(Location location) {
             addLocationAndNotify(location);
         }
 
+        /**
+         * Called to notify the main thread about the new location.
+         * @param location The location that was just reported by the API
+         */
         private void addLocationAndNotify(Location location) {
             Log.d(TAG, "addLocationAndNotify: Sending new location to UI Thread");
             mPoints.add(location);
@@ -184,12 +216,18 @@ public class GPSTrackingService extends Service {
 
     }
     @Override
+    /**
+     * Unused function required by interface (this service is not bindable)
+     */
     public IBinder onBind(Intent intent) {
         // No binding necessary
         return null;
     }
 
     @Override
+    /**
+     * Called when the Service is torn down. Clean up everything
+     */
     public void onDestroy() {
         mRunningThread.interrupt();
         Log.d(TAG, "onDestroy: Service stopped");
