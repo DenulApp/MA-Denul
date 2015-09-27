@@ -1,12 +1,12 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
-    android:layout_height="match_parent" tools:context="de.velcommuta.denul.ui.TrackRunFragment">
+    android:layout_height="match_parent" tools:context="de.velcommuta.denul.ui.TrackRunFragment"
+    tools:ignore="NestedWeights" >
     <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
         android:layout_height="match_parent">
 
         <fragment class="com.google.android.gms.maps.MapFragment"
-            xmlns:map="http://schemas.android.com/apk/res-auto"
             android:layout_width="fill_parent"
             android:layout_height="fill_parent"
             android:id="@+id/gmaps"/>
@@ -50,7 +50,8 @@
                 android:paddingLeft="4dp"
                 android:paddingTop="4dp"
                 android:paddingRight="4dp"
-                android:translationZ="2dp">
+                android:translationZ="2dp"
+                android:baselineAligned="false">
 
                 <LinearLayout
                     android:orientation="vertical"
@@ -73,7 +74,6 @@
                             android:textAppearance="?android:attr/textAppearanceSmall"
                             android:text="@string/default_distance"
                             android:id="@+id/distancefield"
-                            android:layout_column="1"
                             android:layout_weight="1" />
 
                 </LinearLayout>
@@ -92,7 +92,7 @@
                             android:text="@string/header_time"
                             android:id="@+id/timeheader"
                             android:layout_gravity="center"
-                            android:layout_weight="1"/>
+                            android:layout_weight="1" />
 
                     <Chronometer
                         android:layout_width="wrap_content"
@@ -116,7 +116,7 @@
                             android:text="@string/header_speed"
                             android:id="@+id/speedheader"
                             android:layout_weight="1"
-                            android:layout_gravity="right" />
+                            android:layout_gravity="right"/>
 
                     <TextView
                             android:layout_width="wrap_content"
@@ -157,13 +157,15 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:id="@+id/btn_running"
-                        android:src="@drawable/ic_running" />
+                        android:src="@drawable/ic_running"
+                        android:contentDescription="@string/content_desc_running"/>
 
                     <ImageButton
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:id="@+id/btn_cycling"
-                        android:src="@drawable/ic_cycling"/>
+                        android:src="@drawable/ic_cycling"
+                        android:contentDescription="@string/content_desc_cycling"/>
             </LinearLayout>
 
             <LinearLayout
