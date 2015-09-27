@@ -7,10 +7,37 @@
     <string name="action_settings">Settings</string>
     <string name="title_activity_track_display">Track</string>
 
-<!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <!-- Menu drawer in main activity -->
+    <string name="menu_home">Home</string>
+    <string name="menu_track_run">Track</string>
+    <string name="menu_old_tracks">Exercise History</string>
+    <string name="menu_title_2">Communicate</string> <!-- TODO This title sucks -->
+    <string name="menu_share">Share</string>
+    <string name="menu_prefs">Settings</string>
 
+    <!-- Buttons and fields during GPS tracking -->
     <string name="start_run">Start</string>
     <string name="stop_run">Stop</string>
     <string name="reset_run">Reset</string>
+    <string name="save_run">Save this track</string>
+    <string name="session_name_hint">Enter a name for this session</string>
+    <string name="header_speed">Speed</string>
+    <string name="default_speed">-</string>
+    <string name="header_time">Current Time</string>
+    <string name="header_distance">Distance</string>
+    <string name="default_distance">-</string>
+    <string name="location_tracking_notify">Workout tracking active</string>
+    <string name="location_tracking_details">%1$s is currently tracking your workout</string>
+
+    <!-- Status messages -->
+    <string name="save_success">Saved</string>
+
+    <!-- Unit strings -->
+    <string name="distance_m">%1$d m</string>
+    <string name="distance_km">%1$.02f km</string>
+    <string name="velocity_kmh">%1$.02f km/h</string>
+    <string name="content_desc_cycling">Cycling</string>
+    <string name="content_desc_running">Running</string>
+
+
 </resources>

@@ -2,22 +2,24 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
     <group android:checkableBehavior="single">
-        <item android:id="@+id/nav_start" android:icon="@android:drawable/ic_menu_today"
-            android:title="Home" />
+        <item android:id="@+id/nav_start" android:icon="@drawable/ic_home_24dp"
+            android:title="@string/menu_home" />
         <item android:id="@+id/nav_tracks" android:icon="@android:drawable/ic_menu_mapmode"
-            android:title="Tracks" />
+            android:title="@string/menu_track_run" />
+        <item android:id="@+id/old_tracks" android:icon="@android:drawable/ic_menu_recent_history"
+            android:title="@string/menu_old_tracks" />
         <!-- <item android:id="@+id/nav_slideshow" android:icon="@android:drawable/ic_menu_slideshow"
             android:title="Slideshow" />
         <item android:id="@+id/nav_manage" android:icon="@android:drawable/ic_menu_manage"
             android:title="Tools" /> -->
     </group>
 
-    <item android:title="Communicate">
+    <item android:title="@string/menu_title_2">
         <menu>
             <item android:id="@+id/nav_share" android:icon="@android:drawable/ic_menu_share"
-                android:title="Share" />
+                android:title="@string/menu_share" />
             <item android:id="@+id/nav_menu" android:icon="@android:drawable/ic_menu_preferences"
-                android:title="Preferences" />
+                android:title="@string/menu_prefs" />
         </menu>
     </item>
 

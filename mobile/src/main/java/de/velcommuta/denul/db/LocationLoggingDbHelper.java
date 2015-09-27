@@ -39,7 +39,8 @@ public class LocationLoggingDbHelper extends SQLiteOpenHelper {
             LocationLoggingContract.LocationSessions._ID + TYPE_INT + OPT_PRIMARY_KEY + COMMA_SEP +
             LocationLoggingContract.LocationSessions.COLUMN_NAME_NAME + TYPE_TEXT + COMMA_SEP +
             LocationLoggingContract.LocationSessions.COLUMN_NAME_SESSION_START + TYPE_DATETIME + OPT_DEFAULT_NOW + COMMA_SEP +
-            LocationLoggingContract.LocationSessions.COLUMN_NAME_SESSION_END + TYPE_DATETIME +
+            LocationLoggingContract.LocationSessions.COLUMN_NAME_SESSION_END + TYPE_DATETIME + COMMA_SEP +
+            LocationLoggingContract.LocationSessions.COLUMN_NAME_MODE + TYPE_INT + OPT_DEFAULT_ZERO +
             ");";
 
     private static final String SQL_DROP_LOCATIONLOG =
@@ -49,9 +50,14 @@ public class LocationLoggingDbHelper extends SQLiteOpenHelper {
             "DROP TABLE " + LocationLoggingContract.LocationSessions.TABLE_NAME + ";";
 
     public static final String DATABASE_NAME = "location.db";
-    public static final int DATABASE_VERSION = 1;
+
+    public static final int DATABASE_VERSION = 2;
 
 
+    /**
+     * Constructor for Helper function
+     * @param ctx Context object
+     */
     public LocationLoggingDbHelper(Context ctx) {
         super(ctx, DATABASE_NAME, null, DATABASE_VERSION);
     }
