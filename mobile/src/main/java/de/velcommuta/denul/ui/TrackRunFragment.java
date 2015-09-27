@@ -3,7 +3,6 @@ package de.velcommuta.denul.ui;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ArgbEvaluator;
-import android.animation.LayoutTransition;
 import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.content.ContentValues;
@@ -738,6 +737,6 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
      */
     public interface OnFragmentInteractionListener {
         // TODO: Update argument type and name
-        public void onFragmentInteraction(Uri uri);
+        void onFragmentInteraction(Uri uri);
     }
 }

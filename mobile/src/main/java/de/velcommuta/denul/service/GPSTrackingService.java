@@ -13,8 +13,6 @@ import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.LocationListener;
 
-import org.joda.time.Instant;
-
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Observable;

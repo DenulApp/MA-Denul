@@ -2,8 +2,6 @@ package de.velcommuta.denul.event;
 
 import android.location.Location;
 
-import org.joda.time.Instant;
-
 import java.util.List;
 
 /**
