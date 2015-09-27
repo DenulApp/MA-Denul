@@ -57,9 +57,6 @@ import de.velcommuta.denul.service.GPSTrackingService;
 
 /**
  * A simple {@link Fragment} subclass.
- * Activities that contain this fragment must implement the
- * {@link TrackRunFragment.OnFragmentInteractionListener} interface
- * to handle interaction events.
  * Use the {@link TrackRunFragment#newInstance} factory method to
  * create an instance of this fragment.
  */
@@ -99,8 +96,6 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
     public static final String VALUE_STAT_SAVE_SELECTED      = "value-stat-save-selected";
     public static final String VALUE_STAT_SAVE_TITLE         = "value-stat-save-title";
 
-    private OnFragmentInteractionListener mListener;
-
     // Annoying variables which we have to keep track of because android is buggy
     private int mStatSaveWindowHeight;
     private int mTopPadding = 0;
@@ -113,6 +108,9 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         return new TrackRunFragment();
     }
 
+    /**
+     * Required empty public constructor
+     */
     public TrackRunFragment() {
         // Required empty public constructor
     }
@@ -191,17 +189,6 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
     }
 
     @Override
-    public void onAttach(Activity activity) {
-        super.onAttach(activity);
-        try {
-            mListener = (OnFragmentInteractionListener) activity;
-        } catch (ClassCastException e) {
-            throw new ClassCastException(activity.toString()
-                    + " must implement OnFragmentInteractionListener");
-        }
-    }
-
-    @Override
     public void onStart() {
         super.onStart();
         Log.i(TAG, "onStart: Registering with EventBus");
@@ -214,12 +201,6 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         Log.d(TAG, "onStop: Unregister from EventBus");
         EventBus.getDefault().unregister(this);
         super.onStop();
-    }
-
-    @Override
-    public void onDetach() {
-        super.onDetach();
-        mListener = null;
     }
 
     @Override
@@ -308,6 +289,10 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         }
     }
 
+    /**
+     * Sets the button state up to show that tracking is currently active
+     * @param animated True if the state change should be animated, false if not
+     */
     private void setButtonStateStarted(boolean animated) {
         if (animated) {
             Integer colorOld = ContextCompat.getColor(getActivity(), R.color.start_green);
@@ -331,6 +316,10 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         }
     }
 
+    /**
+     * Sets the button state up to show that tracking has been stopped
+     * @param animated True if the state change should be animated, false if not
+     */
     private void setButtonStateStopped(boolean animated) {
         // Move the "my position" button out of the way
 
@@ -375,6 +364,10 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         }
     }
 
+    /**
+     * Sets the button state up to show that the tracking results have been discarded.
+     * @param animated True if the change should be animated, false if not
+     */
     private void setButtonStateReset(boolean animated) {
         if (animated) {
             Integer colorOld = ContextCompat.getColor(getActivity(), R.color.reset_blue);
@@ -398,6 +391,10 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
 
     }
 
+    /**
+     * Show the statistics panel (topmost panel)
+     * @param animated True if the change should be animated, false if not
+     */
     private void showStatPanel(boolean animated) {
         // Move the "my location" button of the map fragment out of the way of the information bar
         setMapPadding(200);
@@ -423,6 +420,10 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         }
     }
 
+    /**
+     * Hide the statistics (topmost) panel
+     * @param animated True if the change should be animated, false if not
+     */
     private void hideStatPanel(boolean animated) {
         // Move the "my location" button of the map fragment back to its old position
         setMapPadding(0);
@@ -445,6 +446,10 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         hideSaveSessionPanel(animated);
     }
 
+    /**
+     * Hide the panel with the "save stats"-button
+     * @param animated True if the change should be animated, false if not
+     */
     private void hideStatButtonPanel(boolean animated) {
         if(animated) {
             mStatButtonPanel.animate()
@@ -463,6 +468,10 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         }
     }
 
+    /**
+     * Show the panel with the options for saving the session
+     * @param animated True if the change should be animated, false if not
+     */
     private void showSaveSessionPanel(boolean animated) {
         if (animated) {
             mStatSaveWindow.setVisibility(View.VISIBLE);
@@ -475,6 +484,10 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         }
     }
 
+    /**
+     * Hide the panel with the options for saving the session
+     * @param animated True if the change should be animated, false if not
+     */
     private void hideSaveSessionPanel(boolean animated) {
         if (animated) {
             mStatSaveWindow.animate()
@@ -494,6 +507,10 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         }
     }
 
+    /**
+     * Set the map padding, influencing the position of the "my position" button in the map fragment
+     * @param top Top padding, as described in the Documentation of GoogleMap.setPadding
+     */
     private void setMapPadding(int top) {
         // TODO Is it possible to animate this?
         if (mMap != null) {
@@ -504,6 +521,9 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
     }
 
     @Override
+    /**
+     * Called once the map has finished loading
+     */
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
         mMap.setMyLocationEnabled(true);
@@ -634,6 +654,9 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         mLastCheckedIndex = ev.getPosition().size()-1;
     }
 
+    /**
+     * Set a marker at the final position of the route that was just tracked.
+     */
     private void markFinalPosition() {
         // Get final position
         LatLng finalPos = mPolyLine.getPoints().get(mPolyLine.getPoints().size()-1);
@@ -648,6 +671,9 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
                 .position(finalPos));
     }
 
+    /**
+     * Updates the widgets for velocity and distance in the stat panel
+     */
     private void updateVelocityAndDistanceWidgets() {
         // Update Velocity and Distance widgets
         if (mCurrentDistance < 1000) {
@@ -658,19 +684,35 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         mVelocity.setText(String.format(getString(R.string.velocity_kmh), mCurrentVelocity));
     }
 
+    /**
+     * Check if the current state of the tracking system is reset (no data available)
+     * @return True if tracking is not running and no data is available, false otherwise
+     */
     private boolean isReset() {
         return mStartStopButton.getText().equals(getString(R.string.start_run));
     }
 
+    /**
+     * Check if the system is currently tracking
+     * @return True if the system is actively tracking, false otherwise
+     */
     private boolean isRunning() {
         return mStartStopButton.getText().equals(getString(R.string.stop_run));
     }
 
+    /**
+     * Check if the system has stopped tracking, but is still retaining the data
+     * @return True if the system is no longer tracking, but still has data available, false otherwise
+     */
     private boolean isStopped() {
         return mStartStopButton.getText().equals(getString(R.string.reset_run));
     }
 
 
+    /**
+     * EventBus function to perform Database interactions in an AsyncThread (in the background)
+     * @param ev Event containing the track and other information that should be saved to the database
+     */
     public void onEventAsync(GPSTrackEvent ev) {
         // Get a handler on the database
         SQLiteDatabase db = ((MainActivity)getActivity()).getLocationDatabaseHandler();
@@ -723,20 +765,5 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
      */
     public void onEventMainThread(DatabaseResultEvent ev) {
         Toast.makeText(getActivity(), ev.getMessage(), Toast.LENGTH_SHORT).show();
-    }
-
-    /**
-     * This interface must be implemented by activities that contain this
-     * fragment to allow an interaction in this fragment to be communicated
-     * to the activity and potentially other fragments contained in that
-     * activity.
-     * <p/>
-     * See the Android Training lesson <a href=
-     * "http://developer.android.com/training/basics/fragments/communicating.html"
-     * >Communicating with Other Fragments</a> for more information.
-     */
-    public interface OnFragmentInteractionListener {
-        // TODO: Update argument type and name
-        void onFragmentInteraction(Uri uri);
     }
 }

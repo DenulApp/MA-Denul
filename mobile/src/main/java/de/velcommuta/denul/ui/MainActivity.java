@@ -26,8 +26,7 @@ public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener,
         StartScreenFragment.OnFragmentInteractionListener,
         StepCountFragment.OnFragmentInteractionListener,
-        HeartRateFragment.OnFragmentInteractionListener,
-        TrackRunFragment.OnFragmentInteractionListener
+        HeartRateFragment.OnFragmentInteractionListener
 {
     private SQLiteDatabase mLocationDatabaseHandler;
 
