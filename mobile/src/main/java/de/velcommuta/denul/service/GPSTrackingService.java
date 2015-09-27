@@ -156,12 +156,7 @@ public class GPSTrackingService extends Service {
             startLocationUpdates();
             Log.i(TAG, "onConnected: Connected to API");
             Location cLoc = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
-            if (mPoints.isEmpty()) {
-                mPoints.add(cLoc);
-                EventBus.getDefault().postSticky(new GPSLocationEvent(mPoints, true));
-            } else {
-                addLocationAndNotify(cLoc);
-            }
+            addLocationAndNotify(cLoc);
         }
 
         @Override

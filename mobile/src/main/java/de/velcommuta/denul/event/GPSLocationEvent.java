@@ -11,22 +11,12 @@ import java.util.List;
  */
 public class GPSLocationEvent {
     public List<Location> mPosition;
-    public boolean mInitial = false;
 
     public GPSLocationEvent(List<Location> pos) {
         mPosition = pos;
     }
 
-    public GPSLocationEvent(List<Location> pos, boolean initial) {
-        mInitial = initial;
-        mPosition = pos;
-    }
-
     public List<Location> getPosition() {
         return mPosition;
-    }
-
-    public boolean isInitial() {
-        return mInitial;
     }
 }
