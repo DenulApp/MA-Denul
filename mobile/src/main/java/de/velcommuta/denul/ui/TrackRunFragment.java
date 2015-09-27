@@ -3,6 +3,7 @@ package de.velcommuta.denul.ui;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ArgbEvaluator;
+import android.animation.LayoutTransition;
 import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.content.ContentValues;
@@ -21,8 +22,11 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.widget.Button;
 import android.widget.Chronometer;
+import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -73,9 +77,14 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
     private Button mSaveRunButton;
     private LinearLayout mStatButtonPanel;
     private LinearLayout mStatWindow;
+    private LinearLayout mStatSaveWindow;
+    private LinearLayout mStatContainer;
     private Chronometer mChrono;
     private TextView mVelocity;
     private TextView mDistance;
+    private EditText mSessionName;
+    private ImageButton mRunning;
+    private ImageButton mCycling;
 
     // State variables
     private int mLastCheckedIndex;
@@ -83,12 +92,19 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
     private float mCurrentVelocity;
 
     // Identifier Strings for Bundle
-    public static final String VALUE_RUN_ACTIVE          = "value-run-active";
-    public static final String VALUE_CURRENT_CHRONO_BASE = "value-current-chrono-base";
-    public static final String VALUE_CURRENT_CHRONO_TEXT = "value-current-chrono-text";
+    public static final String VALUE_RUN_ACTIVE              = "value-run-active";
+    public static final String VALUE_CURRENT_CHRONO_BASE     = "value-current-chrono-base";
+    public static final String VALUE_CURRENT_CHRONO_TEXT     = "value-current-chrono-text";
+    public static final String VALUE_STAT_SAVE_WINDOW_HEIGHT = "value-stat-save-window-height";
+    public static final String VALUE_STAT_SAVE_ACTIVE        = "value-stat-save-active";
+    public static final String VALUE_STAT_SAVE_SELECTED      = "value-stat-save-selected";
+    public static final String VALUE_STAT_SAVE_TITLE         = "value-stat-save-title";
 
     private OnFragmentInteractionListener mListener;
 
+    // Annoying variables which we have to keep track of because android is buggy
+    private int mStatSaveWindowHeight;
+    private int mTopPadding = 0;
 
     /**
      * Factory method to create new instances of this fragment
@@ -118,14 +134,18 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         mapFragment.getMapAsync(this);
 
         // Grab references to UI elements
-        mStartStopButton = (Button)       v.findViewById(R.id.actionbutton);
-        mSaveRunButton   = (Button)       v.findViewById(R.id.save_run_btn);
         mStatWindow      = (LinearLayout) v.findViewById(R.id.statwindow);
         mStatButtonPanel = (LinearLayout) v.findViewById(R.id.stat_button_panel);
+        mStatSaveWindow  = (LinearLayout) v.findViewById(R.id.stat_save_panel);
+        mStatContainer   = (LinearLayout) v.findViewById(R.id.stat_window_container);
+        mStartStopButton = (Button)       v.findViewById(R.id.actionbutton);
+        mSaveRunButton   = (Button)       v.findViewById(R.id.save_run_btn);
+        mRunning         = (ImageButton)  v.findViewById(R.id.btn_running);
+        mCycling         = (ImageButton)  v.findViewById(R.id.btn_cycling);
         mChrono          = (Chronometer)  v.findViewById(R.id.timer);
         mVelocity        = (TextView)     v.findViewById(R.id.speedfield);
         mDistance        = (TextView)     v.findViewById(R.id.distancefield);
-
+        mSessionName     = (EditText)     v.findViewById(R.id.sessionname);
 
         // Set up this fragment as the OnClickListener of the start/stop/reset button
         mStartStopButton.setOnClickListener(this);
@@ -144,6 +164,28 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
                 showStatPanel(false);
                 mChrono.setText(savedInstanceState.getString(VALUE_CURRENT_CHRONO_TEXT));
             }
+            mStatSaveWindowHeight = savedInstanceState.getInt(VALUE_STAT_SAVE_WINDOW_HEIGHT);
+            if (savedInstanceState.getBoolean(VALUE_STAT_SAVE_ACTIVE)) {
+                showSaveSessionPanel(false);
+                mSessionName.setText(savedInstanceState.getString(VALUE_STAT_SAVE_TITLE));
+                // TODO Restore selections on buttons
+            } else {
+                mStatSaveWindow.setVisibility(View.GONE);
+            }
+        } else {
+            // Remember the height of the mStatSaveWindow and set it to View.GONE
+            mStatSaveWindow.getViewTreeObserver().addOnGlobalLayoutListener(
+                    new ViewTreeObserver.OnGlobalLayoutListener() {
+                        @Override
+                        public void onGlobalLayout() {
+                            mStatSaveWindowHeight = mStatSaveWindow.getHeight();
+                            Log.d(TAG, "onCreate: mStatSaveWindowHeight = " + mStatSaveWindowHeight);
+
+                            mStatSaveWindow.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                            mStatSaveWindow.setVisibility(View.GONE);
+                        }
+                    }
+            );
         }
 
         return v;
@@ -163,11 +205,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
     @Override
     public void onStart() {
         super.onStart();
-        // Theoretically, we would register with EventBus here. However, since we are using sticky
-        // events, this could lead to race conditions between the EventBus and the MapFragment.
-        // Hence, we register in the onMapReady function.
-        // Register with EventBus, for the reasons outlined in the onStart-Method
-        Log.i(TAG, "onMapReady: Registering with EventBus");
+        Log.i(TAG, "onStart: Registering with EventBus");
         EventBus.getDefault().register(this);
     }
 
@@ -195,6 +233,14 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
             state.putString(VALUE_CURRENT_CHRONO_TEXT, mChrono.getText().toString());
         } else {
             state.putLong(VALUE_CURRENT_CHRONO_BASE, mChrono.getBase());
+        }
+        state.putInt(VALUE_STAT_SAVE_WINDOW_HEIGHT, mStatSaveWindowHeight);
+        if (mStatSaveWindow.getVisibility() == View.GONE) {
+            state.putBoolean(VALUE_STAT_SAVE_ACTIVE, false);
+        } else {
+            state.putBoolean(VALUE_STAT_SAVE_ACTIVE, true);
+            state.putInt(VALUE_STAT_SAVE_SELECTED, 0); // FIXME Proper values
+            state.putString(VALUE_STAT_SAVE_TITLE, mSessionName.getText().toString());
         }
     }
 
@@ -252,11 +298,14 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
                 Log.d(TAG, "onClick: Reset results");
             }
         } else {
+            showSaveSessionPanel(true);
+            /*
             GPSLocationEvent gpsloc = EventBus.getDefault().getStickyEvent(GPSLocationEvent.class);
             GPSTrackEvent ev = new GPSTrackEvent(
                     gpsloc.getPosition(),
                     "Test");
             EventBus.getDefault().post(ev);
+            */
         }
     }
 
@@ -269,7 +318,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
 
                 @Override
                 public void onAnimationUpdate(ValueAnimator animator) {
-                    mStartStopButton.setBackgroundColor((Integer)animator.getAnimatedValue());
+                    mStartStopButton.setBackgroundColor((Integer) animator.getAnimatedValue());
                 }
 
             });
@@ -285,8 +334,8 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
 
     private void setButtonStateStopped(boolean animated) {
         // Move the "my position" button out of the way
-        // TODO Is it possible to animate this?
-        mMap.setPadding(0, 350, 0, 0);
+
+        setMapPadding(350);
 
         if (animated) {
             Integer colorOld = ContextCompat.getColor(getActivity(), R.color.stop_red);
@@ -352,7 +401,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
 
     private void showStatPanel(boolean animated) {
         // Move the "my location" button of the map fragment out of the way of the information bar
-        mMap.setPadding(0, 200, 0, 0);
+        setMapPadding(200);
 
         if (animated) {
             mStatWindow.setTranslationY(-mStatWindow.getHeight());
@@ -377,7 +426,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
 
     private void hideStatPanel(boolean animated) {
         // Move the "my location" button of the map fragment back to its old position
-        mMap.setPadding(0, 0, 0, 0);
+        setMapPadding(0);
         if (animated) {
             mStatWindow.animate()
                     .translationY(-mStatWindow.getHeight())
@@ -390,8 +439,17 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
                             mStatWindow.setAlpha(1.0f);
                         }
                     });
+        } else {
+            mStatWindow.setVisibility(View.INVISIBLE);
+        }
+        hideStatButtonPanel(animated);
+        hideSaveSessionPanel(animated);
+    }
+
+    private void hideStatButtonPanel(boolean animated) {
+        if(animated) {
             mStatButtonPanel.animate()
-                    .translationY(-(mStatButtonPanel.getHeight() + mStatWindow.getHeight()))
+                    .translationY(-(mStatButtonPanel.getHeight() + mStatWindow.getHeight() + mStatSaveWindow.getHeight()))
                     .alpha(0.0f)
                     .translationZ(-1.0f)
                     .setListener(new AnimatorListenerAdapter() {
@@ -402,8 +460,47 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
                         }
                     });
         } else {
-            mStatWindow.setVisibility(View.INVISIBLE);
             mStatButtonPanel.setVisibility(View.GONE);
+        }
+    }
+
+    private void showSaveSessionPanel(boolean animated) {
+        if (animated) {
+            mStatSaveWindow.setVisibility(View.VISIBLE);
+
+            mStatButtonPanel.setTranslationY(-mStatSaveWindowHeight);
+            mStatButtonPanel.animate()
+                    .translationY(0);
+        } else {
+            mStatSaveWindow.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private void hideSaveSessionPanel(boolean animated) {
+        if (animated) {
+            mStatSaveWindow.animate()
+                    .translationY(-(mStatButtonPanel.getHeight() + mStatSaveWindow.getHeight()))
+                    .alpha(0.0f)
+                    .setListener(new AnimatorListenerAdapter() {
+                        @Override
+                        public void onAnimationEnd(Animator animation) {
+                            super.onAnimationEnd(animation);
+                            mStatSaveWindow.setTranslationY(0);
+                            mStatSaveWindow.setAlpha(1.0f);
+                            mStatSaveWindow.setVisibility(View.GONE);
+                        }
+                    });
+        } else {
+            mStatSaveWindow.setVisibility(View.GONE);
+        }
+    }
+
+    private void setMapPadding(int top) {
+        // TODO Is it possible to animate this?
+        if (mMap != null) {
+            mMap.setPadding(0, top, 0, 0);
+        } else {
+            mTopPadding = top;
         }
     }
 
@@ -458,6 +555,10 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
             if (isStopped()) {
                 markFinalPosition();
             }
+        }
+
+        if (mTopPadding != 0) {
+            mMap.setPadding(0, mTopPadding, 0, 0);
         }
     }
 

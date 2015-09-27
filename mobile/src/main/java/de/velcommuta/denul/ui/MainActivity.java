@@ -61,7 +61,7 @@ public class MainActivity extends AppCompatActivity
         navigationView.setNavigationItemSelectedListener(this);
 
         if (savedInstanceState == null) {
-            loadHomeFragment();
+            loadTrackFragment();
         }
     }
 

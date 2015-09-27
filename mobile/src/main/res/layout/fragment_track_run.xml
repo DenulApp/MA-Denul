@@ -9,9 +9,7 @@
             xmlns:map="http://schemas.android.com/apk/res-auto"
             android:layout_width="fill_parent"
             android:layout_height="fill_parent"
-            android:id="@+id/gmaps"
-            android:layout_span="2"
-            android:layout_weight="1"/>
+            android:id="@+id/gmaps"/>
 
     </FrameLayout>
     <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -33,7 +31,9 @@
         <LinearLayout
             android:orientation="vertical"
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="match_parent"
+            android:visibility="visible"
+            android:id="@+id/stat_window_container">
 
             <LinearLayout
                 android:layout_width="fill_parent"
@@ -135,20 +135,61 @@
             </LinearLayout>
 
             <LinearLayout
+                android:orientation="vertical"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/background_rect"
+                android:layout_marginLeft="4dp"
+                android:layout_marginRight="4dp"
+                android:elevation="4dp"
+                android:paddingLeft="4dp"
+                android:paddingRight="4dp"
+                android:paddingBottom="4dp"
+                android:translationZ="2dp"
+                android:id="@+id/stat_save_panel"
+                android:visibility="invisible">
+
+                <LinearLayout
+                    android:orientation="horizontal"
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content">
+
+
+                    <EditText
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:id="@+id/sessionname"
+                        android:layout_weight="1" />
+
+                    <ImageButton
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:id="@+id/btn_running"
+                        android:src="@drawable/ic_running" />
+
+                    <ImageButton
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:id="@+id/btn_cycling"
+                        android:src="@drawable/ic_cycling"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
                 android:orientation="horizontal"
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
                 android:background="@drawable/background_rect"
                 android:layout_marginLeft="4dp"
                 android:layout_marginRight="4dp"
-                android:layout_marginBottom="4dp"
                 android:elevation="4dp"
                 android:paddingLeft="4dp"
                 android:paddingRight="4dp"
-                android:paddingBottom="4dp"
                 android:visibility="gone"
                 android:id="@+id/stat_button_panel"
-                android:translationZ="2dp">
+                android:translationZ="2dp"
+                android:paddingBottom="4dp"
+                android:layout_marginBottom="4dp">
 
                 <Button
                     android:layout_width="0dp"
