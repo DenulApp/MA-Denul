@@ -9,6 +9,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationManager;
@@ -96,6 +97,9 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
     public static final String VALUE_STAT_SAVE_SELECTED      = "value-stat-save-selected";
     public static final String VALUE_STAT_SAVE_TITLE         = "value-stat-save-title";
 
+    public static final int VALUE_RUNNING = 0;
+    public static final int VALUE_CYCLING = 1;
+
     // Annoying variables which we have to keep track of because android is buggy
     private int mStatSaveWindowHeight;
     private int mTopPadding = 0;
@@ -147,6 +151,8 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         // Set up this fragment as the OnClickListener of the start/stop/reset button
         mStartStopButton.setOnClickListener(this);
         mSaveRunButton.setOnClickListener(this);
+        mCycling.setOnClickListener(this);
+        mRunning.setOnClickListener(this);
 
         if (savedInstanceState != null) {
             Log.d(TAG, "onCreate: SavedInstanceState is not empty, restoring.");
@@ -165,7 +171,14 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
             if (savedInstanceState.getBoolean(VALUE_STAT_SAVE_ACTIVE)) {
                 showSaveSessionPanel(false);
                 mSessionName.setText(savedInstanceState.getString(VALUE_STAT_SAVE_TITLE));
-                // TODO Restore selections on buttons
+                if (savedInstanceState.getInt(VALUE_STAT_SAVE_SELECTED) == VALUE_RUNNING) {
+                    setRunningButton();
+                } else if (savedInstanceState.getInt(VALUE_STAT_SAVE_SELECTED) == VALUE_CYCLING) {
+                    setCyclingButton();
+                } else {
+                    // No button was selected
+                    // TODO Add new buttons here
+                }
             } else {
                 mStatSaveWindow.setVisibility(View.GONE);
             }
@@ -219,7 +232,14 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
             state.putBoolean(VALUE_STAT_SAVE_ACTIVE, false);
         } else {
             state.putBoolean(VALUE_STAT_SAVE_ACTIVE, true);
-            state.putInt(VALUE_STAT_SAVE_SELECTED, 0); // FIXME Proper values
+            if (mCycling.isSelected()) {
+                state.putInt(VALUE_STAT_SAVE_SELECTED, VALUE_CYCLING);
+            } else if (mRunning.isSelected()) {
+                state.putInt(VALUE_STAT_SAVE_SELECTED, VALUE_RUNNING);
+            } else {
+                state.putInt(VALUE_STAT_SAVE_SELECTED, -1);
+            }
+
             state.putString(VALUE_STAT_SAVE_TITLE, mSessionName.getText().toString());
         }
     }
@@ -230,62 +250,143 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         if (v.equals(mStartStopButton)) {
             if (mStartStopButton.getText().equals(getString(R.string.start_run))) {
                 // The user wants to start a run
-                // Show the bar with the current information
-                showStatPanel(true);
-                // Set up button
-                setButtonStateStarted(true);
-                // Reset the timer and start it
-                mChrono.setBase(SystemClock.elapsedRealtime());
-                mChrono.start();
-
-                // Start GPS tracking service
-                Intent intent = new Intent(getActivity(), GPSTrackingService.class);
-                getActivity().startService(intent);
-                // TODO Convert to foreground service w/ notification
-
-                Log.d(TAG, "onClick: Started run");
-
+                startTracking();
             } else if (mStartStopButton.getText().equals(getString(R.string.stop_run))) {
                 // The user wants to stop a run
-                // Stop the clock
-                mChrono.stop();
-                // Set up button
-                setButtonStateStopped(true);
-
-                // Stop GPS tracking service
-                Intent intent = new Intent(getActivity(), GPSTrackingService.class);
-                getActivity().stopService(intent);
-
-                // Mark final position during the run
-                markFinalPosition();
-
-                Log.d(TAG, "onClick: Stopped run");
-
+                stopTracking();
             } else if (mStartStopButton.getText().equals(getString(R.string.reset_run))) {
                 // The user wants to reset the results of a run
-                // Hide the information bar
-                hideStatPanel(true);
-                // Set up button
-                setButtonStateReset(true);
-                // Clear all markers and polylines
-                mMap.clear();
-                mPolyLine = null;
-                mStartMarker = null;
-                mCurrentVelocity = 0;
-                mCurrentDistance = 0;
-                mLastCheckedIndex = 0;
-
-                Log.d(TAG, "onClick: Reset results");
+                resetTrackingState();
             }
+        } else if (v.equals(mSaveRunButton)){
+            // The "Save run" button was clicked
+            if (!isSaveStatWindowVisible()) {
+                showSaveSessionPanel(true);
+            } else {
+                int mode = getSelectedModeOfTransportation();
+                if (mode != -1) {
+                    GPSLocationEvent gpsloc = EventBus.getDefault().getStickyEvent(GPSLocationEvent.class);
+                    GPSTrackEvent ev = new GPSTrackEvent(
+                            gpsloc.getPosition(),
+                            mSessionName.getText().toString(),
+                            mode);
+                    EventBus.getDefault().post(ev);
+                }
+            }
+        } else if (v.equals(mRunning)) {
+            setRunningButton();
+        } else if (v.equals(mCycling)) {
+            setCyclingButton();
+        }
+    }
+
+    /**
+     * Start Tracking
+     */
+    private void startTracking() {
+        // Show the bar with the current information
+        showStatPanel(true);
+        // Set up button
+        setButtonStateStarted(true);
+        // Reset the timer and start it
+        mChrono.setBase(SystemClock.elapsedRealtime());
+        mChrono.start();
+
+        // Start GPS tracking service
+        Intent intent = new Intent(getActivity(), GPSTrackingService.class);
+        getActivity().startService(intent);
+        // TODO Convert to foreground service w/ notification
+
+        Log.d(TAG, "startTracking: Started run");
+    }
+
+    /**
+     * Stop tracking, retain state
+     */
+    private void stopTracking() {
+        // Stop the clock
+        mChrono.stop();
+        // Set up button
+        setButtonStateStopped(true);
+
+        // Stop GPS tracking service
+        Intent intent = new Intent(getActivity(), GPSTrackingService.class);
+        getActivity().stopService(intent);
+
+        // Mark final position during the run
+        markFinalPosition();
+
+        Log.d(TAG, "stopTracking: Stopped run");
+    }
+
+    /**
+     * Reset all the tracking state
+     */
+    private void resetTrackingState() {
+        // Hide the information bar
+        hideStatPanel(true);
+        // Set up button
+        setButtonStateReset(true);
+        // Clear all markers and polylines
+        mMap.clear();
+        mPolyLine = null;
+        mStartMarker = null;
+        mCurrentVelocity = 0;
+        mCurrentDistance = 0;
+        mLastCheckedIndex = 0;
+
+        Log.d(TAG, "resetTrackingState: Reset results");
+    }
+
+    /**
+     * Clear all button highlights in preparation for new ones
+     */
+    private void clearAllHighlights() {
+        mRunning.setSelected(false);
+        mCycling.setSelected(false);
+        mRunning.clearColorFilter();
+        mCycling.clearColorFilter();
+        mRunning.setAlpha(1.0f);
+        mCycling.setAlpha(1.0f);
+        mRunning.setElevation(4.0f);
+        mCycling.setElevation(4.0f);
+    }
+    /**
+     * Visually highlight the "cycling" button
+     */
+    private void setCyclingButton() {
+        clearAllHighlights();
+        mCycling.setSelected(true);
+        mCycling.setColorFilter(ContextCompat.getColor(getActivity(), R.color.colorAccent));
+        mRunning.setAlpha(0.3f);
+        mCycling.setElevation(6.0f);
+    }
+
+    /**
+     * Visually Highlight the "running" button
+     */
+    private void setRunningButton() {
+        clearAllHighlights();
+        mRunning.setSelected(true);
+        mRunning.setColorFilter(ContextCompat.getColor(getActivity(), R.color.colorAccent));
+        mCycling.setAlpha(0.3f);
+        mRunning.setElevation(6.0f);
+    }
+
+    /**
+     * Returns the selected mode of transportation
+     * @return Returns the selected mode of transportation (as defined in LocationLoggingContract.LocationSessions,
+     *         or -1, if none is selected.
+     */
+    private int getSelectedModeOfTransportation() {
+        if (mRunning.isSelected()) {
+            return LocationLoggingContract.LocationSessions.VALUE_RUNNING;
+        } else if (mCycling.isSelected()) {
+            return LocationLoggingContract.LocationSessions.VALUE_CYCLING;
         } else {
-            showSaveSessionPanel(true);
-            /*
-            GPSLocationEvent gpsloc = EventBus.getDefault().getStickyEvent(GPSLocationEvent.class);
-            GPSTrackEvent ev = new GPSTrackEvent(
-                    gpsloc.getPosition(),
-                    "Test");
-            EventBus.getDefault().post(ev);
-            */
+            // Nothing is selected :(
+            Toast.makeText(getActivity(), "Please select a mode of transportation", Toast.LENGTH_SHORT).show();
+            return -1;
         }
     }
 
@@ -478,33 +579,71 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
 
             mStatButtonPanel.setTranslationY(-mStatSaveWindowHeight);
             mStatButtonPanel.animate()
-                    .translationY(0);
+                    .translationY(0)
+                    .setListener(new AnimatorListenerAdapter() {
+                        @Override
+                        public void onAnimationEnd(Animator animation) {
+                            mStatButtonPanel.setTranslationY(0);
+                        }
+                    });
         } else {
             mStatSaveWindow.setVisibility(View.VISIBLE);
         }
+        // TODO Default to last used or default mode of transportation, if it is ever implemented
     }
 
     /**
      * Hide the panel with the options for saving the session
      * @param animated True if the change should be animated, false if not
+     * @param retainButton True if the save session button should be retained, false otherwise
      */
-    private void hideSaveSessionPanel(boolean animated) {
+    private void hideSaveSessionPanel(boolean animated, boolean retainButton) {
         if (animated) {
-            mStatSaveWindow.animate()
-                    .translationY(-(mStatButtonPanel.getHeight() + mStatSaveWindow.getHeight()))
-                    .alpha(0.0f)
-                    .setListener(new AnimatorListenerAdapter() {
-                        @Override
-                        public void onAnimationEnd(Animator animation) {
-                            super.onAnimationEnd(animation);
-                            mStatSaveWindow.setTranslationY(0);
-                            mStatSaveWindow.setAlpha(1.0f);
-                            mStatSaveWindow.setVisibility(View.GONE);
-                        }
-                    });
+            if (retainButton) {
+                mStatButtonPanel.animate()
+                        .translationY(-mStatSaveWindowHeight)
+                        .setListener(new AnimatorListenerAdapter() {
+                            @Override
+                            public void onAnimationEnd(Animator animation) {
+                                super.onAnimationEnd(animation);
+                                mStatSaveWindow.setVisibility(View.GONE);
+                                mStatButtonPanel.setTranslationY(0);
+                            }
+                        });
+            } else {
+                mStatSaveWindow.animate()
+                        .translationY(-(mStatButtonPanel.getHeight() + mStatSaveWindow.getHeight()))
+                        .alpha(0.0f)
+                        .setListener(new AnimatorListenerAdapter() {
+                            @Override
+                            public void onAnimationEnd(Animator animation) {
+                                super.onAnimationEnd(animation);
+                                mStatSaveWindow.setTranslationY(0);
+                                mStatSaveWindow.setAlpha(1.0f);
+                                mStatSaveWindow.setVisibility(View.GONE);
+                            }
+                        });
+            }
         } else {
             mStatSaveWindow.setVisibility(View.GONE);
         }
+        clearAllHighlights();
+    }
+
+    /**
+     * Hides the panel with the options for saving the session
+     * @param animated True if change should be animated, false otherwise
+     */
+    private void hideSaveSessionPanel(boolean animated) {
+        hideSaveSessionPanel(animated, false);
+    }
+
+    /**
+     * Check if the Save stat window is visible
+     * @return True if it is visible, false otherwise
+     */
+    private boolean isSaveStatWindowVisible() {
+        return mStatSaveWindow.getVisibility() == View.VISIBLE;
     }
 
     /**
@@ -756,7 +895,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         // Finish transaction
         db.endTransaction();
         // Notify main thread
-        EventBus.getDefault().post(new DatabaseResultEvent("Track saved"));
+        EventBus.getDefault().post(new DatabaseResultEvent(getString(R.string.save_success)));
     }
 
     /**
@@ -765,5 +904,8 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
      */
     public void onEventMainThread(DatabaseResultEvent ev) {
         Toast.makeText(getActivity(), ev.getMessage(), Toast.LENGTH_SHORT).show();
+        if (ev.getMessage().equals(getString(R.string.save_success))) {
+            hideSaveSessionPanel(true, true);
+        }
     }
 }

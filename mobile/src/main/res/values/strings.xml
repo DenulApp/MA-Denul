@@ -19,13 +19,16 @@
     <string name="start_run">Start</string>
     <string name="stop_run">Stop</string>
     <string name="reset_run">Reset</string>
-    <string name="save_run">Save run</string>
+    <string name="save_run">Save this track</string>
     <string name="session_name_hint">Enter a name for this session</string>
     <string name="header_speed">Speed</string>
     <string name="default_speed">-</string>
     <string name="header_time">Current Time</string>
     <string name="header_distance">Distance</string>
     <string name="default_distance">-</string>
+
+    <!-- Status messages -->
+    <string name="save_success">Saved</string>
 
     <!-- Unit strings -->
     <string name="distance_m">%1$d m</string>
