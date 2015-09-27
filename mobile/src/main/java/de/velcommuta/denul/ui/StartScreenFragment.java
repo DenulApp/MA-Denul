@@ -28,8 +28,7 @@ public class StartScreenFragment extends Fragment {
      * @return A new instance of fragment StartScreenFragment.
      */
     public static StartScreenFragment newInstance() {
-        StartScreenFragment fragment = new StartScreenFragment();
-        return fragment;
+        return new StartScreenFragment();
     }
 
     public StartScreenFragment() {
