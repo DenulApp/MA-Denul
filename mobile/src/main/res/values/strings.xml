@@ -15,14 +15,22 @@
     <string name="menu_share">Share</string>
     <string name="menu_prefs">Settings</string>
 
-    <!-- Buttons during GPS tracking -->
+    <!-- Buttons and fields during GPS tracking -->
     <string name="start_run">Start</string>
     <string name="stop_run">Stop</string>
     <string name="reset_run">Reset</string>
+    <string name="save_run">Save run</string>
+    <string name="session_name_hint">Enter a name for this session</string>
+    <string name="header_speed">Speed</string>
+    <string name="default_speed">-</string>
+    <string name="header_time">Current Time</string>
+    <string name="header_distance">Distance</string>
+    <string name="default_distance">-</string>
 
     <!-- Unit strings -->
     <string name="distance_m">%1$d m</string>
     <string name="distance_km">%1$.02f km</string>
     <string name="velocity_kmh">%1$.02f km/h</string>
-    <string name="menu_home2">Tracks</string>
+
+
 </resources>

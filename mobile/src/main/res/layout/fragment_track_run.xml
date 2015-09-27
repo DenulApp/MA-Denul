@@ -62,7 +62,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:textAppearance="?android:attr/textAppearanceMedium"
-                            android:text="Distance"
+                            android:text="@string/header_distance"
                             android:id="@+id/distanceheader"
                             android:layout_weight="1"
                             android:layout_gravity="left" />
@@ -71,7 +71,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:textAppearance="?android:attr/textAppearanceSmall"
-                            android:text="-"
+                            android:text="@string/default_distance"
                             android:id="@+id/distancefield"
                             android:layout_column="1"
                             android:layout_weight="1" />
@@ -87,13 +87,12 @@
 
                     <TextView
                             android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
+                            android:layout_height="0dp"
                             android:textAppearance="?android:attr/textAppearanceLarge"
-                            android:text="Current Time"
+                            android:text="@string/header_time"
                             android:id="@+id/timeheader"
                             android:layout_gravity="center"
-                            android:layout_weight="1"
-                            android:layout_column="1" />
+                            android:layout_weight="1"/>
 
                     <Chronometer
                         android:layout_width="wrap_content"
@@ -114,9 +113,8 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:textAppearance="?android:attr/textAppearanceMedium"
-                            android:text="Speed"
+                            android:text="@string/header_speed"
                             android:id="@+id/speedheader"
-                            android:layout_column="3"
                             android:layout_weight="1"
                             android:layout_gravity="right" />
 
@@ -124,9 +122,8 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:textAppearance="?android:attr/textAppearanceSmall"
-                            android:text="-"
+                            android:text="@string/default_speed"
                             android:id="@+id/speedfield"
-                            android:layout_column="3"
                             android:layout_weight="1"
                         android:layout_gravity="right" />
 
@@ -153,7 +150,8 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:id="@+id/sessionname"
-                        android:layout_weight="1" />
+                        android:layout_weight="1"
+                        android:hint="@string/session_name_hint"/>
 
                     <ImageButton
                         android:layout_width="wrap_content"
@@ -187,7 +185,7 @@
                 <Button
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:text="Save run"
+                    android:text="@string/save_run"
                     android:id="@+id/save_run_btn"
                     android:layout_weight="1"
                     android:background="#00D05D" />
