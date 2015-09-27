@@ -4,16 +4,13 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ArgbEvaluator;
 import android.animation.ValueAnimator;
-import android.app.Activity;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.Color;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationManager;
-import android.net.Uri;
 import android.os.Bundle;
 import android.app.Fragment;
 import android.os.SystemClock;
@@ -75,7 +72,6 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
     private LinearLayout mStatButtonPanel;
     private LinearLayout mStatWindow;
     private LinearLayout mStatSaveWindow;
-    private LinearLayout mStatContainer;
     private Chronometer mChrono;
     private TextView mVelocity;
     private TextView mDistance;
@@ -138,7 +134,6 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         mStatWindow      = (LinearLayout) v.findViewById(R.id.statwindow);
         mStatButtonPanel = (LinearLayout) v.findViewById(R.id.stat_button_panel);
         mStatSaveWindow  = (LinearLayout) v.findViewById(R.id.stat_save_panel);
-        mStatContainer   = (LinearLayout) v.findViewById(R.id.stat_window_container);
         mStartStopButton = (Button)       v.findViewById(R.id.actionbutton);
         mSaveRunButton   = (Button)       v.findViewById(R.id.save_run_btn);
         mRunning         = (ImageButton)  v.findViewById(R.id.btn_running);
@@ -156,12 +151,14 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
 
         if (savedInstanceState != null) {
             Log.d(TAG, "onCreate: SavedInstanceState is not empty, restoring.");
+            //noinspection ConstantConditions
             if (savedInstanceState.getString(VALUE_RUN_ACTIVE).equals(getString(R.string.stop_run))) {
                 setButtonStateStarted(false);
                 mChrono.setBase(savedInstanceState.getLong(VALUE_CURRENT_CHRONO_BASE));
                 mChrono.start();
                 showStatPanel(false);
-            } else if (savedInstanceState.getString(VALUE_RUN_ACTIVE).equals(getString(R.string.reset_run))) {
+            } else //noinspection ConstantConditions
+                if (savedInstanceState.getString(VALUE_RUN_ACTIVE).equals(getString(R.string.reset_run))) {
                 setButtonStateStopped(false);
                 // markFinalPosition();
                 showStatPanel(false);
@@ -175,10 +172,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
                     setRunningButton();
                 } else if (savedInstanceState.getInt(VALUE_STAT_SAVE_SELECTED) == VALUE_CYCLING) {
                     setCyclingButton();
-                } else {
-                    // No button was selected
-                    // TODO Add new buttons here
-                }
+                } // TODO Add new buttons here
             } else {
                 mStatSaveWindow.setVisibility(View.GONE);
             }
@@ -827,6 +821,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
      * Check if the current state of the tracking system is reset (no data available)
      * @return True if tracking is not running and no data is available, false otherwise
      */
+    @SuppressWarnings("unused")
     private boolean isReset() {
         return mStartStopButton.getText().equals(getString(R.string.start_run));
     }
@@ -852,6 +847,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
      * EventBus function to perform Database interactions in an AsyncThread (in the background)
      * @param ev Event containing the track and other information that should be saved to the database
      */
+    @SuppressWarnings("unused")
     public void onEventAsync(GPSTrackEvent ev) {
         // Get a handler on the database
         SQLiteDatabase db = ((MainActivity)getActivity()).getLocationDatabaseHandler();
@@ -902,6 +898,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
      * Display error or success messages from the database client in a Toast
      * @param ev The event with the message
      */
+    @SuppressWarnings("unused")
     public void onEventMainThread(DatabaseResultEvent ev) {
         Toast.makeText(getActivity(), ev.getMessage(), Toast.LENGTH_SHORT).show();
         if (ev.getMessage().equals(getString(R.string.save_success))) {
