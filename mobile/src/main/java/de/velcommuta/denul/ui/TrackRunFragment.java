@@ -4,6 +4,8 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ArgbEvaluator;
 import android.animation.ValueAnimator;
+import android.app.Activity;
+import android.app.ActivityManager;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
@@ -84,6 +86,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
     private float mCurrentDistance;
     private float mCurrentVelocity;
 
+    private EventBus mEventBus;
     // Identifier Strings for Bundle
     public static final String VALUE_RUN_ACTIVE              = "value-run-active";
     public static final String VALUE_CURRENT_CHRONO_BASE     = "value-current-chrono-base";
@@ -149,23 +152,28 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         mCycling.setOnClickListener(this);
         mRunning.setOnClickListener(this);
 
+
         if (savedInstanceState != null) {
-            Log.d(TAG, "onCreate: SavedInstanceState is not empty, restoring.");
+            Log.d(TAG, "onCreate: Restore - SavedInstanceState is not empty, restoring.");
             //noinspection ConstantConditions
             if (savedInstanceState.getString(VALUE_RUN_ACTIVE).equals(getString(R.string.stop_run))) {
+                Log.d(TAG, "onCreate: Restore - Ongoing session, restoring state");
                 setButtonStateStarted(false);
                 mChrono.setBase(savedInstanceState.getLong(VALUE_CURRENT_CHRONO_BASE));
                 mChrono.start();
                 showStatPanel(false);
             } else //noinspection ConstantConditions
                 if (savedInstanceState.getString(VALUE_RUN_ACTIVE).equals(getString(R.string.reset_run))) {
-                setButtonStateStopped(false);
-                // markFinalPosition();
-                showStatPanel(false);
-                mChrono.setText(savedInstanceState.getString(VALUE_CURRENT_CHRONO_TEXT));
+                    Log.d(TAG, "onCreate: Restore - Stopped, but saved session, restoring state");
+                    setButtonStateStopped(false);
+                    // markFinalPosition();
+                    showStatPanel(false);
+                    //(false);
+                    mChrono.setText(savedInstanceState.getString(VALUE_CURRENT_CHRONO_TEXT));
             }
             mStatSaveWindowHeight = savedInstanceState.getInt(VALUE_STAT_SAVE_WINDOW_HEIGHT);
             if (savedInstanceState.getBoolean(VALUE_STAT_SAVE_ACTIVE)) {
+                Log.d(TAG, "onCreate: Restore - SavedInstanceState says SaveSessionPanel is active. Restoring");
                 showSaveSessionPanel(false);
                 mSessionName.setText(savedInstanceState.getString(VALUE_STAT_SAVE_TITLE));
                 if (savedInstanceState.getInt(VALUE_STAT_SAVE_SELECTED) == VALUE_RUNNING) {
@@ -174,24 +182,35 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
                     setCyclingButton();
                 } // TODO Add new buttons here
             } else {
+                Log.d(TAG, "onCreate: Restore - SaveSessionPanel was not active, setting it to GONE");
                 mStatSaveWindow.setVisibility(View.GONE);
             }
         } else {
             // Remember the height of the mStatSaveWindow and set it to View.GONE
+            Log.d(TAG, "onCreate: Restore - No SavedSessionState found");
+            Log.d(TAG, "onCreate: Restore - Getting height of mStatSaveWindow");
             mStatSaveWindow.getViewTreeObserver().addOnGlobalLayoutListener(
                     new ViewTreeObserver.OnGlobalLayoutListener() {
                         @Override
                         public void onGlobalLayout() {
                             mStatSaveWindowHeight = mStatSaveWindow.getHeight();
-                            Log.d(TAG, "onCreate: mStatSaveWindowHeight = " + mStatSaveWindowHeight);
 
                             mStatSaveWindow.getViewTreeObserver().removeOnGlobalLayoutListener(this);
                             mStatSaveWindow.setVisibility(View.GONE);
                         }
                     }
             );
+            if (isMyServiceRunning()) {
+                Log.d(TAG, "onCreate: Restore - Service is running, restoring state");
+                setButtonStateStarted(false);
+                showStatPanel(false);
+                GPSLocationEvent ev = EventBus.getDefault().getStickyEvent(GPSLocationEvent.class);
+                mChrono.setBase(ev.getChronoBase());
+                mChrono.start();
+            } else {
+                Log.d(TAG, "onCreate: Restore - No service running");
+            }
         }
-
         return v;
     }
 
@@ -199,7 +218,10 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
     public void onStart() {
         super.onStart();
         Log.i(TAG, "onStart: Registering with EventBus");
-        EventBus.getDefault().register(this);
+        if (mEventBus == null) {
+            mEventBus = EventBus.getDefault();
+            mEventBus.register(this);
+        }
     }
 
     @Override
@@ -407,7 +429,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
             // Set the new background color and text for the button
             mStartStopButton.setBackgroundColor(ContextCompat.getColor(getActivity(), R.color.stop_red));
             mStartStopButton.setText(R.string.stop_run);
-            mStatButtonPanel.setVisibility(View.VISIBLE);
+            // mStatWindow.setVisibility(View.VISIBLE);
         }
     }
 
@@ -455,6 +477,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
             // Update the text and color of the button
             mStartStopButton.setText(R.string.reset_run);
             mStartStopButton.setBackgroundColor(ContextCompat.getColor(getActivity(), R.color.reset_blue));
+            mStatButtonPanel.setTranslationY(0);
             mStatButtonPanel.setVisibility(View.VISIBLE);
         }
     }
@@ -832,6 +855,20 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
      */
     private boolean isRunning() {
         return mStartStopButton.getText().equals(getString(R.string.stop_run));
+    }
+
+    /**
+     * Checks if the GPSTrackingService is running
+     * @return True if the service is running, false otherwise
+     */
+    private boolean isMyServiceRunning() {
+        ActivityManager manager = (ActivityManager) getActivity().getSystemService(Activity.ACTIVITY_SERVICE);
+        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+            if ("de.velcommuta.denul.service.GPSTrackingService".equals(service.service.getClassName())) { // TODO Update if
+                return true; // Package name matches, our service is running
+            }
+        }
+        return false; // No matching package name found => Our service is not running
     }
 
     /**

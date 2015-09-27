@@ -1,10 +1,14 @@
 package de.velcommuta.denul.service;
 
+import android.app.PendingIntent;
 import android.app.Service;
+import android.app.TaskStackBuilder;
 import android.content.Intent;
 import android.location.Location;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.os.SystemClock;
+import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -18,7 +22,9 @@ import java.util.List;
 import java.util.Observable;
 
 import de.greenrobot.event.EventBus;
+import de.velcommuta.denul.R;
 import de.velcommuta.denul.event.GPSLocationEvent;
+import de.velcommuta.denul.ui.MainActivity;
 
 /**
  * Service to perform GPS tracking, using the Google Apps location API
@@ -37,6 +43,23 @@ public class GPSTrackingService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         // EventBus.getDefault().register(this);
+        // Prepare persistent Notification
+        NotificationCompat.Builder nBuilder = new NotificationCompat.Builder(this)
+                .setSmallIcon(R.drawable.ic_running)
+                .setContentTitle(getString(R.string.location_tracking_notify))
+                .setContentText(getString(R.string.location_tracking_details, getString(R.string.app_name)));
+        // Create intent for the application
+        Intent appIntent = new Intent(this, MainActivity.class);
+        appIntent.setAction(MainActivity.INTENT_GPS_TRACK);
+
+        TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
+        stackBuilder.addParentStack(MainActivity.class);
+        stackBuilder.addNextIntent(appIntent);
+        PendingIntent resultIntent = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
+        // Set the intent of the notification
+        nBuilder.setContentIntent(resultIntent);
+        // Start the persistent service
+        startForeground(42, nBuilder.build());
 
         Runnable r = new GPSTrackingRunnable();
 
@@ -75,6 +98,7 @@ public class GPSTrackingService extends Service {
         public static final long FASTEST_UPDATE_INTERVAL_IN_MILLISECONDS =
                 UPDATE_INTERVAL_IN_MILLISECONDS / 2;
 
+        private long mChronometerBase;
         /**
          * Build the Google API client that is used for location requests
          */
@@ -162,6 +186,7 @@ public class GPSTrackingService extends Service {
             Log.i(TAG, "run: Received Interrupt, Thread stopping");
             stopLocationUpdates();
             mGoogleApiClient.disconnect();
+            stopForeground(true);
             stopSelf();
         }
 
@@ -173,6 +198,7 @@ public class GPSTrackingService extends Service {
             startLocationUpdates();
             Log.i(TAG, "onConnected: Connected to API");
             Location cLoc = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+            mChronometerBase = SystemClock.elapsedRealtime();
             addLocationAndNotify(cLoc);
         }
 
@@ -210,7 +236,7 @@ public class GPSTrackingService extends Service {
         private void addLocationAndNotify(Location location) {
             Log.d(TAG, "addLocationAndNotify: Sending new location to UI Thread");
             mPoints.add(location);
-            EventBus.getDefault().postSticky(new GPSLocationEvent(mPoints));
+            EventBus.getDefault().postSticky(new GPSLocationEvent(mPoints, mChronometerBase));
         }
 
 

@@ -18,7 +18,6 @@ import android.view.MenuItem;
 
 import net.sqlcipher.database.SQLiteDatabase;
 
-import de.greenrobot.event.EventBus;
 import de.velcommuta.denul.R;
 import de.velcommuta.denul.db.LocationLoggingDbHelper;
 
@@ -33,6 +32,12 @@ public class MainActivity extends AppCompatActivity
 {
     private SQLiteDatabase mLocationDatabaseHandler;
 
+    public static final String INTENT_GPS_TRACK = "intent-gps-track";
+
+    public static final String TAG = "MainActivity";
+
+    private Fragment mCurrentFragment;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -41,9 +46,9 @@ public class MainActivity extends AppCompatActivity
             // Load SQLCipher libs
             SQLiteDatabase.loadLibs(this);
             // Configure default EventBus instance
-            EventBus.builder().logNoSubscriberMessages(false)
-                    .sendNoSubscriberEvent(false)
-                    .installDefaultEventBus();
+            //EventBus.builder().logNoSubscriberMessages(false)
+            //        .sendNoSubscriberEvent(false)
+            //        .installDefaultEventBus();
         }
         // Prepare DB and get handler
         // TODO If I ever add a different launch activity with a passphrase prompt, this will have to be moved
@@ -62,7 +67,11 @@ public class MainActivity extends AppCompatActivity
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
 
-        if (savedInstanceState == null) {
+        if (getIntent().getAction().equals(INTENT_GPS_TRACK) && savedInstanceState == null) {
+            Log.d(TAG, "onCreate: Forwarded to GPS tracking by Intent");
+            loadTrackFragment();
+        } else if (savedInstanceState == null) {
+            Log.d(TAG, "onCreate: No specific fragment requested, using default");
             loadTrackFragment();
         }
     }
@@ -137,10 +146,13 @@ public class MainActivity extends AppCompatActivity
      * Load the GPS tracking fragment
      */
     private void loadTrackFragment() {
-        Fragment fragment = TrackRunFragment.newInstance();
         FragmentManager fragmentManager = getFragmentManager();
+        if (mCurrentFragment == null || !(mCurrentFragment instanceof TrackRunFragment)) {
+            Log.d(TAG, "loadTrackFragment: Creating new instance of TrackRunFragment");
+            mCurrentFragment = TrackRunFragment.newInstance();
+        }
         fragmentManager.beginTransaction()
-                .replace(R.id.content_frame, fragment)
+                .replace(R.id.content_frame, mCurrentFragment)
                 .commit();
     }
 

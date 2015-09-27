@@ -8,14 +8,17 @@ import java.util.List;
  * GPS Location Event for EventBus (https://github.com/greenrobot/EventBus)
  */
 public class GPSLocationEvent {
-    public List<Location> mPosition;
+    private List<Location> mPosition;
+    private long mChronobase;
 
     /**
      * Constructor to set up the Message with the Location list
      * @param pos List of locations that should be passed to subscribers
+     * @param chronobase SystemClock.elapsedRealtime() at the time of the first GPS fix
      */
-    public GPSLocationEvent(List<Location> pos) {
+    public GPSLocationEvent(List<Location> pos, long chronobase) {
         mPosition = pos;
+        mChronobase = chronobase;
     }
 
     /**
@@ -24,5 +27,13 @@ public class GPSLocationEvent {
      */
     public List<Location> getPosition() {
         return mPosition;
+    }
+
+    /**
+     * Get the chronometer base
+     * @return Base of the chronometer, in elapsed Milliseconds since boot
+     */
+    public long getChronoBase() {
+        return mChronobase;
     }
 }

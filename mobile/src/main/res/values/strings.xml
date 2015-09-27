@@ -26,6 +26,8 @@
     <string name="header_time">Current Time</string>
     <string name="header_distance">Distance</string>
     <string name="default_distance">-</string>
+    <string name="location_tracking_notify">Workout tracking active</string>
+    <string name="location_tracking_details">%1$s is currently tracking your workout</string>
 
     <!-- Status messages -->
     <string name="save_success">Saved</string>
