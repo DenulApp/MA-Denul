@@ -54,6 +54,10 @@ public class LocationLoggingDbHelper extends SQLiteOpenHelper {
     public static final int DATABASE_VERSION = 2;
 
 
+    /**
+     * Constructor for Helper function
+     * @param ctx Context object
+     */
     public LocationLoggingDbHelper(Context ctx) {
         super(ctx, DATABASE_NAME, null, DATABASE_VERSION);
     }
