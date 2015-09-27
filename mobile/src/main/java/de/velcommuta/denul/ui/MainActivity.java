@@ -22,6 +22,9 @@ import de.greenrobot.event.EventBus;
 import de.velcommuta.denul.R;
 import de.velcommuta.denul.db.LocationLoggingDbHelper;
 
+/**
+ * Main Activity - Launched on startup of the application
+ */
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener,
         StartScreenFragment.OnFragmentInteractionListener,
@@ -96,6 +99,7 @@ public class MainActivity extends AppCompatActivity
         return super.onOptionsItemSelected(item);
     }
 
+    @SuppressWarnings("StatementWithEmptyBody")
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
         // Handle navigation view item clicks here.
@@ -108,9 +112,9 @@ public class MainActivity extends AppCompatActivity
             // startActivity(intent);
             loadTrackFragment();
         } else if (id == R.id.nav_share) {
-
+            // TODO implement
         } else if (id == R.id.nav_menu) {
-
+            // TODO implement
         }
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
@@ -118,6 +122,9 @@ public class MainActivity extends AppCompatActivity
         return true;
     }
 
+    /**
+     * Load the homescreen fragment
+     */
     private void loadHomeFragment() {
         Fragment fragment = StartScreenFragment.newInstance();
         FragmentManager fragmentManager = getFragmentManager();
@@ -126,6 +133,9 @@ public class MainActivity extends AppCompatActivity
                 .commit();
     }
 
+    /**
+     * Load the GPS tracking fragment
+     */
     private void loadTrackFragment() {
         Fragment fragment = TrackRunFragment.newInstance();
         FragmentManager fragmentManager = getFragmentManager();
@@ -139,10 +149,18 @@ public class MainActivity extends AppCompatActivity
 
     }
 
+    /**
+     * Setter for the SQLiteDatabase, required by AsyncTask that creates it
+     * @param helper The SQLiteDatabase handler
+     */
     public void setLocationDatabaseHandler(SQLiteDatabase helper) {
         mLocationDatabaseHandler = helper;
     }
 
+    /**
+     * Getter for the LocationDatabaseHandler for the GPS Location Track database
+     * @return SQLiteDatabase for GPS tracks
+     */
     protected SQLiteDatabase getLocationDatabaseHandler() {
         return mLocationDatabaseHandler;
     }
