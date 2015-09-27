@@ -2,8 +2,6 @@ package de.velcommuta.denul.event;
 
 import android.location.Location;
 
-import de.velcommuta.denul.db.LocationLoggingContract;
-
 import java.util.List;
 
 /**
@@ -18,6 +16,7 @@ public class GPSTrackEvent {
      * Constructor to pass a list of positions to the subscriber (without any title)
      * @param pos List of positions
      */
+    @SuppressWarnings("unused")
     public GPSTrackEvent(List<Location> pos) {
         mPosition = pos;
     }
@@ -27,6 +26,7 @@ public class GPSTrackEvent {
      * @param pos List of positions
      * @param name Name of session
      */
+    @SuppressWarnings("unused")
     public GPSTrackEvent(List<Location> pos, String name) {
         mPosition = pos;
         mSessionName = name;
