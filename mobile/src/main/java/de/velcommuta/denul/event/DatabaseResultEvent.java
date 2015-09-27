@@ -6,10 +6,18 @@ package de.velcommuta.denul.event;
 public class DatabaseResultEvent {
     private String mMessage;
 
+    /**
+     * Public constructor to set up the Message
+     * @param message The message that should be passed to subscribers
+     */
     public DatabaseResultEvent(String message) {
         mMessage = message;
     }
 
+    /**
+     * Retrieve the message contained in the event
+     * @return The message that was set during initialization.
+     */
     public String getMessage() {
         return mMessage;
     }
