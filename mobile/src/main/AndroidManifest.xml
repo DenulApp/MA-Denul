@@ -42,6 +42,11 @@
             android:enabled="true"
             android:exported="false" >
         </service>
+        <service
+            android:name=".service.PedometerService"
+            android:enabled="true"
+            android:exported="false" >
+        </service>
     </application>
 
 </manifest>
