@@ -182,7 +182,8 @@
                 android:id="@+id/stat_button_panel"
                 android:translationZ="2dp"
                 android:paddingBottom="4dp"
-                android:layout_marginBottom="4dp">
+                android:layout_marginBottom="4dp"
+                android:clipToPadding="false">
 
                 <Button
                     android:layout_width="0dp"
