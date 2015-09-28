@@ -886,7 +886,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
     @SuppressWarnings("unused")
     public void onEventAsync(GPSTrackEvent ev) {
         // Get a handler on the database
-        SQLiteDatabase db = ((MainActivity)getActivity()).getLocationDatabaseHandler();
+        SQLiteDatabase db = ((MainActivity)getActivity()).getSecureDatabaseHandler();
         if (db == null) {
             EventBus.getDefault().post(new DatabaseResultEvent("Database not open"));
             return;

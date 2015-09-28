@@ -23,6 +23,7 @@ public class VaultContract {
         public static final String COLUMN_KEY_BYTES = "key";
 
         ///// Values
-        public static final int TYPE_RSA = 0;
+        public static final int TYPE_RSA_PRIV = 0;
+        public static final int TYPE_RSA_PUB  = 1;
     }
 }
