@@ -31,7 +31,9 @@ dependencies {
     compile 'com.google.maps.android:android-maps-utils:0.4+'
     compile 'de.greenrobot:eventbus:2.4.0'
     compile 'joda-time:joda-time:2.8.2'
-    compile 'com.facebook.conceal:conceal:1.0.1'
+
+    compile files('libs/libconceal.jar')
+    compile files('libs/android_conceal.jar')
 
     testCompile 'junit:junit:4.12'
     androidTestCompile 'com.android.support.test:runner:0.4'
