@@ -1,14 +1,11 @@
 package de.velcommuta.denul.ui;
 
-import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.Fragment;
 import android.app.FragmentManager;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -18,28 +15,14 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.util.Base64;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.Toast;
 
 import net.sqlcipher.database.SQLiteDatabase;
 
-import org.spongycastle.jce.provider.BouncyCastleProvider;
-
-import java.security.KeyFactory;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
-import java.security.PublicKey;
-import java.security.Security;
-import java.security.spec.X509EncodedKeySpec;
-
 import de.velcommuta.denul.R;
 import de.velcommuta.denul.db.SecureDbHelper;
-import de.velcommuta.denul.db.VaultContract;
 import de.velcommuta.denul.service.PedometerService;
 
 /**
@@ -51,10 +34,6 @@ public class MainActivity extends AppCompatActivity
         StepCountFragment.OnFragmentInteractionListener,
         HeartRateFragment.OnFragmentInteractionListener
 {
-    static {
-        Security.insertProviderAt(new org.spongycastle.jce.provider.BouncyCastleProvider(), 1);
-    }
-
     private SQLiteDatabase mSecureDatabaseHandler;
 
     public static final String INTENT_GPS_TRACK = "intent-gps-track";
@@ -80,13 +59,7 @@ public class MainActivity extends AppCompatActivity
 
         // Launch pedometer service if it is not running
         if (!isPedometerServiceRunning()) {
-            String pubkey = getSharedPreferences(getString(R.string.preferences_keystore), Context.MODE_PRIVATE).getString(getString(R.string.preferences_keystore_rsapub), null);
-            if (pubkey != null) {
-                startPedometerService();
-            } else {
-                // We don't have a keypair ready! Let's generate one and start the service afterwards
-                new KeypairGenerationTask().execute();
-            }
+            startPedometerService();
         }
 
         setContentView(R.layout.activity_main);
@@ -243,57 +216,6 @@ public class MainActivity extends AppCompatActivity
         return mSecureDatabaseHandler;
     }
 
-    /**
-     * Setter for the generated RSA keypair
-     * @param keypair The generated KeyPair
-     */
-    @SuppressLint("CommitPrefEdits")
-    private void setGeneratedKeypair(KeyPair keypair) {
-        if (keypair == null) return; // If the keypair is null, something went wrong. Do nothing.
-        Log.d(TAG, "setGeneratedKeypair: Got keypair, saving to database");
-        if (mSecureDatabaseHandler != null) {
-            // Begin a database transaction
-            mSecureDatabaseHandler.beginTransaction();
-            // Prepare database entry for the private key
-            ContentValues keyEntry = new ContentValues();
-            // Retrieve private key
-            PrivateKey priv = keypair.getPrivate();
-            // Set type to private RSA key
-            keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_TYPE, VaultContract.KeyStore.TYPE_RSA_PRIV);
-            // Add the actual key to the insert
-            keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_BYTES,
-                    new String(Base64.encode(priv.getEncoded(), 0, priv.getEncoded().length, Base64.NO_WRAP)));
-            // Insert the values into the database
-            mSecureDatabaseHandler.insert(VaultContract.KeyStore.TABLE_NAME, null, keyEntry);
-
-            // Perform the same steps for the public key (as a backup)
-            keyEntry = new ContentValues();
-            PublicKey pub = keypair.getPublic();
-            keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_TYPE, VaultContract.KeyStore.TYPE_RSA_PUB);
-            String encodedPub = new String(Base64.encode(pub.getEncoded(), 0, pub.getEncoded().length, Base64.NO_WRAP));
-            keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_BYTES,encodedPub);
-
-            mSecureDatabaseHandler.insert(VaultContract.KeyStore.TABLE_NAME, null, keyEntry);
-
-            // Finish the transaction
-            mSecureDatabaseHandler.endTransaction();
-            Log.d(TAG, "setGeneratedKeypair: Saved to database. Saving public key to SharedPreference");
-
-            // Get a SharedPreferences.Editor
-            SharedPreferences.Editor edit = getSharedPreferences(getString(R.string.preferences_keystore), Context.MODE_PRIVATE).edit();
-            // Add the key and save
-            edit.putString(getString(R.string.preferences_keystore_rsapub), encodedPub);
-            edit.commit();
-            Log.d(TAG, "setGeneratedKeypair: Saved into SharedPreference");
-
-            if (!isPedometerServiceRunning()) {
-                startPedometerService();
-            }
-        } else {
-            Log.e(TAG, "setGeneratedKeypair: No open database handle found. Discarding keypair");
-            Toast.makeText(MainActivity.this, "Could not save generated keys", Toast.LENGTH_SHORT).show();
-        }
-    }
 
     /**
      * AsyncTask to open the database and get a handler
@@ -316,35 +238,6 @@ public class MainActivity extends AppCompatActivity
         @Override
         protected void onPostExecute(SQLiteDatabase hlp) {
             setSecureDatabaseHandler(hlp);
-        }
-    }
-
-    private class KeypairGenerationTask extends AsyncTask<Void,Void,KeyPair> {
-        private final String TAG = "KeypairGenerationTask";
-        private final int KEYSIZE = 1024; // FIXME Up this once the code works
-
-        @Override
-        protected KeyPair doInBackground(Void... v) {
-            try {
-                Log.d(TAG, "doInBackground: Beginning Keypair generation");
-                // Get KeyPairGenerator for RSA, using the SpongyCastle provider
-                KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA", "SC");
-                // Initialize with target key size
-                keyGen.initialize(KEYSIZE);
-                // Generate the keys
-                Log.d(TAG, "doInBackground: Keypair generated");
-                return keyGen.generateKeyPair();
-            } catch (Exception e) {
-                // If something goes wrong, print a stacktrace and return null
-                e.printStackTrace();
-                Log.e(TAG, "doInBackground: Encountered Exception: ", e);
-                return null;
-            }
-        }
-
-        @Override
-        protected void onPostExecute(KeyPair keys) {
-            setGeneratedKeypair(keys);
         }
     }
 }
