@@ -19,7 +19,7 @@ import de.velcommuta.denul.R;
 import de.velcommuta.denul.service.GPSTrackingService;
 
 /**
- * Test class for the TrackRUnFragment
+ * Test class for the TrackRunFragment
  */
 @LargeTest
 public class TrackRunFragmentTest extends ActivityInstrumentationTestCase2<MainActivity> {
@@ -56,6 +56,7 @@ public class TrackRunFragmentTest extends ActivityInstrumentationTestCase2<MainA
         super("de.velcommuta.denul.ui.MainActivity", MainActivity.class);
     }
 
+    ///// Test lifecycle management
     @Override
     public void setUp() throws Exception {
         super.setUp();
@@ -63,10 +64,6 @@ public class TrackRunFragmentTest extends ActivityInstrumentationTestCase2<MainA
         setActivityInitialTouchMode(true);
 
         mMainActivity = getActivity();
-
-        //FragmentTransaction fTrans = mMainActivity.getFragmentManager().beginTransaction();
-        //TrackRunFragment mTrackRunFragment = TrackRunFragment.newInstance();
-        //fTrans.replace(R.id.content_frame, mTrackRunFragment).commit();
 
         // Grab references to UI elements
         mStatWindow      = (LinearLayout) mMainActivity.findViewById(R.id.statwindow);
@@ -82,21 +79,29 @@ public class TrackRunFragmentTest extends ActivityInstrumentationTestCase2<MainA
         mSessionName     = (EditText)     mMainActivity.findViewById(R.id.sessionname);
     }
 
+    @Override
+    public void tearDown() {
+        // Kill off the service, if it is alive
+        Intent intent = new Intent(getActivity(), GPSTrackingService.class);
+        getActivity().stopService(intent);
+    }
+
+    ///// Actual test methods
     /**
      * Test the preconditions - All variables should be not null after the setUp has run.
      */
     public void testPreConditions() {
-        assertNotNull(mStatWindow     );
+        assertNotNull(mStatWindow);
         assertNotNull(mStatButtonPanel);
-        assertNotNull(mStatSaveWindow );
+        assertNotNull(mStatSaveWindow);
         assertNotNull(mStartStopButton);
-        assertNotNull(mSaveRunButton  );
-        assertNotNull(mRunning        );
-        assertNotNull(mCycling        );
-        assertNotNull(mChrono         );
-        assertNotNull(mVelocity       );
-        assertNotNull(mDistance       );
-        assertNotNull(mSessionName    );
+        assertNotNull(mSaveRunButton);
+        assertNotNull(mRunning);
+        assertNotNull(mCycling);
+        assertNotNull(mChrono);
+        assertNotNull(mVelocity);
+        assertNotNull(mDistance);
+        assertNotNull(mSessionName);
     }
 
     /**
@@ -216,15 +221,15 @@ public class TrackRunFragmentTest extends ActivityInstrumentationTestCase2<MainA
     /**
      * Test if the values of the save UI are preserved during orientation change
      */
-    public void testSaveUiStatePreservationOrientationChange_sameActivity() {
+    public void testSaveUiStatePreservationOrientationChange() {
         testSaveButtonClickedVisibility();
         TouchUtils.clickView(this, mRunning);
         changeOrientation();
         assertTrue(mRunning.isSelected());
         assertFalse(mCycling.isSelected());
-
     }
 
+    ///// Helper functions
     /**
      * Helper function. Asserts that the UI is in the following state:
      * - Tracking is not running
@@ -324,13 +329,5 @@ public class TrackRunFragmentTest extends ActivityInstrumentationTestCase2<MainA
         } else {
             mMainActivity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         }
-        // Thread.sleep(100);
-    }
-
-    @Override
-    public void tearDown() {
-        // Kill off the service, if it is alive
-        Intent intent = new Intent(getActivity(), GPSTrackingService.class);
-        getActivity().stopService(intent);
     }
 }
