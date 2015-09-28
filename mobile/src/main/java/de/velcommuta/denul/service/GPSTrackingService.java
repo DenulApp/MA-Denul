@@ -29,6 +29,7 @@ import de.velcommuta.denul.ui.MainActivity;
 /**
  * Service to perform GPS tracking, using the Google Apps location API
  */
+// TODO Rebuild this without threads, as the callbacks are called on the main thread anyway
 public class GPSTrackingService extends Service {
     public static final String TAG = "GPSTrackingService";
     private Thread mRunningThread;

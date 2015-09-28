@@ -54,7 +54,6 @@ import de.velcommuta.denul.event.DatabaseResultEvent;
 import de.velcommuta.denul.event.GPSLocationEvent;
 import de.velcommuta.denul.event.GPSTrackEvent;
 import de.velcommuta.denul.service.GPSTrackingService;
-import de.velcommuta.denul.service.PedometerService;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -152,10 +151,6 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         mSaveRunButton.setOnClickListener(this);
         mCycling.setOnClickListener(this);
         mRunning.setOnClickListener(this);
-
-        // FIXME Test call
-        Intent intent = new Intent(getActivity(), PedometerService.class);
-        getActivity().startService(intent);
 
 
         if (savedInstanceState != null) {
@@ -316,7 +311,6 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         // Start GPS tracking service
         Intent intent = new Intent(getActivity(), GPSTrackingService.class);
         getActivity().startService(intent);
-        // TODO Convert to foreground service w/ notification
 
         Log.d(TAG, "startTracking: Started run");
     }
@@ -332,10 +326,6 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
 
         // Stop GPS tracking service
         Intent intent = new Intent(getActivity(), GPSTrackingService.class);
-        getActivity().stopService(intent);
-
-        // FIXME debugging call
-        intent = new Intent(getActivity(), PedometerService.class);
         getActivity().stopService(intent);
 
         // Mark final position during the run

@@ -25,6 +25,7 @@ public class PedometerService extends Service implements SensorEventListener {
 
     private Hashtable<DateTime, Long> mHistory;
 
+    ///// Service lifecycle management
     /**
      * Required (empty) constructor
      */
@@ -69,11 +70,12 @@ public class PedometerService extends Service implements SensorEventListener {
         // Service is not bindable
         return null;
     }
+
+    ///// Sensor Callbacks
     @Override
     public void onSensorChanged(SensorEvent event) {
         DateTime timestamp = new DateTime().withMillis(0).withSecondOfMinute(0).withMinuteOfHour(0);
         mHistory.put(timestamp, (long) event.values[0]);
-        Log.d(TAG, "onSensorChanged: " + mHistory.get(timestamp) + " " + mHistory.size());
     }
 
     @Override

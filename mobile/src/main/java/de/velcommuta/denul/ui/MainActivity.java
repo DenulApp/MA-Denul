@@ -1,8 +1,11 @@
 package de.velcommuta.denul.ui;
 
+import android.app.Activity;
+import android.app.ActivityManager;
 import android.app.Fragment;
 import android.app.FragmentManager;
 import android.content.Context;
+import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -20,6 +23,7 @@ import net.sqlcipher.database.SQLiteDatabase;
 
 import de.velcommuta.denul.R;
 import de.velcommuta.denul.db.LocationLoggingDbHelper;
+import de.velcommuta.denul.service.PedometerService;
 
 /**
  * Main Activity - Launched on startup of the application
@@ -36,6 +40,7 @@ public class MainActivity extends AppCompatActivity
 
     public static final String TAG = "MainActivity";
 
+    ///// Activity lifecycle management
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -51,6 +56,12 @@ public class MainActivity extends AppCompatActivity
         // Prepare DB and get handler
         // TODO If I ever add a different launch activity with a passphrase prompt, this will have to be moved
         new DbInitTask().execute(this);
+
+        // Launch pedometer service if it is not running
+        if (!isPedometerServiceRunning()) {
+            Intent intent = new Intent(this, PedometerService.class);
+            startService(intent);
+        }
 
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
@@ -70,10 +81,19 @@ public class MainActivity extends AppCompatActivity
             loadTrackFragment();
         } else if (savedInstanceState == null) {
             Log.d(TAG, "onCreate: No specific fragment requested, using default");
-            loadTrackFragment();
+            loadHomeFragment();
         }
     }
 
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        if (mLocationDatabaseHandler != null) mLocationDatabaseHandler.close();
+        mLocationDatabaseHandler = null;
+    }
+
+    ///// Navigation callbacks
     @Override
     public void onBackPressed() {
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
@@ -129,6 +149,13 @@ public class MainActivity extends AppCompatActivity
         return true;
     }
 
+    ///// Fragment callbacks
+    @Override
+    public void onFragmentInteraction(Uri uri) {
+
+    }
+
+    ///// GUI Utility functions
     /**
      * Load the homescreen fragment
      */
@@ -151,9 +178,19 @@ public class MainActivity extends AppCompatActivity
                 .commit();
     }
 
-    @Override
-    public void onFragmentInteraction(Uri uri) {
-
+    ///// Utility functions
+    /**
+     * Checks if the Pedometer Service is running
+     * @return True if the service is running, false otherwise
+     */
+    private boolean isPedometerServiceRunning() {
+        ActivityManager manager = (ActivityManager) getSystemService(Activity.ACTIVITY_SERVICE);
+        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+            if ("de.velcommuta.denul.service.PedometerService".equals(service.service.getClassName())) { // TODO Update if
+                return true; // Package name matches, our service is running
+            }
+        }
+        return false; // No matching package name found => Our service is not running
     }
 
     /**
@@ -194,12 +231,5 @@ public class MainActivity extends AppCompatActivity
         protected void onPostExecute(SQLiteDatabase hlp) {
             setLocationDatabaseHandler(hlp);
         }
-    }
-
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        if (mLocationDatabaseHandler != null) mLocationDatabaseHandler.close();
-        mLocationDatabaseHandler = null;
     }
 }
