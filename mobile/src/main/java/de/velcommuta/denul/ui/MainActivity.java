@@ -36,8 +36,6 @@ public class MainActivity extends AppCompatActivity
 
     public static final String TAG = "MainActivity";
 
-    private Fragment mCurrentFragment;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -147,12 +145,9 @@ public class MainActivity extends AppCompatActivity
      */
     private void loadTrackFragment() {
         FragmentManager fragmentManager = getFragmentManager();
-        if (mCurrentFragment == null || !(mCurrentFragment instanceof TrackRunFragment)) {
-            Log.d(TAG, "loadTrackFragment: Creating new instance of TrackRunFragment");
-            mCurrentFragment = TrackRunFragment.newInstance();
-        }
+        Fragment fragment = TrackRunFragment.newInstance();
         fragmentManager.beginTransaction()
-                .replace(R.id.content_frame, mCurrentFragment)
+                .replace(R.id.content_frame, fragment)
                 .commit();
     }
 

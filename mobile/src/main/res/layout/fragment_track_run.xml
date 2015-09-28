@@ -188,6 +188,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:text="@string/save_run"
+                    android:elevation="6dp"
                     android:id="@+id/save_run_btn"
                     android:layout_weight="1"
                     android:background="#00D05D" />
