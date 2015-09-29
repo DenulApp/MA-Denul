@@ -1,4 +1,5 @@
 package de.velcommuta.denul.ui;
+// FIXME Fix these tests
 
 import android.app.Activity;
 import android.content.Intent;
