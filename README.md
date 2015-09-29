@@ -7,4 +7,4 @@ Denul is using the following libraries:
 - [SQLCipher for Android](https://github.com/sqlcipher/android-database-sqlcipher) ([BSD-Style License](https://www.zetetic.net/sqlcipher/license/))
 - [MPAndroidChart](https://github.com/PhilJay/MPAndroidChart) (Apache License v2)
 - [JodaTime](http://www.joda.org/joda-time) (Apache License v2)
-- [Conceal](https://facebook.github.io/conceal/) (BSD-License)
+- [SpongyCastle](https://rtyley.github.io/spongycastle/) ([Adapted MIT License](https://www.bouncycastle.org/licence.html))
