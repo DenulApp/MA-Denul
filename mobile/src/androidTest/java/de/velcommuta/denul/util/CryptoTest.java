@@ -2,14 +2,17 @@ package de.velcommuta.denul.util;
 
 import junit.framework.TestCase;
 
+import java.security.KeyPair;
 import java.util.Random;
 
 import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
 
 /**
  * Test class for Crypto functions
  */
 public class CryptoTest extends TestCase {
+    ///// AES Tests
     /**
      * Test the generation of AES keys
      */
@@ -95,4 +98,71 @@ public class CryptoTest extends TestCase {
             assertTrue(true);
         }
     }
+
+    ///// RSA tests
+    /**
+     * Test if the RSA Key generation works
+     */
+    public void testRsaGen() {
+        KeyPair kp = Crypto.generateRSAKeypair(1024);
+        assertNotNull("Keypair was null!", kp);
+    }
+
+    /**
+     * Test if the function correctly refuses to generated weird key sizes
+     */
+    public void testRsaGenIncorrectBit() {
+        KeyPair kp = Crypto.generateRSAKeypair(1025);
+        assertNull("Incorrect bit size was accepted.", kp);
+    }
+
+    /**
+     * Test if the function correctly encrypts data
+     */
+    public void testRsaEncryption() {
+        KeyPair kp = Crypto.generateRSAKeypair(1024);
+        byte[] message = new byte[5];
+        new Random().nextBytes(message);
+        try {
+            byte[] ciphertext = Crypto.encryptRSA(message, kp.getPublic());
+            assertNotNull("No ciphertext generated even though it should have been", ciphertext);
+        } catch (IllegalBlockSizeException e) {
+            assertFalse("Illegal block size even though it should be legal", true);
+        }
+    }
+
+    /**
+     * Test if the function correctly refuses to encrypt too large pieces of data
+     */
+    public void testRsaEncryptionFailOnTooLarge() {
+        KeyPair kp = Crypto.generateRSAKeypair(1024);
+        byte[] message = new byte[256];
+        new Random().nextBytes(message);
+        byte[] ciphertext = null;
+        try {
+            ciphertext = Crypto.encryptRSA(message, kp.getPublic());
+        } catch (IllegalBlockSizeException e) {
+            assertTrue("Illegal block size accepted", true);
+        }
+        assertNull("Ciphertext generated even though it should not have been", ciphertext);
+    }
+
+    /**
+     * Test if correctly encrypted data is correctly decrypted
+     */
+    public void testRsaDecryption() {
+        KeyPair kp = Crypto.generateRSAKeypair(1024);
+        byte[] message = new byte[5];
+        new Random().nextBytes(message);
+        try {
+            byte[] ciphertext = Crypto.encryptRSA(message, kp.getPublic());
+            byte[] plaintext = Crypto.decryptRSA(ciphertext, kp.getPrivate());
+            assertEquals("Decryption does not equal plaintext", new String(message), new String(plaintext));
+        } catch (IllegalBlockSizeException e) {
+            assertFalse("Illegal block size even though it should be legal", true);
+        } catch (BadPaddingException e) {
+            assertFalse("Illegal padding detected even though it should be legal", true);
+        }
+    }
+
 }

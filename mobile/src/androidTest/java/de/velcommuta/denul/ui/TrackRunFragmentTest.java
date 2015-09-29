@@ -4,6 +4,10 @@ package de.velcommuta.denul.ui;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
+import android.support.test.espresso.Espresso;
+import android.support.test.espresso.action.ViewActions;
+import android.support.test.espresso.contrib.DrawerActions;
+import android.support.test.espresso.matcher.ViewMatchers;
 import android.test.ActivityInstrumentationTestCase2;
 import android.test.TouchUtils;
 import android.test.ViewAsserts;
@@ -15,6 +19,8 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+
+import org.hamcrest.Matchers;
 
 import de.velcommuta.denul.R;
 import de.velcommuta.denul.service.GPSTrackingService;
@@ -65,6 +71,9 @@ public class TrackRunFragmentTest extends ActivityInstrumentationTestCase2<MainA
         setActivityInitialTouchMode(true);
 
         mMainActivity = getActivity();
+
+        DrawerActions.open();
+        Espresso.onView(ViewMatchers.withId(R.id.nav_tracks)).perform(ViewActions.click());
 
         // Grab references to UI elements
         mStatWindow      = (LinearLayout) mMainActivity.findViewById(R.id.statwindow);

@@ -194,4 +194,46 @@ public class Crypto {
         }
         return null;
     }
+
+    /**
+     * Encrypt a piece of data using RSA public key encryption
+     * @param data The data to be encrypted
+     * @param pubkey The Public Key to use
+     * @return The encrypted data
+     * @throws IllegalBlockSizeException If the data is too long for the provided public key
+     */
+    public static byte[] encryptRSA(byte[] data, PublicKey pubkey) throws IllegalBlockSizeException {
+        try {
+            // Get Cipher instance
+            Cipher rsaCipher = Cipher.getInstance("RSA/NONE/OAEPWithSHA256AndMGF1Padding", "SC");
+            // Initialize cipher
+            rsaCipher.init(Cipher.ENCRYPT_MODE, pubkey);
+            // Return the encrypted data
+            return rsaCipher.doFinal(data);
+        } catch (NoSuchAlgorithmException | NoSuchProviderException | NoSuchPaddingException | InvalidKeyException | BadPaddingException e) {
+            Log.e(TAG, "encryptRSA: Encountered an Exception: ", e);
+        } catch (ArrayIndexOutOfBoundsException e) {
+            throw new IllegalBlockSizeException("Too much data for RSA block");
+        }
+        return null;
+    }
+
+    /**
+     * Decrypt RSA-encrypted data with the corresponding private key
+     * @param data Encrypted data
+     * @param privkey Private key to decrypt the data with
+     * @return Decrypted data as byte[]
+     * @throws IllegalBlockSizeException If the data is too large to decrypt (what are you doing?)
+     * @throws BadPaddingException If the padding was incorrect (data manipulated?)
+     */
+    public static byte[] decryptRSA(byte[] data, PrivateKey privkey) throws IllegalBlockSizeException, BadPaddingException {
+        try {
+            Cipher rsaCipher = Cipher.getInstance("RSA/NONE/OAEPWithSHA256AndMGF1Padding", "SC");
+            rsaCipher.init(Cipher.DECRYPT_MODE, privkey);
+            return rsaCipher.doFinal(data);
+        } catch (NoSuchPaddingException | NoSuchAlgorithmException | NoSuchProviderException | InvalidKeyException e) {
+            Log.e(TAG, "decryptRSA: Encountered Exception: ", e);
+        }
+        return null;
+    }
 }
