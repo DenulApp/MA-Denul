@@ -9,18 +9,15 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.IBinder;
-import android.util.Base64;
 import android.util.Log;
 
 import org.joda.time.DateTime;
-import org.spongycastle.jce.provider.BouncyCastleProvider;
 
-import java.security.KeyFactory;
 import java.security.PublicKey;
-import java.security.spec.X509EncodedKeySpec;
 import java.util.Hashtable;
 
 import de.velcommuta.denul.R;
+import de.velcommuta.denul.util.Crypto;
 
 /**
  * Pedometer service for step counting using the built-in pedometer, if available
@@ -59,7 +56,8 @@ public class PedometerService extends Service implements SensorEventListener {
         // database is unlocked
         mPubkey = loadPubkey();
         if (mPubkey == null) {
-            Log.e(TAG, "onStartCommand: Pubkey is null, aborting");
+            Log.e(TAG, "onStartCommand: Pubkey loading failed, aborting");
+            stopSelf();
             return Service.START_STICKY;
         }
         Log.d(TAG, "onStartCommand: Successfully loaded Pubkey");
@@ -116,16 +114,6 @@ public class PedometerService extends Service implements SensorEventListener {
         // Check if we actually got a pubkey
         if (pubkey == null) return null;
         // Decode the encoded pubkey into an actual pubkey object
-        try {
-            KeyFactory kFactory = KeyFactory.getInstance("RSA", new BouncyCastleProvider());
-            byte[] encoded = Base64.decode(pubkey, Base64.NO_WRAP);
-            X509EncodedKeySpec keySpec = new X509EncodedKeySpec(encoded);
-            return kFactory.generatePublic(keySpec);
-        } catch (Exception e) {
-            Log.e(TAG, "loadPubkey: Encountered exception during key retrieval: ", e);
-            e.printStackTrace();
-            stopSelf();
-            return null;
-        }
+        return Crypto.decodePublicKey(pubkey);
     }
 }

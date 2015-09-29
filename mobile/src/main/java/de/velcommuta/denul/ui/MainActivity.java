@@ -18,7 +18,6 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.util.Base64;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -26,21 +25,15 @@ import android.widget.Toast;
 
 import net.sqlcipher.database.SQLiteDatabase;
 
-import org.spongycastle.jce.provider.BouncyCastleProvider;
-
-import java.security.KeyFactory;
 import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.security.Security;
-import java.security.spec.X509EncodedKeySpec;
 
 import de.velcommuta.denul.R;
 import de.velcommuta.denul.db.SecureDbHelper;
 import de.velcommuta.denul.db.VaultContract;
 import de.velcommuta.denul.service.PedometerService;
+import de.velcommuta.denul.util.Crypto;
 
 /**
  * Main Activity - Launched on startup of the application
@@ -51,10 +44,6 @@ public class MainActivity extends AppCompatActivity
         StepCountFragment.OnFragmentInteractionListener,
         HeartRateFragment.OnFragmentInteractionListener
 {
-    static {
-        Security.insertProviderAt(new org.spongycastle.jce.provider.BouncyCastleProvider(), 1);
-    }
-
     private SQLiteDatabase mSecureDatabaseHandler;
 
     public static final String INTENT_GPS_TRACK = "intent-gps-track";
@@ -261,8 +250,7 @@ public class MainActivity extends AppCompatActivity
             // Set type to private RSA key
             keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_TYPE, VaultContract.KeyStore.TYPE_RSA_PRIV);
             // Add the actual key to the insert
-            keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_BYTES,
-                    new String(Base64.encode(priv.getEncoded(), 0, priv.getEncoded().length, Base64.NO_WRAP)));
+            keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_BYTES, Crypto.encodeKey(priv));
             // Insert the values into the database
             mSecureDatabaseHandler.insert(VaultContract.KeyStore.TABLE_NAME, null, keyEntry);
 
@@ -270,7 +258,7 @@ public class MainActivity extends AppCompatActivity
             keyEntry = new ContentValues();
             PublicKey pub = keypair.getPublic();
             keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_TYPE, VaultContract.KeyStore.TYPE_RSA_PUB);
-            String encodedPub = new String(Base64.encode(pub.getEncoded(), 0, pub.getEncoded().length, Base64.NO_WRAP));
+            String encodedPub = Crypto.encodeKey(pub);
             keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_BYTES,encodedPub);
 
             mSecureDatabaseHandler.insert(VaultContract.KeyStore.TABLE_NAME, null, keyEntry);
@@ -325,21 +313,8 @@ public class MainActivity extends AppCompatActivity
 
         @Override
         protected KeyPair doInBackground(Void... v) {
-            try {
-                Log.d(TAG, "doInBackground: Beginning Keypair generation");
-                // Get KeyPairGenerator for RSA, using the SpongyCastle provider
-                KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA", "SC");
-                // Initialize with target key size
-                keyGen.initialize(KEYSIZE);
-                // Generate the keys
-                Log.d(TAG, "doInBackground: Keypair generated");
-                return keyGen.generateKeyPair();
-            } catch (Exception e) {
-                // If something goes wrong, print a stacktrace and return null
-                e.printStackTrace();
-                Log.e(TAG, "doInBackground: Encountered Exception: ", e);
-                return null;
-            }
+            Log.d(TAG, "doInBackground: Beginning Keypair generation");
+            return Crypto.generateRSAKeypair(KEYSIZE);
         }
 
         @Override
