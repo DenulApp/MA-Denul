@@ -165,4 +165,24 @@ public class CryptoTest extends TestCase {
         }
     }
 
+    /**
+     * Test if modified encrypted data is correctly rejected
+     */
+    public void testRsaDecryptionFailOnModifiedData() {
+        KeyPair kp = Crypto.generateRSAKeypair(1024);
+        byte[] message = new byte[5];
+        new Random().nextBytes(message);
+        byte[] plaintext = null;
+        try {
+            byte[] ciphertext = Crypto.encryptRSA(message, kp.getPublic());
+            ciphertext[12] = 0x00;
+            plaintext = Crypto.decryptRSA(ciphertext, kp.getPrivate());
+            assertFalse("No exception thrown", true);
+        } catch (IllegalBlockSizeException e) {
+            assertFalse("Illegal block size even though it should be legal", true);
+        } catch (BadPaddingException e) {
+            assertTrue("Modified data accepted", true);
+        }
+        assertNull("Plaintext not null", plaintext);
+    }
 }
