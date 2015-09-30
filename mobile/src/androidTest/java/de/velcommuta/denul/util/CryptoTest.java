@@ -3,9 +3,12 @@ package de.velcommuta.denul.util;
 import junit.framework.TestCase;
 
 import java.security.KeyPair;
+import java.security.PublicKey;
+import java.util.Arrays;
 import java.util.Random;
 
 import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 
 /**
@@ -184,5 +187,32 @@ public class CryptoTest extends TestCase {
             assertTrue("Modified data accepted", true);
         }
         assertNull("Plaintext not null", plaintext);
+    }
+
+    ///// Hybrid crypto tests
+    /**
+     * Test the (protected) header generation function for asymmetric encryption
+     */
+    public void testHeaderGeneration() {
+        byte[] test1 = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+        byte[] test2 = {0x00, 0x00, 0x00, 0x00, 0x00, 0x10};
+        byte[] test3 = {0x00, 0x00, 0x00, 0x00, 0x01, 0x00};
+        byte[] header1 = Crypto.generateHeader(Crypto.VERSION_1, Crypto.ALGO_RSA_OAEP_SHA256_MGF1_WITH_AES_256_GCM, 0);
+        byte[] header2 = Crypto.generateHeader(Crypto.VERSION_1, Crypto.ALGO_RSA_OAEP_SHA256_MGF1_WITH_AES_256_GCM, 16);
+        byte[] header3 = Crypto.generateHeader(Crypto.VERSION_1, Crypto.ALGO_RSA_OAEP_SHA256_MGF1_WITH_AES_256_GCM, 256);
+        assertTrue("Header not as expected in test case 1", Arrays.equals(test1, header1));
+        assertTrue("Header not as expected in test case 2", Arrays.equals(test2, header2));
+        assertTrue("Header not as expected in test case 3", Arrays.equals(test3, header3));
+    }
+
+    /**
+     * Test if asym. encryption produces an output
+     */
+    public void testAsymEncryption() {
+        PublicKey pkey = Crypto.generateRSAKeypair(1024).getPublic();
+        byte[] message = new byte[512];
+        new Random().nextBytes(message);
+        byte[] encrypted = Crypto.encryptHybrid(message, pkey);
+        assertNotNull("Hybrid encryption failed", encrypted);
     }
 }

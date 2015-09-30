@@ -5,6 +5,7 @@ import android.util.Log;
 
 import org.spongycastle.jce.provider.BouncyCastleProvider;
 
+import java.nio.ByteBuffer;
 import java.security.AlgorithmParameters;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -33,6 +34,15 @@ import javax.crypto.spec.SecretKeySpec;
  */
 public class Crypto {
     public static final String TAG = "Crypto";
+
+    // Constants for hybrid encryption header lengths
+    private static final int BYTES_HEADER_LENGTH_ASYM = 4;
+    private static final int BYTES_HEADER_VERSION = 1;
+    private static final int BYTES_HEADER_ALGO = 1;
+
+    // Constants for hybrid encryption header values
+    protected static final byte VERSION_1 = 0x00;
+    protected static final byte ALGO_RSA_OAEP_SHA256_MGF1_WITH_AES_256_GCM = 0x00;
 
     // Insert provider
     static {
@@ -235,5 +245,71 @@ public class Crypto {
             Log.e(TAG, "decryptRSA: Encountered Exception: ", e);
         }
         return null;
+    }
+
+    ///// Hybrid encryption
+
+    /**
+     * Perform a hybrid encryption on the provided data, using AES256 and the provided RSA public key.
+     * @param data Data
+     * @param pubkey One RSA public key
+     * @return The encrypted data, or null in case of an error
+     */
+    public static byte[] encryptHybrid(byte[] data, PublicKey pubkey) {
+        // Check that the provided data or key are not null
+        if (data == null || pubkey == null ) {
+            Log.e(TAG, "encryptHybrid: data or public key is null");
+            return null;
+        }
+        // Generate symmetric secret key
+        byte[] sKey = generateAES256Key();
+        // symmetrically encrypt data
+        byte[] symCiphertext = encryptAES(data, sKey);
+        // Check that nothing went wrong
+        if (symCiphertext == null) {
+            Log.e(TAG, "encryptHybrid: Symmetric encryption failed, aborting");
+            return null;
+        }
+        // Encrypt the key
+        byte[] asymCiphertext = new byte[0];
+        try {
+            asymCiphertext = encryptRSA(sKey, pubkey);
+        } catch (IllegalBlockSizeException e) {
+            Log.e(TAG, "encryptHybrid: IllegalBlocksizeException during asym. encryption, aborting");
+            return null;
+        }
+        // Check that nothing went wrong
+        if (asymCiphertext == null) {
+            Log.e(TAG, "encryptHybrid: Asymmetric encryption failed, aborting");
+            return null;
+        }
+        // Generate header
+        byte[] header = generateHeader(VERSION_1, ALGO_RSA_OAEP_SHA256_MGF1_WITH_AES_256_GCM, asymCiphertext.length);
+        // Generate output array of proper size
+        byte[] output = new byte[header.length + asymCiphertext.length + symCiphertext.length];
+        // Write header to output, starting at 0
+        System.arraycopy(header, 0, output, 0, header.length);
+        // Write asym ciphertext to output, starting after header
+        System.arraycopy(asymCiphertext, 0, output, header.length, asymCiphertext.length);
+        // Write symCiphertext to output, starting after asymCiphertext
+        System.arraycopy(symCiphertext, 0, output, header.length + asymCiphertext.length, symCiphertext.length);
+        // Return the output value
+        return output;
+    }
+
+    /**
+     * Generate a header for a hybrid-encrypted packet
+     * @param asymCipherLength Length of the asymmetrically encrypted ciphertext
+     * @param version Version number, as byte (use the constants provided by this class)
+     * @param algo Algorithm descriptor, as byte (use the constants provided by this class)
+     * @return The header, as a byte[]
+     */
+    protected static byte[] generateHeader(byte version, byte algo, int asymCipherLength) {
+        byte[] header = new byte[BYTES_HEADER_VERSION + BYTES_HEADER_ALGO + BYTES_HEADER_LENGTH_ASYM];
+        header[0] = version;
+        header[1] = algo;
+        byte[] asymCipherLengthBytes = ByteBuffer.allocate(4).putInt(asymCipherLength).array();
+        System.arraycopy(asymCipherLengthBytes, 0, header, 2, asymCipherLengthBytes.length);
+        return header;
     }
 }
