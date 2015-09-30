@@ -3,6 +3,7 @@ package de.velcommuta.denul.util;
 import junit.framework.TestCase;
 
 import java.security.KeyPair;
+import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.Arrays;
 import java.util.Random;
@@ -206,6 +207,18 @@ public class CryptoTest extends TestCase {
     }
 
     /**
+     * Test if the header length is parsed correctly
+     */
+    public void testHeaderLengthParsing() {
+        byte[] header1 = Crypto.generateHeader(Crypto.VERSION_1, Crypto.ALGO_RSA_OAEP_SHA256_MGF1_WITH_AES_256_GCM, 0);
+        byte[] header2 = Crypto.generateHeader(Crypto.VERSION_1, Crypto.ALGO_RSA_OAEP_SHA256_MGF1_WITH_AES_256_GCM, 16);
+        byte[] header3 = Crypto.generateHeader(Crypto.VERSION_1, Crypto.ALGO_RSA_OAEP_SHA256_MGF1_WITH_AES_256_GCM, 256);
+        assertEquals("Incorrect length parsed in test case 1", Crypto.parseAsymCiphertextLength(header1), 0);
+        assertEquals("Incorrect length parsed in test case 2", Crypto.parseAsymCiphertextLength(header2), 16);
+        assertEquals("Incorrect length parsed in test case 3", Crypto.parseAsymCiphertextLength(header3), 256);
+    }
+
+    /**
      * Test if asym. encryption produces an output
      */
     public void testAsymEncryption() {
@@ -215,4 +228,27 @@ public class CryptoTest extends TestCase {
         byte[] encrypted = Crypto.encryptHybrid(message, pkey);
         assertNotNull("Hybrid encryption failed", encrypted);
     }
+
+    /**
+     * Test if asym. encryption produces an output
+     */
+    public void testAsymEncryptionDecryption() {
+        KeyPair pair = Crypto.generateRSAKeypair(1024);
+        PublicKey pkey = pair.getPublic();
+        PrivateKey privkey = pair.getPrivate();
+        byte[] message = new byte[512];
+        new Random().nextBytes(message);
+        byte[] encrypted = Crypto.encryptHybrid(message, pkey);
+        assertNotNull("Hybrid encryption failed", encrypted);
+        byte[] decrypted = null;
+        try {
+            decrypted = Crypto.decryptHybrid(encrypted, privkey);
+        } catch (BadPaddingException e) {
+            assertTrue("Decryption failed with BadPaddingException", false);
+        }
+        assertNotNull("Decryption resulted in null", decrypted);
+        assertTrue("Message was not decrypted to the same plaintext", Arrays.equals(message, decrypted));
+    }
+
+    // TODO Tests for modified data and headers
 }

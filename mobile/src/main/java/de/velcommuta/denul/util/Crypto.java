@@ -19,6 +19,7 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Security;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.Arrays;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -271,7 +272,7 @@ public class Crypto {
             return null;
         }
         // Encrypt the key
-        byte[] asymCiphertext = new byte[0];
+        byte[] asymCiphertext;
         try {
             asymCiphertext = encryptRSA(sKey, pubkey);
         } catch (IllegalBlockSizeException e) {
@@ -298,6 +299,51 @@ public class Crypto {
     }
 
     /**
+     * Decrypts a hybrid-encrypted block of data
+     * @param ciphertext hybrid-encrypted data
+     * @param privkey private key to decrypt the data with
+     * @return The unencrypted data, as a byte[], or null, if something went wrong
+     * @throws BadPaddingException If one of the decryptions throws it. Indicates that the authentication checks failed
+     */
+    public static byte[] decryptHybrid(byte[] ciphertext, PrivateKey privkey) throws BadPaddingException {
+        // TODO Documentation
+        // TODO Sanity checks before copy operations
+        if (ciphertext == null || privkey == null) {
+            Log.e(TAG, "decryptHybrid: One of the inputs is null, aborting");
+            return null;
+        }
+        byte[] header = getHeader(ciphertext);
+        if (header[0] != VERSION_1) {
+            Log.e(TAG, "decryptHybrid: Unknown version number");
+            return null;
+        } else if (header[1] != ALGO_RSA_OAEP_SHA256_MGF1_WITH_AES_256_GCM) {
+            Log.e(TAG, "decryptHybrid: Unknown algorithm specification");
+            return null;
+        }
+        int asymCiphertextLength = parseAsymCiphertextLength(header);
+        byte[] asymCiphertext = Arrays.copyOfRange(ciphertext, header.length, header.length + asymCiphertextLength);
+        byte[] symCiphertext = Arrays.copyOfRange(ciphertext, header.length + asymCiphertextLength, ciphertext.length);
+        byte[] symKey;
+        try {
+            symKey = decryptRSA(asymCiphertext, privkey);
+        } catch (IllegalBlockSizeException e) {
+            Log.e(TAG, "decryptHybrid: Illegal Block Size Exception, aborting");
+            return null;
+        }
+        if (symKey == null) {
+            Log.e(TAG, "decryptHybrid: Something went wrong during asym. decryption, aborting");
+            return null;
+        }
+        byte[] cleartext = decryptAES(symCiphertext, symKey);
+        if (cleartext == null) {
+            Log.e(TAG, "decryptHybrid: Something went wrong during sym. decryption, aborting");
+            return null;
+        }
+        return cleartext;
+    }
+
+    // Helper functions for header generation and parsing
+    /**
      * Generate a header for a hybrid-encrypted packet
      * @param asymCipherLength Length of the asymmetrically encrypted ciphertext
      * @param version Version number, as byte (use the constants provided by this class)
@@ -305,11 +351,34 @@ public class Crypto {
      * @return The header, as a byte[]
      */
     protected static byte[] generateHeader(byte version, byte algo, int asymCipherLength) {
+        // TODO Documentation
         byte[] header = new byte[BYTES_HEADER_VERSION + BYTES_HEADER_ALGO + BYTES_HEADER_LENGTH_ASYM];
         header[0] = version;
         header[1] = algo;
         byte[] asymCipherLengthBytes = ByteBuffer.allocate(4).putInt(asymCipherLength).array();
         System.arraycopy(asymCipherLengthBytes, 0, header, 2, asymCipherLengthBytes.length);
         return header;
+    }
+
+    /**
+     * Get the header from an encrypted blob of data
+     * @param message The whole message (headers plus encrypted contents)
+     * @return The header
+     */
+    protected static byte[] getHeader(byte[] message) {
+        // TODO Sanity checks before copy
+        return Arrays.copyOfRange(message, 0, BYTES_HEADER_VERSION + BYTES_HEADER_ALGO + BYTES_HEADER_LENGTH_ASYM);
+    }
+
+    /**
+     * Parses the length of the asymmetrically encrypted ciphertext from the header
+     * @param header The full header
+     * @return The length, as int
+     */
+    protected static int parseAsymCiphertextLength(byte[] header) {
+        // TODO Documentation, sanity checks
+        return ByteBuffer.wrap(
+                Arrays.copyOfRange(header, BYTES_HEADER_VERSION + BYTES_HEADER_ALGO, header.length)
+        ).getInt();
     }
 }

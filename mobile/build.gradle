@@ -36,8 +36,8 @@ dependencies {
 
     compile 'com.madgag.spongycastle:core:1.52.0.0'
     compile 'com.madgag.spongycastle:prov:1.52.0.0'
-    compile 'com.madgag.spongycastle:pkix:1.52.0.0'
-    compile 'com.madgag.spongycastle:pg:1.52.0.0'
+    //compile 'com.madgag.spongycastle:pkix:1.52.0.0' // Currently not needed (provides PKIX support)
+    //compile 'com.madgag.spongycastle:pg:1.52.0.0' // Currently not needed (provides PGP support)
 
     testCompile 'junit:junit:4.12'
     androidTestCompile 'com.android.support.test:runner:0.4'
