@@ -9,13 +9,29 @@ import java.util.Arrays;
 import java.util.Random;
 
 import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 
 /**
  * Test class for Crypto functions
  */
+@SuppressWarnings("ConstantConditions")
 public class CryptoTest extends TestCase {
+    ///// Encoding and decoding tests
+    /**
+     * Test if the key encoding and decoding functions work
+     */
+    public void testKeypairEncodingDecoding() {
+        KeyPair kp = Crypto.generateRSAKeypair(1024);
+        String pubkey_enc = Crypto.encodeKey(kp.getPublic());
+        String privkey_enc = Crypto.encodeKey(kp.getPrivate());
+        PublicKey pubkey = Crypto.decodePublicKey(pubkey_enc);
+        PrivateKey privkey = Crypto.decodePrivateKey(privkey_enc);
+        assertNotNull("pubkey was null", pubkey);
+        assertNotNull("privkey was null", privkey);
+        assertEquals("Public keys do not match", pubkey, kp.getPublic());
+        assertEquals("Private Keys do not match", privkey, kp.getPrivate());
+    }
+
     ///// AES Tests
     /**
      * Test the generation of AES keys
@@ -79,7 +95,7 @@ public class CryptoTest extends TestCase {
         byte[] ciphertext = Crypto.encryptAES(message, key);
         try {
             ciphertext[23] = 0x00;
-            byte[] cleartext = Crypto.decryptAES(ciphertext, key);
+            Crypto.decryptAES(ciphertext, key);
             assertTrue("No exception was raised during decryption", false);
         } catch (BadPaddingException e) {
             assertTrue(true);
@@ -96,7 +112,7 @@ public class CryptoTest extends TestCase {
         byte[] ciphertext = Crypto.encryptAES(message, key);
         try {
             ciphertext[1] = 0x00;
-            byte[] cleartext = Crypto.decryptAES(ciphertext, key);
+            Crypto.decryptAES(ciphertext, key);
             assertTrue("No exception was raised during decryption", false);
         } catch (BadPaddingException e) {
             assertTrue(true);
@@ -213,15 +229,40 @@ public class CryptoTest extends TestCase {
         byte[] header1 = Crypto.generateHeader(Crypto.VERSION_1, Crypto.ALGO_RSA_OAEP_SHA256_MGF1_WITH_AES_256_GCM, 0);
         byte[] header2 = Crypto.generateHeader(Crypto.VERSION_1, Crypto.ALGO_RSA_OAEP_SHA256_MGF1_WITH_AES_256_GCM, 16);
         byte[] header3 = Crypto.generateHeader(Crypto.VERSION_1, Crypto.ALGO_RSA_OAEP_SHA256_MGF1_WITH_AES_256_GCM, 256);
-        assertEquals("Incorrect length parsed in test case 1", Crypto.parseAsymCiphertextLength(header1), 0);
-        assertEquals("Incorrect length parsed in test case 2", Crypto.parseAsymCiphertextLength(header2), 16);
-        assertEquals("Incorrect length parsed in test case 3", Crypto.parseAsymCiphertextLength(header3), 256);
+        try {
+            assertEquals("Incorrect length parsed in test case 1", Crypto.parseAsymCiphertextLength(header1), 0);
+            assertEquals("Incorrect length parsed in test case 2", Crypto.parseAsymCiphertextLength(header2), 16);
+            assertEquals("Incorrect length parsed in test case 3", Crypto.parseAsymCiphertextLength(header3), 256);
+        } catch (BadPaddingException e) {
+            assertFalse("Exception occured during header parsing", true);
+        }
     }
 
     /**
-     * Test if asym. encryption produces an output
+     * Test if the header length is throwing exceptions on bad data
      */
-    public void testAsymEncryption() {
+    public void testHeaderLengthParsingFailOnBadData() {
+        byte[] test1 = {0x00, 0x00, 0x00, 0x00, 0x00};
+        try {
+            Crypto.parseAsymCiphertextLength(test1);
+            assertFalse("No exception thrown on bad header length test 1", true);
+        } catch (BadPaddingException e) {
+            assertTrue("Exception occured during header parsing", true);
+        }
+
+        byte[] test2 = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+        try {
+            Crypto.parseAsymCiphertextLength(test2);
+            assertFalse("No exception thrown on bad header length test 2", true);
+        } catch (BadPaddingException e) {
+            assertTrue("Exception occured during header parsing", true);
+        }
+    }
+
+    /**
+     * Test if hybrid encryption produces an output
+     */
+    public void testHybridEncryption() {
         PublicKey pkey = Crypto.generateRSAKeypair(1024).getPublic();
         byte[] message = new byte[512];
         new Random().nextBytes(message);
@@ -230,9 +271,9 @@ public class CryptoTest extends TestCase {
     }
 
     /**
-     * Test if asym. encryption produces an output
+     * Test if Hybrid. encryption produces an output
      */
-    public void testAsymEncryptionDecryption() {
+    public void testHybridEncryptionDecryption() {
         KeyPair pair = Crypto.generateRSAKeypair(1024);
         PublicKey pkey = pair.getPublic();
         PrivateKey privkey = pair.getPrivate();
@@ -250,5 +291,122 @@ public class CryptoTest extends TestCase {
         assertTrue("Message was not decrypted to the same plaintext", Arrays.equals(message, decrypted));
     }
 
-    // TODO Tests for modified data and headers
+    /**
+     * Test if asym. encryption produces an error if the header version field was modified
+     */
+    public void testAsymEncryptionDecryptionFailOnModifiedVersionField() {
+        KeyPair pair = Crypto.generateRSAKeypair(1024);
+        PublicKey pkey = pair.getPublic();
+        PrivateKey privkey = pair.getPrivate();
+        byte[] message = new byte[512];
+        new Random().nextBytes(message);
+        byte[] encrypted = Crypto.encryptHybrid(message, pkey);
+        assertNotNull("Hybrid encryption failed", encrypted);
+        byte[] decrypted = null;
+        encrypted[0] = 0x32;
+        try {
+            decrypted = Crypto.decryptHybrid(encrypted, privkey);
+            assertFalse("No exception thrown", true);
+        } catch (BadPaddingException e) {
+            assertTrue("Decryption did not throw exception", true);
+        }
+        assertNull("Decryption did not result in null", decrypted);
+    }
+
+
+    /**
+     * Test if asym. encryption produces an error if the header algorithm field was modified
+     */
+    public void testAsymEncryptionDecryptionFailOnModifiedAlgorithmField() {
+        KeyPair pair = Crypto.generateRSAKeypair(1024);
+        PublicKey pkey = pair.getPublic();
+        PrivateKey privkey = pair.getPrivate();
+        byte[] message = new byte[512];
+        new Random().nextBytes(message);
+        byte[] encrypted = Crypto.encryptHybrid(message, pkey);
+        assertNotNull("Hybrid encryption failed", encrypted);
+        byte[] decrypted = null;
+        encrypted[1] = 0x32;
+        try {
+            decrypted = Crypto.decryptHybrid(encrypted, privkey);
+            assertFalse("No exception thrown", true);
+        } catch (BadPaddingException e) {
+            assertTrue("Decryption did not throw exception", true);
+        }
+        assertNull("Decryption did not result in null", decrypted);
+    }
+
+
+    /**
+     * Test if asym. encryption produces an error if the header length field was modified to a much too large value
+     */
+    public void testAsymEncryptionDecryptionFailOnModifiedLengthFieldTooLong() {
+        KeyPair pair = Crypto.generateRSAKeypair(1024);
+        PublicKey pkey = pair.getPublic();
+        PrivateKey privkey = pair.getPrivate();
+        byte[] message = new byte[512];
+        new Random().nextBytes(message);
+        byte[] encrypted = Crypto.encryptHybrid(message, pkey);
+        assertNotNull("Hybrid encryption failed", encrypted);
+        byte[] decrypted = null;
+        encrypted[2] = 0x32;
+        try {
+            decrypted = Crypto.decryptHybrid(encrypted, privkey);
+            assertFalse("No exception thrown", true);
+        } catch (BadPaddingException e) {
+            assertTrue("Decryption did not throw exception", true);
+        }
+        assertNull("Decryption did not result in null", decrypted);
+    }
+
+
+    /**
+     * Test if asym. encryption produces an error if the header length field was modified to plausible but incorrect value
+     */
+    public void testAsymEncryptionDecryptionFailOnModifiedLengthFieldPlausible() {
+        KeyPair pair = Crypto.generateRSAKeypair(1024);
+        PublicKey pkey = pair.getPublic();
+        PrivateKey privkey = pair.getPrivate();
+        byte[] message = new byte[512];
+        new Random().nextBytes(message);
+        byte[] encrypted = Crypto.encryptHybrid(message, pkey);
+        assertNotNull("Hybrid encryption failed", encrypted);
+        byte[] decrypted = null;
+        encrypted[4] = 0x03;
+        try {
+            decrypted = Crypto.decryptHybrid(encrypted, privkey);
+            assertFalse("No exception thrown", true);
+        } catch (BadPaddingException e) {
+            assertTrue("Decryption did not throw exception", true);
+        }
+        assertNull("Decryption did not result in null", decrypted);
+    }
+
+    ///// Full combination tests
+    /**
+     * Test the full combination of encoding, decoding, and hybrid encryption
+     */
+    public void testFullCombination() {
+        // Create a message
+        byte[] message = new byte[512];
+        new Random().nextBytes(message);
+        // Generate keypair
+        KeyPair kp = Crypto.generateRSAKeypair(1024);
+        // Encode to string
+        String pk_enc = Crypto.encodeKey(kp.getPublic());
+        String pr_enc = Crypto.encodeKey(kp.getPrivate());
+        // Decode pubkey
+        PublicKey pk = Crypto.decodePublicKey(pk_enc);
+        // Encrypt the message
+        byte[] ciphertext = Crypto.encryptHybrid(message, pk);
+        // Decrypt the ciphertext
+        byte[] decoded = null;
+        try {
+            PrivateKey pr = Crypto.decodePrivateKey(pr_enc);
+            decoded = Crypto.decryptHybrid(ciphertext, pr);
+        } catch (BadPaddingException e) {
+            assertFalse("Error during decryption", true);
+        }
+        assertTrue("Decrypted text does not match", Arrays.equals(message, decoded));
+    }
 }

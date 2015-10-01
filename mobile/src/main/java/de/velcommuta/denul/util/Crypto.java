@@ -18,6 +18,7 @@ import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Security;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 
@@ -37,9 +38,17 @@ public class Crypto {
     public static final String TAG = "Crypto";
 
     // Constants for hybrid encryption header lengths
+    private static final int BYTES_HEADER_VERSION     = 1;
+    private static final int BYTES_HEADER_ALGO        = 1;
     private static final int BYTES_HEADER_LENGTH_ASYM = 4;
-    private static final int BYTES_HEADER_VERSION = 1;
-    private static final int BYTES_HEADER_ALGO = 1;
+
+    // Number of bytes of the complete header
+    private static final int BYTES_HEADER = BYTES_HEADER_VERSION + BYTES_HEADER_ALGO + BYTES_HEADER_LENGTH_ASYM;
+
+    // Offsets
+    private static final int OFFSET_VERSION     = 0;
+    private static final int OFFSET_ALGO        = OFFSET_VERSION + BYTES_HEADER_VERSION;
+    private static final int OFFSET_LENGTH_ASYM = OFFSET_ALGO + BYTES_HEADER_ALGO;
 
     // Constants for hybrid encryption header values
     protected static final byte VERSION_1 = 0x00;
@@ -69,7 +78,7 @@ public class Crypto {
         try {
             KeyFactory kFactory = KeyFactory.getInstance("RSA", new BouncyCastleProvider());
             byte[] keybytes = Base64.decode(encoded, Base64.NO_WRAP);
-            X509EncodedKeySpec keySpec = new X509EncodedKeySpec(keybytes);
+            PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(keybytes);
             return kFactory.generatePrivate(keySpec);
         } catch (Exception e) {
             Log.e(TAG, "decodePrivateKey: Error decoding private key: ", e);
@@ -306,23 +315,33 @@ public class Crypto {
      * @throws BadPaddingException If one of the decryptions throws it. Indicates that the authentication checks failed
      */
     public static byte[] decryptHybrid(byte[] ciphertext, PrivateKey privkey) throws BadPaddingException {
-        // TODO Documentation
-        // TODO Sanity checks before copy operations
+        // Check if the ciphertext and key are actually set
         if (ciphertext == null || privkey == null) {
             Log.e(TAG, "decryptHybrid: One of the inputs is null, aborting");
             return null;
         }
+        // Retrieve the header
         byte[] header = getHeader(ciphertext);
+        // Perform some sanity checks on the header
         if (header[0] != VERSION_1) {
             Log.e(TAG, "decryptHybrid: Unknown version number");
-            return null;
+            throw new BadPaddingException("Unknown version number");
         } else if (header[1] != ALGO_RSA_OAEP_SHA256_MGF1_WITH_AES_256_GCM) {
             Log.e(TAG, "decryptHybrid: Unknown algorithm specification");
-            return null;
+            throw new BadPaddingException("Unknown algorithm specification");
         }
+        // Parse the length of the asymmetrically encrypted ciphertext block from the header
         int asymCiphertextLength = parseAsymCiphertextLength(header);
+        // Perform sanity checks
+        if (header.length + asymCiphertextLength > ciphertext.length) {
+            Log.e(TAG, "decryptHybrid: Incorrect asymCiphertextLength specified");
+            throw new BadPaddingException("Incorrect asymCiphertextLength");
+        }
+        // Retrieve asymCiphertext
         byte[] asymCiphertext = Arrays.copyOfRange(ciphertext, header.length, header.length + asymCiphertextLength);
+        // Retrieve symCiphertext
         byte[] symCiphertext = Arrays.copyOfRange(ciphertext, header.length + asymCiphertextLength, ciphertext.length);
+        // Decrypt symmetric key from asymCiphertext
         byte[] symKey;
         try {
             symKey = decryptRSA(asymCiphertext, privkey);
@@ -330,15 +349,19 @@ public class Crypto {
             Log.e(TAG, "decryptHybrid: Illegal Block Size Exception, aborting");
             return null;
         }
+        // Ensure that decryption was successful
         if (symKey == null) {
             Log.e(TAG, "decryptHybrid: Something went wrong during asym. decryption, aborting");
             return null;
         }
+        // Decrypt symCiphertext
         byte[] cleartext = decryptAES(symCiphertext, symKey);
+        // Ensure that decryption was successful
         if (cleartext == null) {
             Log.e(TAG, "decryptHybrid: Something went wrong during sym. decryption, aborting");
             return null;
         }
+        // Return decrypted data
         return cleartext;
     }
 
@@ -351,10 +374,12 @@ public class Crypto {
      * @return The header, as a byte[]
      */
     protected static byte[] generateHeader(byte version, byte algo, int asymCipherLength) {
-        // TODO Documentation
-        byte[] header = new byte[BYTES_HEADER_VERSION + BYTES_HEADER_ALGO + BYTES_HEADER_LENGTH_ASYM];
+        // Create a new byte[] for the header
+        byte[] header = new byte[BYTES_HEADER];
+        // Set version and algorithm
         header[0] = version;
         header[1] = algo;
+        // Set length of asymmetrically enciphered ciphertext
         byte[] asymCipherLengthBytes = ByteBuffer.allocate(4).putInt(asymCipherLength).array();
         System.arraycopy(asymCipherLengthBytes, 0, header, 2, asymCipherLengthBytes.length);
         return header;
@@ -364,21 +389,29 @@ public class Crypto {
      * Get the header from an encrypted blob of data
      * @param message The whole message (headers plus encrypted contents)
      * @return The header
+     * @throws BadPaddingException If the message is shorter than the header
      */
-    protected static byte[] getHeader(byte[] message) {
-        // TODO Sanity checks before copy
-        return Arrays.copyOfRange(message, 0, BYTES_HEADER_VERSION + BYTES_HEADER_ALGO + BYTES_HEADER_LENGTH_ASYM);
+    protected static byte[] getHeader(byte[] message) throws BadPaddingException {
+        if (message.length < BYTES_HEADER) {
+            Log.e(TAG, "getHeader: message shorter than header, aborting");
+            throw new BadPaddingException("Incorrect header");
+        }
+        return Arrays.copyOfRange(message, 0, BYTES_HEADER);
     }
 
     /**
      * Parses the length of the asymmetrically encrypted ciphertext from the header
      * @param header The full header
      * @return The length, as int
+     * @throws BadPaddingException If the header has an incorrect length
      */
-    protected static int parseAsymCiphertextLength(byte[] header) {
-        // TODO Documentation, sanity checks
+    protected static int parseAsymCiphertextLength(byte[] header) throws BadPaddingException{
+        if (header.length != BYTES_HEADER) {
+            Log.e(TAG, "parseAsymCiphertextLength: Malformed header");
+            throw new BadPaddingException("Malformed hybrid header");
+        }
         return ByteBuffer.wrap(
-                Arrays.copyOfRange(header, BYTES_HEADER_VERSION + BYTES_HEADER_ALGO, header.length)
+                Arrays.copyOfRange(header, OFFSET_LENGTH_ASYM, OFFSET_LENGTH_ASYM + BYTES_HEADER_LENGTH_ASYM)
         ).getInt();
     }
 }
