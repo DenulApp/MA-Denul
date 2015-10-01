@@ -94,7 +94,7 @@ public class CryptoTest extends TestCase {
         new Random().nextBytes(message);
         byte[] ciphertext = Crypto.encryptAES(message, key);
         try {
-            ciphertext[23] = 0x00;
+            ciphertext[23] = (byte) ((int) ciphertext[23] ^ 1);
             Crypto.decryptAES(ciphertext, key);
             assertTrue("No exception was raised during decryption", false);
         } catch (BadPaddingException e) {
@@ -111,7 +111,7 @@ public class CryptoTest extends TestCase {
         new Random().nextBytes(message);
         byte[] ciphertext = Crypto.encryptAES(message, key);
         try {
-            ciphertext[1] = 0x00;
+            ciphertext[1] = (byte) ((int) ciphertext[1] ^ 1);
             Crypto.decryptAES(ciphertext, key);
             assertTrue("No exception was raised during decryption", false);
         } catch (BadPaddingException e) {
@@ -195,7 +195,7 @@ public class CryptoTest extends TestCase {
         byte[] plaintext = null;
         try {
             byte[] ciphertext = Crypto.encryptRSA(message, kp.getPublic());
-            ciphertext[12] = 0x00;
+            ciphertext[12] = (byte) ((int)ciphertext[12] ^ 1);
             plaintext = Crypto.decryptRSA(ciphertext, kp.getPrivate());
             assertFalse("No exception thrown", true);
         } catch (IllegalBlockSizeException e) {
@@ -217,6 +217,24 @@ public class CryptoTest extends TestCase {
         byte[] header1 = Crypto.generateHeader(Crypto.VERSION_1, Crypto.ALGO_RSA_OAEP_SHA256_MGF1_WITH_AES_256_GCM, 0);
         byte[] header2 = Crypto.generateHeader(Crypto.VERSION_1, Crypto.ALGO_RSA_OAEP_SHA256_MGF1_WITH_AES_256_GCM, 16);
         byte[] header3 = Crypto.generateHeader(Crypto.VERSION_1, Crypto.ALGO_RSA_OAEP_SHA256_MGF1_WITH_AES_256_GCM, 256);
+        assertTrue("Header not as expected in test case 1", Arrays.equals(test1, header1));
+        assertTrue("Header not as expected in test case 2", Arrays.equals(test2, header2));
+        assertTrue("Header not as expected in test case 3", Arrays.equals(test3, header3));
+    }
+
+    /**
+     * Test the (protected) header generation function for asymmetric encryption
+     */
+    public void testHeaderGenerationWithUpdate() {
+        byte[] test1 = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+        byte[] test2 = {0x00, 0x00, 0x00, 0x00, 0x00, 0x10};
+        byte[] test3 = {0x00, 0x00, 0x00, 0x00, 0x01, 0x00};
+        byte[] header1 = Crypto.generateHeader(Crypto.VERSION_1, Crypto.ALGO_RSA_OAEP_SHA256_MGF1_WITH_AES_256_GCM);
+        byte[] header2 = Crypto.generateHeader(Crypto.VERSION_1, Crypto.ALGO_RSA_OAEP_SHA256_MGF1_WITH_AES_256_GCM);
+        byte[] header3 = Crypto.generateHeader(Crypto.VERSION_1, Crypto.ALGO_RSA_OAEP_SHA256_MGF1_WITH_AES_256_GCM);
+        header1 = Crypto.updateHeader(header1, 0);
+        header2 = Crypto.updateHeader(header2, 16);
+        header3 = Crypto.updateHeader(header3, 256);
         assertTrue("Header not as expected in test case 1", Arrays.equals(test1, header1));
         assertTrue("Header not as expected in test case 2", Arrays.equals(test2, header2));
         assertTrue("Header not as expected in test case 3", Arrays.equals(test3, header3));
@@ -372,7 +390,7 @@ public class CryptoTest extends TestCase {
         byte[] encrypted = Crypto.encryptHybrid(message, pkey);
         assertNotNull("Hybrid encryption failed", encrypted);
         byte[] decrypted = null;
-        encrypted[4] = 0x03;
+        encrypted[4] = (byte) ((int)encrypted[4] ^ 1);
         try {
             decrypted = Crypto.decryptHybrid(encrypted, privkey);
             assertFalse("No exception thrown", true);

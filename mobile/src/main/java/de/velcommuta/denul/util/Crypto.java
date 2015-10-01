@@ -3,6 +3,8 @@ package de.velcommuta.denul.util;
 import android.util.Base64;
 import android.util.Log;
 
+import org.spongycastle.crypto.params.AEADParameters;
+import org.spongycastle.crypto.params.KeyParameter;
 import org.spongycastle.jce.provider.BouncyCastleProvider;
 
 import java.nio.ByteBuffer;
@@ -17,6 +19,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.SecureRandom;
 import java.security.Security;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
@@ -160,6 +163,17 @@ public class Crypto {
      * @return The encrypted data as a byte[]
      */
     public static byte[] encryptAES(byte[] data, byte[] keyenc) {
+        return encryptAES(data, keyenc, null);
+    }
+
+    /**
+     * Encrypt some data using AES in GCM mode with PKCS#7 padding.
+     * @param data The data that is to be encrypted
+     * @param keyenc The key, as a byte[]
+     * @param header The header (with length field nulled), to be added and as Associated Data
+     * @return The encrypted data as a byte[]
+     */
+    public static byte[] encryptAES(byte[] data, byte[] keyenc, byte[] header) {
         try {
             // Get Cipher instance
             Cipher aesCipher = Cipher.getInstance("AES/GCM/NoPadding", "SC");
@@ -171,6 +185,10 @@ public class Crypto {
             AlgorithmParameters params = aesCipher.getParameters();
             // Extract the IV
             byte[] iv = params.getParameterSpec(IvParameterSpec.class).getIV();
+            // Add header to authentication
+            if (header != null) {
+                aesCipher.updateAAD(header);
+            }
             // Perform the encryption
             byte[] encrypted = aesCipher.doFinal(data);
             byte[] returnvalue = new byte[iv.length + encrypted.length];
@@ -194,6 +212,19 @@ public class Crypto {
      * tampered with (i.e. the authentication failed)
      */
     public static byte[] decryptAES(byte[] datawithiv, byte[] keyenc) throws BadPaddingException {
+        return decryptAES(datawithiv, keyenc, null);
+    }
+
+    /**
+     * Decrypt a piece of AES256-encrypted data with its key
+     * @param datawithiv Data with first bytes representing the IV
+     * @param keyenc byte[]-encoded key
+     * @param header The header, to be authenticated using AEAD
+     * @return Decrypted data as byte[]
+     * @throws BadPaddingException If the padding was bad. This indicates that the ciphertext was
+     * tampered with (i.e. the authentication failed)
+     */
+    public static byte[] decryptAES(byte[] datawithiv, byte[] keyenc, byte[] header) throws BadPaddingException {
         try {
             // Get Cipher instance
             Cipher aesCipher = Cipher.getInstance("AES/GCM/NoPadding", "SC");
@@ -206,6 +237,10 @@ public class Crypto {
             System.arraycopy(datawithiv, iv.length, encrypted, 0, datawithiv.length - 16);
             // Initialize cipher
             aesCipher.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(iv));
+            // Add header for AAD
+            if (header != null) {
+                aesCipher.updateAAD(header);
+            }
             // Perform the decryption
             return aesCipher.doFinal(encrypted);
         } catch (NoSuchPaddingException | InvalidAlgorithmParameterException | NoSuchAlgorithmException
@@ -271,10 +306,12 @@ public class Crypto {
             Log.e(TAG, "encryptHybrid: data or public key is null");
             return null;
         }
+        // Generate header (which we need now for AEAD)
+        byte[] header = generateHeader(VERSION_1, ALGO_RSA_OAEP_SHA256_MGF1_WITH_AES_256_GCM);
         // Generate symmetric secret key
         byte[] sKey = generateAES256Key();
         // symmetrically encrypt data
-        byte[] symCiphertext = encryptAES(data, sKey);
+        byte[] symCiphertext = encryptAES(data, sKey, header);
         // Check that nothing went wrong
         if (symCiphertext == null) {
             Log.e(TAG, "encryptHybrid: Symmetric encryption failed, aborting");
@@ -293,10 +330,9 @@ public class Crypto {
             Log.e(TAG, "encryptHybrid: Asymmetric encryption failed, aborting");
             return null;
         }
-        // Generate header
-        byte[] header = generateHeader(VERSION_1, ALGO_RSA_OAEP_SHA256_MGF1_WITH_AES_256_GCM, asymCiphertext.length);
         // Generate output array of proper size
         byte[] output = new byte[header.length + asymCiphertext.length + symCiphertext.length];
+        header = updateHeader(header, asymCiphertext.length);
         // Write header to output, starting at 0
         System.arraycopy(header, 0, output, 0, header.length);
         // Write asym ciphertext to output, starting after header
@@ -348,14 +384,19 @@ public class Crypto {
         } catch (IllegalBlockSizeException e) {
             Log.e(TAG, "decryptHybrid: Illegal Block Size Exception, aborting");
             return null;
+        } catch (ArrayIndexOutOfBoundsException e) {
+            Log.e(TAG, "decryptHybrid: Array Index out of bounds indicates incorrect length in header, aborting");
+            throw new BadPaddingException("Incorrect asymCiphertextLength");
         }
         // Ensure that decryption was successful
         if (symKey == null) {
             Log.e(TAG, "decryptHybrid: Something went wrong during asym. decryption, aborting");
             return null;
         }
+        // Null the length field of the header for AAD verification
+        header = updateHeader(header, 0);
         // Decrypt symCiphertext
-        byte[] cleartext = decryptAES(symCiphertext, symKey);
+        byte[] cleartext = decryptAES(symCiphertext, symKey, header);
         // Ensure that decryption was successful
         if (cleartext == null) {
             Log.e(TAG, "decryptHybrid: Something went wrong during sym. decryption, aborting");
@@ -381,7 +422,34 @@ public class Crypto {
         header[1] = algo;
         // Set length of asymmetrically enciphered ciphertext
         byte[] asymCipherLengthBytes = ByteBuffer.allocate(4).putInt(asymCipherLength).array();
-        System.arraycopy(asymCipherLengthBytes, 0, header, 2, asymCipherLengthBytes.length);
+        System.arraycopy(asymCipherLengthBytes, 0, header, OFFSET_LENGTH_ASYM, asymCipherLengthBytes.length);
+        return header;
+    }
+
+    /**
+     * Generate a header for a hybrid-encrypted packet
+     * @param version Version number, as byte (use the constants provided by this class)
+     * @param algo Algorithm descriptor, as byte (use the constants provided by this class)
+     * @return The header, as a byte[]
+     */
+    protected static byte[] generateHeader(byte version, byte algo) {
+        // Create a new byte[] for the header
+        byte[] header = new byte[BYTES_HEADER];
+        // Set version and algorithm
+        header[0] = version;
+        header[1] = algo;
+        return header;
+    }
+
+    /**
+     * Update an existing header with the length information
+     * @param header Existing header
+     * @param asymCipherLength Length of asymmetric ciphertext
+     * @return Updated header
+     */
+    protected static byte[] updateHeader(byte[] header, int asymCipherLength) {
+        byte[] asymCipherLengthBytes = ByteBuffer.allocate(4).putInt(asymCipherLength).array();
+        System.arraycopy(asymCipherLengthBytes, 0, header, OFFSET_LENGTH_ASYM, asymCipherLengthBytes.length);
         return header;
     }
 
