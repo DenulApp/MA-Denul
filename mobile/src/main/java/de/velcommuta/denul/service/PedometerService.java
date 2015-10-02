@@ -3,6 +3,7 @@ package de.velcommuta.denul.service;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -35,6 +36,7 @@ public class PedometerService extends Service implements SensorEventListener {
 
     private SensorManager mSensorManager;
     private PublicKey mPubkey;
+    private int mSeqNr;
 
     private Hashtable<DateTime, Long> mHistory;
 
@@ -69,6 +71,15 @@ public class PedometerService extends Service implements SensorEventListener {
             return Service.START_STICKY;
         }
         Log.d(TAG, "onStartCommand: Successfully loaded Pubkey");
+        // Load sequence number
+        mSeqNr = getSharedPreferences(getString(R.string.preferences_keystore), Context.MODE_PRIVATE).getInt(getString(R.string.preferences_keystore_seqnr), -1);
+        if (mSeqNr == -1) {
+            Log.e(TAG, "onStartCommand: Something went wrong while loading the sequence number. Restarting at zero"); // TODO Is this a good idea?
+            mSeqNr = 0;
+        }
+        // Increment sequence number
+        SharedPreferences.Editor edit = getSharedPreferences(getString(R.string.preferences_keystore), Context.MODE_PRIVATE).edit();
+        edit.putInt(getString(R.string.preferences_keystore_seqnr), mSeqNr+1);
 
 
         // initialize data structure
@@ -129,7 +140,7 @@ public class PedometerService extends Service implements SensorEventListener {
             return;
         }
         // Encrypt the state
-        byte[] cipheredState = Crypto.encryptHybrid(state, mPubkey, 0); // TODO Sequence number
+        byte[] cipheredState = Crypto.encryptHybrid(state, mPubkey, mSeqNr);
         if (cipheredState == null) {
             Log.e(TAG, "saveState: Something went wrong during state encryption, aborting");
             return;

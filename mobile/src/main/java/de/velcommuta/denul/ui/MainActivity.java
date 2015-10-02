@@ -270,6 +270,8 @@ public class MainActivity extends AppCompatActivity
             SharedPreferences.Editor edit = getSharedPreferences(getString(R.string.preferences_keystore), Context.MODE_PRIVATE).edit();
             // Add the key and save
             edit.putString(getString(R.string.preferences_keystore_rsapub), encodedPub);
+            // Set the sequence number to zero (used for limited freshness tests of encrypted data)
+            edit.putInt(getString(R.string.preferences_keystore_seqnr), 0);
             edit.commit();
             Log.d(TAG, "setGeneratedKeypair: Saved into SharedPreference");
 

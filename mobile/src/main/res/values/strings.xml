@@ -42,4 +42,5 @@
     <!-- Strings that are not displayed anywhere -->
     <string name="preferences_keystore">de.velcommuta.denul.PREF_KEYSTORE</string>
     <string name="preferences_keystore_rsapub">rsa-pub</string>
+    <string name="preferences_keystore_seqnr">seqnr</string>
 </resources>
