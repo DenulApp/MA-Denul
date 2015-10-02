@@ -84,8 +84,10 @@ public class PedometerService extends Service implements SensorEventListener {
 
 
         // initialize data structure
+        // TODO Implement loading if database is available
         // TODO Deal with the situation when users reboot the device and the counter resets
         //      within the same hour, leading to old values being overwritten
+        // TODO Deal with missing sequence number values in some way (caching seen values in the database?)
         // if (!loadState()) {
         //     mHistory = new Hashtable<>();
         // }
