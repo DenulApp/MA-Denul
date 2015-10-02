@@ -308,7 +308,7 @@ public class MainActivity extends AppCompatActivity
 
     private class KeypairGenerationTask extends AsyncTask<Void,Void,KeyPair> {
         private final String TAG = "KeypairGenerationTask";
-        private final int KEYSIZE = 1024; // FIXME Up this once the code works
+        private final int KEYSIZE = 4096;
 
         @Override
         protected KeyPair doInBackground(Void... v) {

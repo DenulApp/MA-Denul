@@ -3,8 +3,6 @@ package de.velcommuta.denul.util;
 import android.util.Base64;
 import android.util.Log;
 
-import org.spongycastle.crypto.params.AEADParameters;
-import org.spongycastle.crypto.params.KeyParameter;
 import org.spongycastle.jce.provider.BouncyCastleProvider;
 
 import java.nio.ByteBuffer;
