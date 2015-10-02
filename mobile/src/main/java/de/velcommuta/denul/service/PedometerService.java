@@ -80,6 +80,7 @@ public class PedometerService extends Service implements SensorEventListener {
         // Increment sequence number
         SharedPreferences.Editor edit = getSharedPreferences(getString(R.string.preferences_keystore), Context.MODE_PRIVATE).edit();
         edit.putInt(getString(R.string.preferences_keystore_seqnr), mSeqNr+1);
+        edit.apply();
 
 
         // initialize data structure
