@@ -887,6 +887,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
     /**
      * EventBus function to perform Database interactions in an AsyncThread (in the background)
      * @param ev Event containing the track and other information that should be saved to the database
+     * TODO Port to service
      */
     @SuppressWarnings("unused")
     public void onEventAsync(GPSTrackEvent ev) {

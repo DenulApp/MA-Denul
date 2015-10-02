@@ -286,6 +286,7 @@ public class MainActivity extends AppCompatActivity
 
     /**
      * AsyncTask to open the database and get a handler
+     * TODO Port to service
      */
     private class DbInitTask extends AsyncTask<Context, Void, SQLiteDatabase> {
         private final String TAG = "DbInitTask";
@@ -308,6 +309,9 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
+    /**
+     * AsyncTask to generate an RSA keypair in the background and save it into the database
+     */
     private class KeypairGenerationTask extends AsyncTask<Void,Void,KeyPair> {
         private final String TAG = "KeypairGenerationTask";
         private final int KEYSIZE = 4096;

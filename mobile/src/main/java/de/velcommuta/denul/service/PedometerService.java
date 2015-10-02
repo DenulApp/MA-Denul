@@ -47,6 +47,7 @@ public class PedometerService extends Service implements SensorEventListener {
     public PedometerService() {
     }
 
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         // Called when the service is started
@@ -58,12 +59,14 @@ public class PedometerService extends Service implements SensorEventListener {
             return Service.START_STICKY;
         }
 
-        // Load the public key that is used to safely preserve service results if the database
-        // is not open. This could happen, for example, if the device shuts down: The database will
-        // be locked, but data will be lost unless it is preserved on disk. But since we don't want
-        // unencrypted data lying around, we have to encrypt it in some way.
-        // The corresponding private key is saved in the SQLite vault and only available if the
-        // database is unlocked
+        /*
+        Load the public key that is used to safely preserve service results if the database
+        is not open. This could happen, for example, if the device shuts down: The database will
+        be locked, but data will be lost unless it is preserved on disk. But since we don't want
+        unencrypted data lying around, we have to encrypt it in some way.
+        The corresponding private key is saved in the SQLite vault and only available if the
+        database is unlocked
+        */
         mPubkey = loadPubkey();
         if (mPubkey == null) {
             Log.e(TAG, "onStartCommand: Pubkey loading failed, aborting");
@@ -105,6 +108,7 @@ public class PedometerService extends Service implements SensorEventListener {
         return Service.START_STICKY;
     }
 
+
     @Override
     public void onDestroy() {
         mSensorManager.unregisterListener(this);
@@ -112,11 +116,13 @@ public class PedometerService extends Service implements SensorEventListener {
         Log.d(TAG, "onDestroy: Shutting down");
     }
 
+
     @Override
     public IBinder onBind(Intent intent) {
         // Service is not bindable
         return null;
     }
+
 
     ///// Sensor Callbacks
     @Override
@@ -125,13 +131,14 @@ public class PedometerService extends Service implements SensorEventListener {
         mHistory.put(timestamp, (long) event.values[0]);
     }
 
+
     @Override
     public void onAccuracyChanged(Sensor sensor, int i) {
         // We don't really care about this, as it will never happen for a step counter
     }
 
-    ///// Utility functions
 
+    ///// Utility functions
     /**
      * Save the state of the service into an encrypted file
      */
@@ -178,6 +185,7 @@ public class PedometerService extends Service implements SensorEventListener {
         return Crypto.decodePublicKey(pubkey);
     }
 
+
     /**
      * Serialize the hashtable into a byte[]
      * @param ht The hashtable
@@ -196,6 +204,7 @@ public class PedometerService extends Service implements SensorEventListener {
             return null;
         }
     }
+
 
     /**
      * Deserialize an object from a byte[]
