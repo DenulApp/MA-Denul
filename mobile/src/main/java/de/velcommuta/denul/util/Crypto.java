@@ -5,6 +5,10 @@ import android.util.Log;
 
 import org.spongycastle.jce.provider.BouncyCastleProvider;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.security.AlgorithmParameters;
 import java.security.InvalidAlgorithmParameterException;
@@ -21,6 +25,7 @@ import java.security.Security;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
+import java.util.Random;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -493,5 +498,47 @@ public class Crypto {
         return ByteBuffer.wrap(
                 Arrays.copyOfRange(header, OFFSET_SEQNR, OFFSET_SEQNR + BYTES_HEADER_SEQNR)
         ).getInt();
+    }
+
+
+    ///// Utility functions for file operations
+    /**
+     * Securely (or at least: as securely as we can manage) delete a file
+     * @param f The file object to be deleted
+     * @return True if the deletion succeeded, false otherwise
+     */
+    public static boolean secureDelete(File f) {
+        try {
+            Log.d(TAG, "secureDelete: Beginning deletion");
+            RandomAccessFile fobj = new RandomAccessFile(f, "rw");
+            long length = fobj.length(); // Cast to int as the file will most likely not be too large
+            fobj.close();
+            if (length < Integer.MAX_VALUE) {
+                int len = (int) length;
+                for (int i = 0; i < 50; i++) {
+                    // Open the file for writing
+                    fobj = new RandomAccessFile(f, "rw");
+                    // Get ourselves some random bytes
+                    byte[] random = new byte[len];
+                    new Random().nextBytes(random);
+                    // Overwrite the current contents of the file
+                    fobj.write(random, 0, random.length);
+                    fobj.close();
+                }
+                Log.d(TAG, "secureDelete: Overwrite cycles finished, deleting file");
+                return f.delete();
+            } else {
+                // This case is extremely unlikely
+                // TODO Implement deletion for very long files
+                Log.e(TAG, "secureDelete: File is too long, aborting :(");
+                return false;
+            }
+        } catch (FileNotFoundException e) {
+            Log.e(TAG, "secureDelete: File does not exist");
+            return false;
+        } catch (IOException e) {
+            Log.e(TAG, "secureDelete: IOError while attempting deletion: ", e);
+            return false;
+        }
     }
 }
