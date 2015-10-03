@@ -129,6 +129,8 @@ public class DatabaseService extends Service {
             mSQLiteHandler = dbh.getWritableDatabase(password);
             if (mSQLiteHandler == null || !mSQLiteHandler.isOpen()) {
                 throw new SecurityException("Something went wrong while opening the database - wrong key?");
+            } else {
+                Log.d(TAG, "openDatabase: Database opened");
             }
         }
 
@@ -151,8 +153,11 @@ public class DatabaseService extends Service {
         @Override
         public void beginTransaction() throws SQLiteException {
             assertOpen();
-            if (mSQLiteHandler.inTransaction())
+            if (mSQLiteHandler.inTransaction()) {
+                Log.e(TAG, "beginTransaction: Already in transaction, aborting");
                 throw new SQLiteException("Already in a transaction");
+            }
+            Log.d(TAG, "beginTransaction: Beginning database transaction");
             mSQLiteHandler.beginTransaction();
         }
 
@@ -164,8 +169,11 @@ public class DatabaseService extends Service {
         @Override
         public void commit() throws SQLiteException{
             assertOpen();
-            if (!mSQLiteHandler.inTransaction())
-                throw new SQLiteException("Not in a transaction");
+            if (!mSQLiteHandler.inTransaction()) {
+                Log.e(TAG, "commit: Not in transaction");
+                throw new SQLiteException("Not in a transaction, aborting");
+            }
+            Log.d(TAG, "commit: Committing database transaction");
             mSQLiteHandler.setTransactionSuccessful();
             mSQLiteHandler.endTransaction();
         }
@@ -178,8 +186,11 @@ public class DatabaseService extends Service {
         @Override
         public void revert() throws SQLiteException {
             assertOpen();
-            if (!mSQLiteHandler.inTransaction())
+            if (!mSQLiteHandler.inTransaction()) {
+                Log.e(TAG, "revert: Not in transaction, aborting");
                 throw new SQLiteException("Not in a transaction");
+            }
+            Log.d(TAG, "revert: Reverting database transaction");
             mSQLiteHandler.endTransaction();
         }
 
@@ -196,6 +207,7 @@ public class DatabaseService extends Service {
         @Override
         public long insert(String table, String nullable, ContentValues values) throws SQLiteException {
             assertOpen();
+            Log.d(TAG, "insert: Running insert");
             return mSQLiteHandler.insertOrThrow(table, nullable, values);
         }
 
@@ -215,6 +227,7 @@ public class DatabaseService extends Service {
         @Override
         public Cursor query(String table, String[] columns, String selection, String[] selectionArgs, String groupBy, String having, String orderBy) throws SQLiteException {
             assertOpen();
+            Log.d(TAG, "query: Running query");
             return mSQLiteHandler.query(table, columns, selection, selectionArgs, groupBy, having, orderBy);
         }
 
