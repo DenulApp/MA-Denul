@@ -62,7 +62,7 @@ public class DatabaseService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int StartId) {
         Log.d(TAG, "onStartCommand: Service started");
-        EventBus.getDefault().post(new DatabaseAvailabilityEvent(DatabaseAvailabilityEvent.STARTED));
+        EventBus.getDefault().postSticky(new DatabaseAvailabilityEvent(DatabaseAvailabilityEvent.STARTED));
         return START_STICKY;
     }
 
@@ -71,7 +71,7 @@ public class DatabaseService extends Service {
     public void onDestroy() {
         // Close SQLite handler
         Log.d(TAG, "onDestroy: Closing database");
-        EventBus.getDefault().post(new DatabaseAvailabilityEvent(DatabaseAvailabilityEvent.STOPPED));
+        EventBus.getDefault().postSticky(new DatabaseAvailabilityEvent(DatabaseAvailabilityEvent.STOPPED));
         if (mSQLiteHandler != null) {
             mSQLiteHandler.close();
         }
@@ -138,7 +138,7 @@ public class DatabaseService extends Service {
             } else {
                 Log.d(TAG, "openDatabase: Database opened");
             }
-            EventBus.getDefault().post(new DatabaseAvailabilityEvent(DatabaseAvailabilityEvent.OPENED));
+            EventBus.getDefault().postSticky(new DatabaseAvailabilityEvent(DatabaseAvailabilityEvent.OPENED));
         }
 
 

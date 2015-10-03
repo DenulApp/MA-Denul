@@ -11,8 +11,11 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.os.AsyncTask;
 import android.os.IBinder;
 import android.util.Log;
+
+import net.sqlcipher.Cursor;
 
 import org.joda.time.DateTime;
 
@@ -25,11 +28,13 @@ import java.io.ObjectInput;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
+import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.Hashtable;
 
 import de.greenrobot.event.EventBus;
 import de.velcommuta.denul.R;
+import de.velcommuta.denul.db.VaultContract;
 import de.velcommuta.denul.event.DatabaseAvailabilityEvent;
 import de.velcommuta.denul.util.Crypto;
 
@@ -159,13 +164,21 @@ public class PedometerService extends Service implements SensorEventListener, Se
      */
     public void onEvent(DatabaseAvailabilityEvent ev) {
         if (ev.getStatus() == DatabaseAvailabilityEvent.STARTED) {
+            Log.d(TAG, "onEvent(DatabaseAvailabilityEvent): Service STARTED");
             requestDatabaseBinder();
         } else if (ev.getStatus() == DatabaseAvailabilityEvent.OPENED) {
+            Log.d(TAG, "onEvent(DatabaseAvailabilityEvent): DB OPENED");
+            if (mDatabaseBinder == null) {
+                Log.w(TAG, "onEvent(DatabaseAvailabilityEvent): DB binder not yet received. Defer processing");
+                return;
+            }
             loadSavedState();
             mDatabaseAvailable = true;
         } else if (ev.getStatus() == DatabaseAvailabilityEvent.CLOSED) {
+            Log.d(TAG, "onEvent(DatabaseAvailabilityEvent): DB CLOSED");
             mDatabaseAvailable = false;
         } else if (ev.getStatus() == DatabaseAvailabilityEvent.STOPPED) {
+            Log.d(TAG, "onEvent(DatabaseAvailabilityEvent): Service STOPPED");
             mDatabaseAvailable = false;
             mDatabaseBinder = null;
         }
@@ -176,6 +189,7 @@ public class PedometerService extends Service implements SensorEventListener, Se
      * Request a binder to the Database Service
      */
     public void requestDatabaseBinder() {
+        Log.d(TAG, "requestDatabaseBinder: Requesting binding");
         Intent intent = new Intent(this, DatabaseService.class);
         bindService(intent, this, 0);
     }
@@ -224,7 +238,7 @@ public class PedometerService extends Service implements SensorEventListener, Se
             Log.e(TAG, "loadSavedState: Database is NOT open, aborting");
             return;
         }
-        // TODO Find files, read them in, integrate them into the cache
+        new CacheReintegrationTask().execute();
     }
 
 
@@ -239,6 +253,39 @@ public class PedometerService extends Service implements SensorEventListener, Se
         if (pubkey == null) return null;
         // Decode the encoded pubkey into an actual pubkey object
         return Crypto.decodePublicKey(pubkey);
+    }
+
+
+    /**
+     * Retrieve the secret key of the pedometer service from the database and return it
+     * @return The PrivateKey, if available. Otherwise, null
+     */
+    private PrivateKey loadPrivateKey() {
+        if (mDatabaseBinder == null || !mDatabaseAvailable) {
+            Log.e(TAG, "loadSecretKey: Database unavailable");
+            return null;
+        }
+        // Query the database for the private key
+        Cursor c = mDatabaseBinder.query(VaultContract.KeyStore.TABLE_NAME,
+                new String[] {VaultContract.KeyStore.COLUMN_KEY_BYTES},
+                VaultContract.KeyStore.COLUMN_KEY_NAME + " = '" + VaultContract.KeyStore.NAME_PEDOMETER_PRIVATE + "'",
+                null,
+                null,
+                null,
+                null);
+        if (c.getCount() == 0) {
+            Log.e(TAG, "loadSecretKey: no secret key found, aborting");
+            return null;
+        }
+        // Retrieve the encoded string
+        c.moveToFirst();
+        String encoded = c.getString(
+                c.getColumnIndexOrThrow(VaultContract.KeyStore.COLUMN_KEY_BYTES)
+        );
+        // Close the cursor
+        c.close();
+        // Decode and return the PrivateKey
+        return Crypto.decodePrivateKey(encoded);
     }
 
 
@@ -286,6 +333,11 @@ public class PedometerService extends Service implements SensorEventListener, Se
     public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
         Log.d(TAG, "onServiceConnected: Service connection received");
         mDatabaseBinder = (DatabaseServiceBinder) iBinder;
+        // Check if the database has been opened in the meantime, and if yes, notify the EventHandler
+        DatabaseAvailabilityEvent ev = EventBus.getDefault().getStickyEvent(DatabaseAvailabilityEvent.class);
+        if (ev.getStatus() == DatabaseAvailabilityEvent.OPENED) {
+            onEvent(ev);
+        }
     }
 
     @Override
@@ -293,5 +345,33 @@ public class PedometerService extends Service implements SensorEventListener, Se
         Log.w(TAG, "onServiceDisconnected: Service connection lost");
         mDatabaseBinder = null;
         mDatabaseAvailable = false;
+    }
+
+
+    /**
+     * AsyncTask to load data from the encrypted cache in the background
+     */
+    private class CacheReintegrationTask extends AsyncTask<Void, Void, Hashtable<DateTime, Long>> {
+
+        @Override
+        protected Hashtable<DateTime, Long> doInBackground(Void... v) {
+            PrivateKey pk = loadPrivateKey();
+            if (pk == null) {
+                Log.e(TAG, "CacheReintegrationTask:doInBackground: Private key retrieval failed, aborting");
+                return null;
+            }
+            Log.d(TAG, "CacheReintegrationTask:doInBackground: got pk");
+            // TODO implement retrieval, decoding, merge of caches
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Hashtable<DateTime, Long> ht) {
+            if (ht == null) {
+                Log.e(TAG, "CacheReintegrationTask:onPostExecute: ht == null, aborting");
+                return;
+            }
+            // TODO Implement merge into current cache and database save
+        }
     }
 }

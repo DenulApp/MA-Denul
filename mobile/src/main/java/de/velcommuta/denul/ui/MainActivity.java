@@ -70,10 +70,6 @@ public class MainActivity extends AppCompatActivity
             //        .sendNoSubscriberEvent(false)
             //        .installDefaultEventBus();
         }
-        // Prepare DB and get handler
-        // TODO If I ever add a different launch activity with a passphrase prompt, this will have to be moved
-        startDatabaseService();
-
         // Launch pedometer service if it is not running
         if (!isPedometerServiceRunning()) {
             String pubkey = getSharedPreferences(getString(R.string.preferences_keystore), Context.MODE_PRIVATE).getString(getString(R.string.preferences_keystore_rsapub), null);
@@ -84,6 +80,12 @@ public class MainActivity extends AppCompatActivity
                 new KeypairGenerationTask().execute();
             }
         }
+
+        // Prepare DB and get handler
+        // TODO If I ever add a different launch activity with a passphrase prompt, this will have to be moved
+        startDatabaseService();
+
+
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -320,6 +322,8 @@ public class MainActivity extends AppCompatActivity
             PrivateKey priv = keypair.getPrivate();
             // Set type to private RSA key
             keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_TYPE, VaultContract.KeyStore.TYPE_RSA_PRIV);
+            // Set the key descriptor to Pedometer key
+            keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_NAME, VaultContract.KeyStore.NAME_PEDOMETER_PRIVATE);
             // Add the actual key to the insert
             keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_BYTES, Crypto.encodeKey(priv));
             // Insert the values into the database
@@ -329,6 +333,7 @@ public class MainActivity extends AppCompatActivity
             keyEntry = new ContentValues();
             PublicKey pub = keypair.getPublic();
             keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_TYPE, VaultContract.KeyStore.TYPE_RSA_PUB);
+            keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_NAME, VaultContract.KeyStore.NAME_PEDOMETER_PUBLIC);
             String encodedPub = Crypto.encodeKey(pub);
             keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_BYTES,encodedPub);
 

@@ -47,6 +47,7 @@ public class SecureDbHelper extends SQLiteOpenHelper {
             = "CREATE TABLE " + VaultContract.KeyStore.TABLE_NAME + "(" +
             VaultContract.KeyStore._ID + TYPE_INT + OPT_PRIMARY_KEY + COMMA_SEP +
             VaultContract.KeyStore.COLUMN_KEY_TYPE + TYPE_INT + OPT_NOT_NULL + COMMA_SEP +
+            VaultContract.KeyStore.COLUMN_KEY_NAME + TYPE_TEXT + COMMA_SEP +
             VaultContract.KeyStore.COLUMN_KEY_BYTES + TYPE_TEXT + OPT_NOT_NULL +
             ");";
 
@@ -61,7 +62,7 @@ public class SecureDbHelper extends SQLiteOpenHelper {
 
     public static final String DATABASE_NAME = "location.db";
 
-    public static final int DATABASE_VERSION = 3;
+    public static final int DATABASE_VERSION = 4;
 
 
     /**

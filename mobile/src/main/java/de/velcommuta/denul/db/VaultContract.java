@@ -19,11 +19,16 @@ public class VaultContract {
         ///// Column Names
         // Key type identifier (RSA, AES, ...)
         public static final String COLUMN_KEY_TYPE = "keytype";
+        // Key instance identifier (Pedometer, ...)
+        public static final String COLUMN_KEY_NAME = "name";
         // Encoded key
         public static final String COLUMN_KEY_BYTES = "key";
 
         ///// Values
         public static final int TYPE_RSA_PRIV = 0;
         public static final int TYPE_RSA_PUB  = 1;
+
+        public static final String NAME_PEDOMETER_PRIVATE = "internal-pedometer-private-key";
+        public static final String NAME_PEDOMETER_PUBLIC = "internal-pedometer-public-key";
     }
 }
