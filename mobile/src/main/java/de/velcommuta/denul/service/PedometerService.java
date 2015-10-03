@@ -50,6 +50,7 @@ public class PedometerService extends Service implements SensorEventListener {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        // TODO This may be called multiple times - ensure that this would not break stuff
         // Called when the service is started
         // Check if a Step count sensor even exists
         if (!(getPackageManager().hasSystemFeature(PackageManager.FEATURE_SENSOR_STEP_COUNTER))) {

@@ -48,6 +48,15 @@ public class DatabaseService extends Service {
     }
 
 
+    /**
+     * Called when the service is explicitly started. Note that it may be called multiple times
+     * during the lifetime of one instance - each call to startService will call this function,
+     * no matter if the service is already running.
+     * @param intent Intent to start the service
+     * @param flags extra flags
+     * @param StartId unique startId
+     * @return Service mode, as one of the defined constants
+     */
     @Override
     public int onStartCommand(Intent intent, int flags, int StartId) {
         Log.d(TAG, "onStartCommand: Service started");

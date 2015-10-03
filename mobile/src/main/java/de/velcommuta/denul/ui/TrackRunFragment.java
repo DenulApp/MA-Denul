@@ -43,8 +43,6 @@ import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.maps.android.ui.IconGenerator;
 
-import net.sqlcipher.database.SQLiteDatabase;
-
 import java.util.List;
 
 import de.greenrobot.event.EventBus;
@@ -53,6 +51,7 @@ import de.velcommuta.denul.db.LocationLoggingContract;
 import de.velcommuta.denul.event.DatabaseResultEvent;
 import de.velcommuta.denul.event.GPSLocationEvent;
 import de.velcommuta.denul.event.GPSTrackEvent;
+import de.velcommuta.denul.service.DatabaseServiceBinder;
 import de.velcommuta.denul.service.GPSTrackingService;
 import de.velcommuta.denul.service.PedometerService;
 
@@ -887,12 +886,11 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
     /**
      * EventBus function to perform Database interactions in an AsyncThread (in the background)
      * @param ev Event containing the track and other information that should be saved to the database
-     * TODO Port to service
      */
     @SuppressWarnings("unused")
     public void onEventAsync(GPSTrackEvent ev) {
         // Get a handler on the database
-        SQLiteDatabase db = ((MainActivity)getActivity()).getSecureDatabaseHandler();
+        DatabaseServiceBinder db = ((MainActivity)getActivity()).getDbBinder();
         if (db == null) {
             EventBus.getDefault().post(new DatabaseResultEvent("Database not open"));
             return;
@@ -931,7 +929,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
             db.insert(LocationLoggingContract.LocationLog.TABLE_NAME, null, entry);
         }
         // Finish transaction
-        db.endTransaction();
+        db.commit();
         // Notify main thread
         EventBus.getDefault().post(new DatabaseResultEvent(getString(R.string.save_success)));
     }

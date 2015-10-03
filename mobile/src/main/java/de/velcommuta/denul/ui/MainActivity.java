@@ -1,17 +1,19 @@
 package de.velcommuta.denul.ui;
 
-import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.Fragment;
 import android.app.FragmentManager;
+import android.content.ComponentName;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
@@ -30,8 +32,9 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 
 import de.velcommuta.denul.R;
-import de.velcommuta.denul.db.SecureDbHelper;
 import de.velcommuta.denul.db.VaultContract;
+import de.velcommuta.denul.service.DatabaseService;
+import de.velcommuta.denul.service.DatabaseServiceBinder;
 import de.velcommuta.denul.service.PedometerService;
 import de.velcommuta.denul.util.Crypto;
 
@@ -42,13 +45,14 @@ public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener,
         StartScreenFragment.OnFragmentInteractionListener,
         StepCountFragment.OnFragmentInteractionListener,
-        HeartRateFragment.OnFragmentInteractionListener
+        HeartRateFragment.OnFragmentInteractionListener,
+        ServiceConnection
 {
-    private SQLiteDatabase mSecureDatabaseHandler;
-
     public static final String INTENT_GPS_TRACK = "intent-gps-track";
 
     public static final String TAG = "MainActivity";
+
+    private DatabaseServiceBinder mDbBinder = null;
 
     ///// Activity lifecycle management
     @Override
@@ -65,7 +69,8 @@ public class MainActivity extends AppCompatActivity
         }
         // Prepare DB and get handler
         // TODO If I ever add a different launch activity with a passphrase prompt, this will have to be moved
-        new DbInitTask().execute(this);
+        startDatabaseService();
+        bindDbService();
 
         // Launch pedometer service if it is not running
         if (!isPedometerServiceRunning()) {
@@ -103,8 +108,6 @@ public class MainActivity extends AppCompatActivity
     @Override
     public void onDestroy() {
         super.onDestroy();
-        if (mSecureDatabaseHandler != null) mSecureDatabaseHandler.close();
-        mSecureDatabaseHandler = null;
     }
 
     ///// Navigation callbacks
@@ -200,13 +203,30 @@ public class MainActivity extends AppCompatActivity
     private boolean isPedometerServiceRunning() {
         ActivityManager manager = (ActivityManager) getSystemService(Activity.ACTIVITY_SERVICE);
         for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
-            if ("de.velcommuta.denul.service.PedometerService".equals(service.service.getClassName())) { // TODO Update if
+            if ("de.velcommuta.denul.service.PedometerService".equals(service.service.getClassName())) {
                 return true; // Package name matches, our service is running
             }
         }
         return false; // No matching package name found => Our service is not running
     }
 
+
+    /**
+     * Checks if the Database Service is running
+     * @return True if the service is running, false otherwise
+     */
+    private boolean isDatabaseServiceRunning() {
+        ActivityManager manager = (ActivityManager) getSystemService(Activity.ACTIVITY_SERVICE);
+        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+            if ("de.velcommuta.denul.service.DatabaseService".equals(service.service.getClassName())) {
+                return true; // Package name matches, our service is running
+            }
+        }
+        return false; // No matching package name found => Our service is not running
+    }
+
+
+    ///// Service Management
     /**
      * Starts the pedometer service
      */
@@ -215,33 +235,68 @@ public class MainActivity extends AppCompatActivity
         startService(intent);
     }
 
-    /**
-     * Setter for the SQLiteDatabase, required by AsyncTask that creates it
-     * @param helper The SQLiteDatabase handler
-     */
-    public void setSecureDatabaseHandler(SQLiteDatabase helper) {
-        mSecureDatabaseHandler = helper;
-    }
 
     /**
-     * Getter for the LocationDatabaseHandler for the GPS Location Track database
-     * @return SQLiteDatabase for GPS tracks
+     * Starts the database service
      */
-    protected SQLiteDatabase getSecureDatabaseHandler() {
-        return mSecureDatabaseHandler;
+    private void startDatabaseService() {
+        Intent intent = new Intent(this, DatabaseService.class);
+        startService(intent);
     }
+
+
+    /**
+     * Get a binder to the database
+     */
+    private void bindDbService() {
+        if (!isDatabaseServiceRunning()) {
+            Log.e(TAG, "bindDbService: Trying to bind to a non-running database service. Aborting");
+            return;
+        }
+        Intent intent = new Intent(this, DatabaseService.class);
+        if (!bindService(intent, this, 0)) {
+            Log.e(TAG, "bindDbService: An error occured during binding :(");
+        } else {
+            Log.d(TAG, "bindDbService: Database service binding request sent");
+        }
+    }
+
+
+    /**
+     * Getter for the DB Binder, for use in fragments bound to this activity
+     * @return The database binder
+     */
+    protected DatabaseServiceBinder getDbBinder() {
+        return mDbBinder;
+    }
+
+
+    @Override
+    public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+        Log.d(TAG, "onServiceConnected: New service connection received");
+        mDbBinder = (DatabaseServiceBinder) iBinder;
+        // TODO Debugging code, move to passphrase activity once it is added
+        mDbBinder.openDatabase("VerySecureHardcodedPasswordOlolol123");
+    }
+
+
+    @Override
+    public void onServiceDisconnected(ComponentName componentName) {
+        Log.w(TAG, "onServiceDisconected: Service disconnect received");
+        mDbBinder = null;
+    }
+
 
     /**
      * Setter for the generated RSA keypair
      * @param keypair The generated KeyPair
      */
-    @SuppressLint("CommitPrefEdits")
     private void setGeneratedKeypair(KeyPair keypair) {
         if (keypair == null) return; // If the keypair is null, something went wrong. Do nothing.
         Log.d(TAG, "setGeneratedKeypair: Got keypair, saving to database");
-        if (mSecureDatabaseHandler != null) {
+        if (mDbBinder != null) {
             // Begin a database transaction
-            mSecureDatabaseHandler.beginTransaction();
+            mDbBinder.beginTransaction();
             // Prepare database entry for the private key
             ContentValues keyEntry = new ContentValues();
             // Retrieve private key
@@ -251,7 +306,7 @@ public class MainActivity extends AppCompatActivity
             // Add the actual key to the insert
             keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_BYTES, Crypto.encodeKey(priv));
             // Insert the values into the database
-            mSecureDatabaseHandler.insert(VaultContract.KeyStore.TABLE_NAME, null, keyEntry);
+            mDbBinder.insert(VaultContract.KeyStore.TABLE_NAME, null, keyEntry);
 
             // Perform the same steps for the public key (as a backup)
             keyEntry = new ContentValues();
@@ -260,10 +315,10 @@ public class MainActivity extends AppCompatActivity
             String encodedPub = Crypto.encodeKey(pub);
             keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_BYTES,encodedPub);
 
-            mSecureDatabaseHandler.insert(VaultContract.KeyStore.TABLE_NAME, null, keyEntry);
+            mDbBinder.insert(VaultContract.KeyStore.TABLE_NAME, null, keyEntry);
 
             // Finish the transaction
-            mSecureDatabaseHandler.endTransaction();
+            mDbBinder.commit();
             Log.d(TAG, "setGeneratedKeypair: Saved to database. Saving public key to SharedPreference");
 
             // Get a SharedPreferences.Editor
@@ -272,7 +327,7 @@ public class MainActivity extends AppCompatActivity
             edit.putString(getString(R.string.preferences_keystore_rsapub), encodedPub);
             // Set the sequence number to zero (used for limited freshness tests of encrypted data)
             edit.putInt(getString(R.string.preferences_keystore_seqnr), 0);
-            edit.commit();
+            edit.apply();
             Log.d(TAG, "setGeneratedKeypair: Saved into SharedPreference");
 
             if (!isPedometerServiceRunning()) {
@@ -284,30 +339,6 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
-    /**
-     * AsyncTask to open the database and get a handler
-     * TODO Port to service
-     */
-    private class DbInitTask extends AsyncTask<Context, Void, SQLiteDatabase> {
-        private final String TAG = "DbInitTask";
-
-        @Override
-        protected SQLiteDatabase doInBackground(Context... ctx) {
-            if (ctx.length == 0) return null;
-            SecureDbHelper dbh = new SecureDbHelper(ctx[0]);
-            Log.d(TAG, "doInBackground: Init DB - started");
-            SQLiteDatabase db = dbh.getWritableDatabase("VerySecureHardcodedPasswordOlolol123"); // TODO Replace with proper password prompt
-
-            // TODO Verify and fix contents of database (inconsistent session etc)
-            Log.d(TAG, "doInBackground: Init DB - done");
-            return db;
-        }
-
-        @Override
-        protected void onPostExecute(SQLiteDatabase hlp) {
-            setSecureDatabaseHandler(hlp);
-        }
-    }
 
     /**
      * AsyncTask to generate an RSA keypair in the background and save it into the database
