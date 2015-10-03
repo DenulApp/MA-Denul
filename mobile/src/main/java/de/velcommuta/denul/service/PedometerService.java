@@ -12,7 +12,6 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.IBinder;
-import android.provider.ContactsContract;
 import android.util.Log;
 
 import org.joda.time.DateTime;
@@ -128,6 +127,7 @@ public class PedometerService extends Service implements SensorEventListener, Se
     public void onDestroy() {
         mSensorManager.unregisterListener(this);
         saveState();
+        mEventBus.unregister(this);
         Log.d(TAG, "onDestroy: Shutting down");
     }
 

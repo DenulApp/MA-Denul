@@ -8,8 +8,6 @@ import android.os.Binder;
 import android.os.IBinder;
 import android.util.Log;
 
-import com.google.android.gms.games.event.EventBuffer;
-
 import net.sqlcipher.Cursor;
 import net.sqlcipher.database.SQLiteDatabase;
 import net.sqlcipher.database.SQLiteException;
