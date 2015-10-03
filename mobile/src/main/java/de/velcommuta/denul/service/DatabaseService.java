@@ -8,6 +8,7 @@ import android.os.Binder;
 import android.os.IBinder;
 import android.util.Log;
 
+import net.sqlcipher.Cursor;
 import net.sqlcipher.database.SQLiteDatabase;
 import net.sqlcipher.database.SQLiteException;
 
@@ -23,6 +24,7 @@ public class DatabaseService extends Service {
 
     // Instance variables
     private SQLiteDatabase mSQLiteHandler;
+    private MyBinder mBinder = new MyBinder();
 
 
     ///// Lifecycle Management
@@ -33,10 +35,16 @@ public class DatabaseService extends Service {
     }
 
 
+    /**
+     * OnBind. Called if the service is bound for the first time (appearently, future binds do not
+     * call this function until the last bind has been unbound)
+     * @param intent Intent the service is bound with
+     * @return A binder
+     */
     @Override
     public IBinder onBind(Intent intent) {
         Log.d(TAG, "onBind: Service is bound, returning binder");
-        return new MyBinder();
+        return mBinder;
     }
 
 
@@ -53,6 +61,32 @@ public class DatabaseService extends Service {
         Log.d(TAG, "onDestroy: Closing database");
         mSQLiteHandler.close();
         mSQLiteHandler = null;
+    }
+
+
+    /**
+     * Called when the LAST client unbound - after this call, no more clients are bound to the
+     * Service. However, it will keep running until it is explicitly stopped, as long as it was
+     * started before it was bound.
+     * @param intent The intent used to unbind from the service
+     * @return True if onRebind should be called if further binds occur after this unbind, false
+     *         otherwise.
+     */
+    @Override
+    public boolean onUnbind(Intent intent) {
+        // TODO Start timer etc
+        return true;
+    }
+
+
+    /**
+     * OnRebind is called if the service is re-bound after the last client has unbound AND onUnbind
+     * returned true, indicating that onRebind should be called on re-binds.
+     * @param intent The intent used to bind to the service
+     */
+    @Override
+    public void onRebind(Intent intent) {
+        // TODO Stop timer etc
     }
 
 
@@ -76,6 +110,12 @@ public class DatabaseService extends Service {
          */
         @Override
         public void openDatabase(String password) throws SecurityException {
+            // TODO Port to AsyncTask
+            if (mSQLiteHandler != null) {
+                Log.w(TAG, "openDatabase: Attempted to open database even though it's already open. Ignoring.");
+                return;
+            }
+            Log.d(TAG, "openDatabase: Attempting to open the database");
             SecureDbHelper dbh = new SecureDbHelper(getServiceContext());
             mSQLiteHandler = dbh.getWritableDatabase(password);
             if (mSQLiteHandler == null || !mSQLiteHandler.isOpen()) {
@@ -91,18 +131,6 @@ public class DatabaseService extends Service {
         @Override
         public boolean isDatabaseOpen() {
             return mSQLiteHandler != null && mSQLiteHandler.isOpen();
-        }
-
-
-        ///// Data retrieval from database
-        /**
-         * Retrieve the encoded private key for the pedometer service
-         * @return The encoded private key, as a String
-         */
-        @Override
-        public String getEncodedPedometerPrivkey() {
-            // TODO Stub
-            return null;
         }
 
 
@@ -162,6 +190,27 @@ public class DatabaseService extends Service {
             return mSQLiteHandler.insertOrThrow(table, nullable, values);
         }
 
+
+        ///// Arbitrary data retrieval
+        /**
+         * A query method for the database
+         * @param table The table to query
+         * @param columns The columns to return
+         * @param selection Filter to query which rows should be displayed
+         * @param selectionArgs Arguments to selection (for "?" wildcards)
+         * @param groupBy Grouping clause (excluding the GROUP BY statement)
+         * @param having Filtering clause (excluding the HAVING)
+         * @param orderBy Ordering clause (excluding the ORDER BY)
+         * @return A cursor object that allows interaction with the data
+         */
+        @Override
+        public Cursor query(String table, String[] columns, String selection, String[] selectionArgs, String groupBy, String having, String orderBy) throws SQLiteException {
+            assertOpen();
+            return mSQLiteHandler.query(table, columns, selection, selectionArgs, groupBy, having, orderBy);
+        }
+
+
+        ///// Utility functions
         /**
          * Assert that the database is open, or throw an exception
          * @throws SQLiteException Thrown if the database is not open
