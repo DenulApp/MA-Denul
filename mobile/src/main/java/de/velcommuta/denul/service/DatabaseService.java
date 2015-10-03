@@ -8,11 +8,15 @@ import android.os.Binder;
 import android.os.IBinder;
 import android.util.Log;
 
+import com.google.android.gms.games.event.EventBuffer;
+
 import net.sqlcipher.Cursor;
 import net.sqlcipher.database.SQLiteDatabase;
 import net.sqlcipher.database.SQLiteException;
 
+import de.greenrobot.event.EventBus;
 import de.velcommuta.denul.db.SecureDbHelper;
+import de.velcommuta.denul.event.DatabaseAvailabilityEvent;
 
 /**
  * Database service to hold a handle on the protected database and close it after a certain time of
@@ -60,6 +64,7 @@ public class DatabaseService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int StartId) {
         Log.d(TAG, "onStartCommand: Service started");
+        EventBus.getDefault().post(new DatabaseAvailabilityEvent(DatabaseAvailabilityEvent.STARTED));
         return START_STICKY;
     }
 
@@ -68,7 +73,10 @@ public class DatabaseService extends Service {
     public void onDestroy() {
         // Close SQLite handler
         Log.d(TAG, "onDestroy: Closing database");
-        mSQLiteHandler.close();
+        EventBus.getDefault().post(new DatabaseAvailabilityEvent(DatabaseAvailabilityEvent.STOPPED));
+        if (mSQLiteHandler != null) {
+            mSQLiteHandler.close();
+        }
         mSQLiteHandler = null;
     }
 
@@ -132,6 +140,7 @@ public class DatabaseService extends Service {
             } else {
                 Log.d(TAG, "openDatabase: Database opened");
             }
+            EventBus.getDefault().post(new DatabaseAvailabilityEvent(DatabaseAvailabilityEvent.OPENED));
         }
 
 

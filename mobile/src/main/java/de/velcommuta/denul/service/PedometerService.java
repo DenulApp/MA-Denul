@@ -1,8 +1,10 @@
 package de.velcommuta.denul.service;
 
 import android.app.Service;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.hardware.Sensor;
@@ -10,6 +12,7 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.IBinder;
+import android.provider.ContactsContract;
 import android.util.Log;
 
 import org.joda.time.DateTime;
@@ -26,17 +29,24 @@ import java.io.ObjectOutputStream;
 import java.security.PublicKey;
 import java.util.Hashtable;
 
+import de.greenrobot.event.EventBus;
 import de.velcommuta.denul.R;
+import de.velcommuta.denul.event.DatabaseAvailabilityEvent;
 import de.velcommuta.denul.util.Crypto;
+
 /**
  * Pedometer service for step counting using the built-in pedometer, if available
  */
-public class PedometerService extends Service implements SensorEventListener {
+public class PedometerService extends Service implements SensorEventListener, ServiceConnection {
     public static final String TAG = "PedometerService";
 
     private SensorManager mSensorManager;
     private PublicKey mPubkey;
     private int mSeqNr;
+    private EventBus mEventBus;
+
+    private boolean mDatabaseAvailable = false;
+    private DatabaseServiceBinder mDatabaseBinder = null;
 
     private Hashtable<DateTime, Long> mHistory;
 
@@ -59,6 +69,10 @@ public class PedometerService extends Service implements SensorEventListener {
             stopSelf();
             return Service.START_STICKY;
         }
+
+        // Register with EventBus
+        mEventBus = EventBus.getDefault();
+        mEventBus.register(this);
 
         /*
         Load the public key that is used to safely preserve service results if the database
@@ -139,6 +153,34 @@ public class PedometerService extends Service implements SensorEventListener {
     }
 
 
+    /**
+     * Callback for EventBus to deliver DatabaseAvailabilityEvents
+     * @param ev the Event
+     */
+    public void onEvent(DatabaseAvailabilityEvent ev) {
+        if (ev.getStatus() == DatabaseAvailabilityEvent.STARTED) {
+            requestDatabaseBinder();
+        } else if (ev.getStatus() == DatabaseAvailabilityEvent.OPENED) {
+            loadSavedState();
+            mDatabaseAvailable = true;
+        } else if (ev.getStatus() == DatabaseAvailabilityEvent.CLOSED) {
+            mDatabaseAvailable = false;
+        } else if (ev.getStatus() == DatabaseAvailabilityEvent.STOPPED) {
+            mDatabaseAvailable = false;
+            mDatabaseBinder = null;
+        }
+    }
+
+
+    /**
+     * Request a binder to the Database Service
+     */
+    public void requestDatabaseBinder() {
+        Intent intent = new Intent(this, DatabaseService.class);
+        bindService(intent, this, 0);
+    }
+
+
     ///// Utility functions
     /**
      * Save the state of the service into an encrypted file
@@ -170,6 +212,19 @@ public class PedometerService extends Service implements SensorEventListener {
             return;
         }
         Log.d(TAG, "saveState: Successfully wrote state to file");
+    }
+
+
+    /**
+     * Load the saved state from Disk
+     * TODO Move to AsyncTask to avoid blocking main thread
+     */
+    public void loadSavedState() {
+        if (!mDatabaseBinder.isDatabaseOpen()) {
+            Log.e(TAG, "loadSavedState: Database is NOT open, aborting");
+            return;
+        }
+        // TODO Find files, read them in, integrate them into the cache
     }
 
 
@@ -225,5 +280,18 @@ public class PedometerService extends Service implements SensorEventListener {
             Log.e(TAG, "deserializeFromByteArray: Encountered ClassNotFoundException, aborting");
             return null;
         }
+    }
+
+    @Override
+    public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+        Log.d(TAG, "onServiceConnected: Service connection received");
+        mDatabaseBinder = (DatabaseServiceBinder) iBinder;
+    }
+
+    @Override
+    public void onServiceDisconnected(ComponentName componentName) {
+        Log.w(TAG, "onServiceDisconnected: Service connection lost");
+        mDatabaseBinder = null;
+        mDatabaseAvailable = false;
     }
 }

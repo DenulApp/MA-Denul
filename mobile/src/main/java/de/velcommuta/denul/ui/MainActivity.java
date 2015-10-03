@@ -31,8 +31,10 @@ import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 
+import de.greenrobot.event.EventBus;
 import de.velcommuta.denul.R;
 import de.velcommuta.denul.db.VaultContract;
+import de.velcommuta.denul.event.DatabaseAvailabilityEvent;
 import de.velcommuta.denul.service.DatabaseService;
 import de.velcommuta.denul.service.DatabaseServiceBinder;
 import de.velcommuta.denul.service.PedometerService;
@@ -53,6 +55,7 @@ public class MainActivity extends AppCompatActivity
     public static final String TAG = "MainActivity";
 
     private DatabaseServiceBinder mDbBinder = null;
+    private EventBus mEventBus;
 
     ///// Activity lifecycle management
     @Override
@@ -70,7 +73,6 @@ public class MainActivity extends AppCompatActivity
         // Prepare DB and get handler
         // TODO If I ever add a different launch activity with a passphrase prompt, this will have to be moved
         startDatabaseService();
-        bindDbService();
 
         // Launch pedometer service if it is not running
         if (!isPedometerServiceRunning()) {
@@ -104,6 +106,21 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        Log.d(TAG, "onResume: Registering with EventBus");
+        mEventBus = EventBus.getDefault();
+        mEventBus.register(this);
+    }
+
+    public void onPause() {
+        super.onPause();
+        Log.d(TAG, "onPause: Unregistering from EventBus");
+        mEventBus.unregister(this);
+        mEventBus = null;
+    }
 
     @Override
     public void onDestroy() {
@@ -340,6 +357,21 @@ public class MainActivity extends AppCompatActivity
     }
 
 
+    ///// EventBus
+
+    /**
+     * Callback called by EventBus if there is a new DatabaseAvailabilityEvent
+     * @param ev The event
+     */
+    @SuppressWarnings("unused")
+    public void onEventMainThread(DatabaseAvailabilityEvent ev) {
+        if (ev.getStatus() == DatabaseAvailabilityEvent.STARTED) {
+            Log.d(TAG, "onEventMainThread(DatabaseAvailabilityEvent): Database service is up, requesting binding");
+            bindDbService();
+        }
+    }
+
+    ///// AsyncTasks
     /**
      * AsyncTask to generate an RSA keypair in the background and save it into the database
      */
