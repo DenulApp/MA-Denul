@@ -13,6 +13,7 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.AsyncTask;
 import android.os.IBinder;
+import android.os.SystemClock;
 import android.util.Log;
 
 import net.sqlcipher.Cursor;
@@ -22,15 +23,23 @@ import org.joda.time.DateTime;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
+import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Set;
+
+import javax.crypto.BadPaddingException;
 
 import de.greenrobot.event.EventBus;
 import de.velcommuta.denul.R;
@@ -53,6 +62,9 @@ public class PedometerService extends Service implements SensorEventListener, Se
     private DatabaseServiceBinder mDatabaseBinder = null;
 
     private Hashtable<DateTime, Long> mHistory;
+
+    private long mStartTimeWall = System.currentTimeMillis();
+    private long mStartTimeSystem = SystemClock.elapsedRealtime();
 
     ///// Service lifecycle management
     /**
@@ -206,8 +218,25 @@ public class PedometerService extends Service implements SensorEventListener, Se
             Log.e(TAG, "saveState: Something went wrong during serialization, aborting");
             return;
         }
-        // Encrypt the state
-        byte[] cipheredState = Crypto.encryptHybrid(state, mPubkey, mSeqNr);
+        // Add a bunch of timestamps to allow us to later reconstruct when reboots happened and when
+        // the service was restarted for other reasons, which will be important for cache
+        // reintegration, since the pedometer resets on reboots
+        // We are saving:
+        // - The system clock (milliseconds since reboot) and wall time (milliseconds since epoch)
+        //   at the time of the service start
+        // - The system clock and wall time at the time of the saveState()-call
+        byte[] uptime = ByteBuffer.allocate(32)
+                .putLong(mStartTimeSystem)
+                .putLong(mStartTimeWall)
+                .putLong(SystemClock.elapsedRealtime())
+                .putLong(System.currentTimeMillis())
+                .array();
+        // Combine all of them into a byte[]
+        byte[] plaintext = new byte[uptime.length + state.length];
+        System.arraycopy(uptime, 0, plaintext, 0, uptime.length);
+        System.arraycopy(state, 0, plaintext, uptime.length, state.length);
+        // Encrypt the byte[]
+        byte[] cipheredState = Crypto.encryptHybrid(plaintext, mPubkey, mSeqNr);
         if (cipheredState == null) {
             Log.e(TAG, "saveState: Something went wrong during state encryption, aborting");
             return;
@@ -231,7 +260,6 @@ public class PedometerService extends Service implements SensorEventListener, Se
 
     /**
      * Load the saved state from Disk
-     * TODO Move to AsyncTask to avoid blocking main thread
      */
     public void loadSavedState() {
         if (!mDatabaseBinder.isDatabaseOpen()) {
@@ -352,26 +380,170 @@ public class PedometerService extends Service implements SensorEventListener, Se
      * AsyncTask to load data from the encrypted cache in the background
      */
     private class CacheReintegrationTask extends AsyncTask<Void, Void, Hashtable<DateTime, Long>> {
+        private static final String TAG = "CacheReintegrationTask";
 
         @Override
         protected Hashtable<DateTime, Long> doInBackground(Void... v) {
-            PrivateKey pk = loadPrivateKey();
-            if (pk == null) {
-                Log.e(TAG, "CacheReintegrationTask:doInBackground: Private key retrieval failed, aborting");
+            Hashtable<DateTime, Long> result = mHistory;
+            // Detect if cache files exist
+            File file = new File(getFilesDir(), "pedometer.cache");
+            int i = 0;
+            if (file.exists()) {
+                // We have at least one cache file, load the private key from the database
+                PrivateKey pk = loadPrivateKey();
+                if (pk == null) {
+                    Log.e(TAG, "doInBackground: Private key retrieval failed, aborting");
+                    return null;
+                }
+                Log.d(TAG, "doInBackground: got pk");
+                // Determine which files exist
+                while (file.exists()) {
+                    i += 1;
+                    file = new File(getFilesDir(), "pedometer-" + i + ".cache");
+                }
+                Log.d(TAG, "doInBackground: Found " + i + " cache files");
+                // Get the current time (for reboot detection)
+                long currentSystemWallTime = mStartTimeWall;
+                long currentSystemUptime   = mStartTimeSystem;
+                // As the files are created in order, the oldest file is pedometer.cache, followed by pedometer-1.cache, and so on
+                // We will be working backwards in time
+                if (i > 0) {
+                    for (i -= 1; i > 0; i--) {
+                        Log.i(TAG, "doInBackground: Processing file " + i);
+                        byte[] filebytes;
+                        try {
+                            // Get file pointer
+                            file = new File(getFilesDir(), "pedometer-" + i + ".cache");
+                            RandomAccessFile fobj = new RandomAccessFile(file, "r");
+                            filebytes = new byte[(int) fobj.length()];
+                            fobj.close();
+                        } catch (FileNotFoundException e) {
+                            Log.e(TAG, "doInBackground: File not found - wtf", e);
+                            continue;
+                        } catch (IOException e) {
+                            Log.e(TAG, "doInBackground: IOException: ", e);
+                            continue;
+                        }
+
+                        // filebytes now contains the bytes saved in the file. Let's decrypt them.
+                        byte[] plaintext;
+                        try {
+                            plaintext = Crypto.decryptHybrid(filebytes, pk, -1); // TODO Implement sequence number verification
+                        } catch (BadPaddingException e) {
+                            Log.e(TAG, "doInBackground: BadPaddingException - Skipping file", e);
+                            continue;
+                        }
+                        // Check if the decryption worked - result should have at least 32 bytes due to our header
+                        if (plaintext == null || plaintext.length < 32) {
+                            Log.e(TAG, "doInBackground: Decryption failed, skipping file");
+                            continue;
+                        }
+
+                        // Load the headers
+                        ByteBuffer buf = ByteBuffer.wrap(Arrays.copyOfRange(plaintext, 0, 32));
+                        long startTimeSystem = buf.getLong();
+                        long startTimeWall   = buf.getLong();
+                        long stopTimeSystem  = buf.getLong();
+                        long stopTimeWall    = buf.getLong();
+                        // See if times check out
+                        if (!timeDifferencesSane(startTimeSystem, startTimeWall, stopTimeSystem, stopTimeWall, currentSystemUptime, currentSystemWallTime)) {
+                            Log.e(TAG, "doInBackground: Time differences are not sane, skipping file");
+                            continue;
+                        }
+
+                        // De-Serialize saved Hashtable
+                        Hashtable<DateTime, Long> oldHashtable = deserializeFromByteArray(Arrays.copyOfRange(plaintext, 32, plaintext.length));
+                        if (oldHashtable == null ) {
+                            Log.e(TAG, "doInBackground: loaded hashtable is null, skipping");
+                            currentSystemUptime = startTimeSystem;
+                            currentSystemWallTime = startTimeWall;
+                            continue;
+                        }
+
+                        // Detect if a reboot happened
+                        if (rebootHappened(stopTimeSystem, stopTimeWall, currentSystemUptime, currentSystemWallTime)) {
+                            // Take the intersection of both sets
+                            Set<DateTime> intersect = new HashSet<>(result.keySet());
+                            intersect.retainAll(oldHashtable.keySet());
+                            if (intersect.isEmpty()) {
+                                // If the intersection is empty, we can just add all elements from the old hashtable to the current one,
+                                // without fear of overwriting important data
+                                result.putAll(oldHashtable);
+                            } else {
+                                for (DateTime t : oldHashtable.keySet()) {
+                                    if (result.containsKey(t)) {
+                                        // There is already a value under this key,
+                                        // TODO
+                                    } else {
+                                        // No collision, transfer value
+                                        result.put(t, oldHashtable.get(t));
+                                    }
+                                }
+                            }
+                        } else {
+                            // TODO
+                        }
+                    }
+                }
+
+            } else {
+                Log.i(TAG, "doInBackground: No cache files found");
                 return null;
             }
-            Log.d(TAG, "CacheReintegrationTask:doInBackground: got pk");
-            // TODO implement retrieval, decoding, merge of caches
-            return null;
+            return null; // TODO remove
         }
 
         @Override
         protected void onPostExecute(Hashtable<DateTime, Long> ht) {
             if (ht == null) {
-                Log.e(TAG, "CacheReintegrationTask:onPostExecute: ht == null, aborting");
+                Log.w(TAG, "onPostExecute: ht == null, aborting");
                 return;
             }
             // TODO Implement merge into current cache and database save
+        }
+
+        /**
+         * Check if the time differences are sane
+         * @param startTimeSystem Start time of the service in the cache file, as ms since boot
+         * @param startTimeWall Start time of the service in the cache file, as ms since epoch
+         * @param stopTimeSystem Stop time of the service in the cache file, as ms since boot
+         * @param stopTimeWall Stop time of the service in the cache file, as ms since epoch
+         * @param currentSystemUptime Current system time, as ms since boot
+         * @param currentSystemWallTime Current system time, as ms since epoch
+         * @return True if the values are sane, false otherwise
+         */
+        private boolean timeDifferencesSane(long startTimeSystem, long startTimeWall,
+                                            long stopTimeSystem, long stopTimeWall,
+                                            long currentSystemUptime, long currentSystemWallTime) {
+            if (startTimeSystem > stopTimeSystem) {
+                Log.e(TAG, "timeDifferencesSane: service stopped before it was started - relative");
+                return false;
+            } else if (startTimeWall > stopTimeWall) {
+                Log.e(TAG, "timeDifferencesSane: service stopped before it was started - absolute");
+                return false;
+            } else if (stopTimeWall > currentSystemWallTime) {
+                Log.e(TAG, "timeDifferencesSane: Service stop lies in the future");
+                return false;
+            }
+            return true;
+        }
+
+
+        /**
+         * Check if a reboot lies between the provided times
+         * @param stopTimeSystem The systemtime when the service was stopped
+         * @param stopTimeWall The epoch time when the service was stopped
+         * @param currentSystemUptime The systemtime when the new service was started
+         * @param currentSystemWallTime The walltime when the new service was started
+         * @return True if a reboot lies between these times, false otherwise
+         */
+        private boolean rebootHappened(long stopTimeSystem, long stopTimeWall,
+                                       long currentSystemUptime, long currentSystemWallTime) {
+            long bootTimeOld = stopTimeWall - stopTimeSystem;
+            long bootTimeNew = currentSystemWallTime - currentSystemUptime;
+            // There may be some small time differences. If the detected boot times are more than
+            // 2 seconds apart, it's safe to say that the device was rebooted in between
+            return Math.abs(bootTimeNew -bootTimeOld) > 2000;
         }
     }
 }
