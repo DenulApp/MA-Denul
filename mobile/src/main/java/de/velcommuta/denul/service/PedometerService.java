@@ -2,6 +2,7 @@ package de.velcommuta.denul.service;
 
 import android.app.Service;
 import android.content.ComponentName;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
@@ -19,6 +20,7 @@ import android.util.Log;
 import net.sqlcipher.Cursor;
 
 import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormat;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -44,6 +46,7 @@ import javax.crypto.IllegalBlockSizeException;
 
 import de.greenrobot.event.EventBus;
 import de.velcommuta.denul.R;
+import de.velcommuta.denul.db.StepLoggingContract;
 import de.velcommuta.denul.db.VaultContract;
 import de.velcommuta.denul.event.DatabaseAvailabilityEvent;
 import de.velcommuta.denul.util.Crypto;
@@ -138,11 +141,12 @@ public class PedometerService extends Service implements SensorEventListener, Se
     @Override
     public void onDestroy() {
         mSensorManager.unregisterListener(this);
-        saveState();
         mEventBus.unregister(this);
         if (mDatabaseBinder != null) {
+            saveToDatabase();
             unbindService(this);
         }
+        saveState();
         Log.d(TAG, "onDestroy: Shutting down");
     }
 
@@ -157,7 +161,7 @@ public class PedometerService extends Service implements SensorEventListener, Se
     ///// Sensor Callbacks
     @Override
     public void onSensorChanged(SensorEvent event) {
-        DateTime timestamp = new DateTime().withMillis(0).withSecondOfMinute(0).withMinuteOfHour(0);
+        DateTime timestamp = getTimestamp();
         // We are saving step counts per hour. Thus, the exact value of the event is not interesting
         // to us. Instead, we use the fact that we will get one event per step, and can thus simply
         // increment the step counter, disregarding the actual value of the event
@@ -214,6 +218,14 @@ public class PedometerService extends Service implements SensorEventListener, Se
 
 
     ///// Utility functions
+
+    /**
+     * Get the current timestamp, in the format used in the Hashtable
+     * @return The current timestamp
+     */
+    private DateTime getTimestamp() {
+        return new DateTime().withMillis(0).withSecondOfMinute(0).withMinuteOfHour(0);
+    }
     /**
      * Save the state of the service into an encrypted file
      */
@@ -277,6 +289,67 @@ public class PedometerService extends Service implements SensorEventListener, Se
         new CacheReintegrationTask().execute();
     }
 
+
+    /**
+     * Save the current data into the database and, if successful, remove it from the memory of the
+     * service
+     */
+    private void saveToDatabase() {
+        if (mDatabaseBinder == null | !mDatabaseAvailable) {
+            Log.e(TAG, "saveToDatabase: Database unavailable");
+            return;
+        }
+        DateTime currentTimestamp = getTimestamp();
+        mDatabaseBinder.beginTransaction();
+        for (DateTime ts : mHistory.keySet()) {
+            if (ts.equals(currentTimestamp)) {
+                continue;
+            }
+            if (isInDatabase(ts)) {
+                Log.w(TAG, "saveToDatabase: Value already present, skipping");
+                continue;
+            }
+            Log.d(TAG, "saveToDatabase: Inserting value");
+            ContentValues entry = new ContentValues();
+            entry.put(StepLoggingContract.StepCountLog.COLUMN_DATE, ts.toString(DateTimeFormat.forPattern("dd/MM/yyyy")));
+            entry.put(StepLoggingContract.StepCountLog.COLUMN_TIME, ts.toString(DateTimeFormat.forPattern("HH:mm")));
+            entry.put(StepLoggingContract.StepCountLog.COLUMN_VALUE, mHistory.get(ts));
+            mDatabaseBinder.insert(StepLoggingContract.StepCountLog.TABLE_NAME, null, entry);
+        }
+        Log.d(TAG, "saveToDatabase: All values saved, committing");
+        mDatabaseBinder.commit();
+        Log.d(TAG, "saveToDatabase: Removing saved values");
+        for (DateTime ts : mHistory.keySet()) {
+            if (!ts.equals(currentTimestamp)) {
+                mHistory.remove(ts);
+            }
+        }
+
+    }
+
+
+    /**
+     * Check if a certain DateTime is already present in the database
+     * @param dt DateTime
+     * @return True if it is present, false otherwise
+     */
+    private boolean isInDatabase(DateTime dt) {
+        Cursor c = mDatabaseBinder.query(StepLoggingContract.StepCountLog.TABLE_NAME,
+                new String[]{StepLoggingContract.StepCountLog.COLUMN_VALUE},
+                StepLoggingContract.StepCountLog.COLUMN_DATE + " = '" + dt.toString(DateTimeFormat.forPattern("dd/MM/yyyy")) + "' AND " +
+                        StepLoggingContract.StepCountLog.COLUMN_TIME + " = '" + dt.toString(DateTimeFormat.forPattern("HH:mm")) + "'",
+                null,
+                null,
+                null,
+                null);
+        if (c.getCount() == 0) {
+            c.close();
+            return false;
+        } else {
+            c.close();
+            return true;
+        }
+    }
 
     /**
      * Load the public key from the shared Preferences
@@ -550,8 +623,8 @@ public class PedometerService extends Service implements SensorEventListener, Se
             }
             // Replace the cache Hashtable with our merged one
             mHistory = ht;
-            Log.d(TAG, "onPostExecute: Hashtable replaced");
-            // TODO implement database save
+            Log.d(TAG, "onPostExecute: Hashtable replaced, saving to Database");
+            saveToDatabase();
         }
 
         /**
