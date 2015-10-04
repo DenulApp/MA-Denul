@@ -78,19 +78,19 @@ public class PedometerService extends Service implements SensorEventListener, Se
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        // TODO This may be called multiple times - ensure that this would not break stuff
-        // Called when the service is started
-        // Check if a Step count sensor even exists
-        if (!(getPackageManager().hasSystemFeature(PackageManager.FEATURE_SENSOR_STEP_COUNTER))) {
-            // No step counter sensor available :(
-            Log.e(TAG, "onStartCommand: No step count sensor available, stopping service");
-            stopSelf();
-            return Service.START_STICKY;
-        }
+        if (mSensorManager == null) {
+            // Called when the service is started
+            // Check if a Step count sensor even exists
+            if (!(getPackageManager().hasSystemFeature(PackageManager.FEATURE_SENSOR_STEP_COUNTER))) {
+                // No step counter sensor available :(
+                Log.e(TAG, "onStartCommand: No step count sensor available, stopping service");
+                stopSelf();
+                return Service.START_STICKY;
+            }
 
-        // Register with EventBus
-        mEventBus = EventBus.getDefault();
-        mEventBus.register(this);
+            // Register with EventBus
+            mEventBus = EventBus.getDefault();
+            mEventBus.register(this);
 
         /*
         Load the public key that is used to safely preserve service results if the database
@@ -100,44 +100,37 @@ public class PedometerService extends Service implements SensorEventListener, Se
         The corresponding private key is saved in the SQLite vault and only available if the
         database is unlocked
         */
-        mPubkey = loadPubkey();
-        if (mPubkey == null) {
-            Log.e(TAG, "onStartCommand: Pubkey loading failed, aborting");
-            stopSelf();
-            return Service.START_STICKY;
+            mPubkey = loadPubkey();
+            if (mPubkey == null) {
+                Log.e(TAG, "onStartCommand: Pubkey loading failed, aborting");
+                stopSelf();
+                return Service.START_STICKY;
+            }
+            Log.d(TAG, "onStartCommand: Successfully loaded Pubkey");
+            // Load sequence number
+            mSeqNr = getSharedPreferences(getString(R.string.preferences_keystore), Context.MODE_PRIVATE).getInt(getString(R.string.preferences_keystore_seqnr), -1);
+            if (mSeqNr == -1) {
+                Log.e(TAG, "onStartCommand: Something went wrong while loading the sequence number. Restarting at zero"); // TODO Is this a good idea?
+                mSeqNr = 0;
+            }
+            // Increment sequence number
+            SharedPreferences.Editor edit = getSharedPreferences(getString(R.string.preferences_keystore), Context.MODE_PRIVATE).edit();
+            edit.putInt(getString(R.string.preferences_keystore_seqnr), mSeqNr + 1);
+            edit.apply();
+
+
+            // initialize data structure
+            mHistory = new Hashtable<>();
+
+            // Set up the pedometer
+            // Get Sensor Manager
+            mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+            // Get Sensor
+            Sensor stepCountSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
+            Log.d(TAG, "run: Registering with step count sensor");
+            // Register us as a listener for that sensor
+            mSensorManager.registerListener(this, stepCountSensor, SensorManager.SENSOR_DELAY_NORMAL);
         }
-        Log.d(TAG, "onStartCommand: Successfully loaded Pubkey");
-        // Load sequence number
-        mSeqNr = getSharedPreferences(getString(R.string.preferences_keystore), Context.MODE_PRIVATE).getInt(getString(R.string.preferences_keystore_seqnr), -1);
-        if (mSeqNr == -1) {
-            Log.e(TAG, "onStartCommand: Something went wrong while loading the sequence number. Restarting at zero"); // TODO Is this a good idea?
-            mSeqNr = 0;
-        }
-        // Increment sequence number
-        SharedPreferences.Editor edit = getSharedPreferences(getString(R.string.preferences_keystore), Context.MODE_PRIVATE).edit();
-        edit.putInt(getString(R.string.preferences_keystore_seqnr), mSeqNr+1);
-        edit.apply();
-
-
-        // initialize data structure
-        // TODO Implement loading if database is available
-        // TODO Deal with the situation when users reboot the device and the counter resets
-        //      within the same hour, leading to old values being overwritten
-        // TODO Deal with missing sequence number values in some way (caching seen values in the database?)
-        // if (!loadState()) {
-        //     mHistory = new Hashtable<>();
-        // }
-        mHistory = new Hashtable<>();
-
-        // Set up the pedometer
-        // Get Sensor Manager
-        mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-        // Get Sensor
-        Sensor stepCountSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
-        Log.d(TAG, "run: Registering with step count sensor");
-        // Register us as a listener for that sensor
-        mSensorManager.registerListener(this, stepCountSensor, SensorManager.SENSOR_DELAY_NORMAL);
-
         return Service.START_STICKY;
     }
 
@@ -526,10 +519,10 @@ public class PedometerService extends Service implements SensorEventListener, Se
                         // At this point, we have successfully merged the two Hashtables into one
                         // Let's continue with the next one. For that, we need to update the current timestamp
                         // to the timestamp at the beginning of the older service start
-                        // TODO Delete cache files
                         currentSystemUptime = startTimeSystem;
                         currentSystemWallTime = startTimeWall;
                     }
+                    // Delete all cache files
                     for (i=highestSeenFile; i >= 0; i--) {
                         if (i==0) {
                             File f = new File(getFilesDir(), "pedometer.cache");
@@ -585,24 +578,6 @@ public class PedometerService extends Service implements SensorEventListener, Se
                 return false;
             }
             return true;
-        }
-
-
-        /**
-         * Check if a reboot lies between the provided times
-         * @param stopTimeSystem The systemtime when the service was stopped
-         * @param stopTimeWall The epoch time when the service was stopped
-         * @param currentSystemUptime The systemtime when the new service was started
-         * @param currentSystemWallTime The walltime when the new service was started
-         * @return True if a reboot lies between these times, false otherwise
-         */
-        private boolean rebootHappened(long stopTimeSystem, long stopTimeWall,
-                                       long currentSystemUptime, long currentSystemWallTime) {
-            long bootTimeOld = stopTimeWall - stopTimeSystem;
-            long bootTimeNew = currentSystemWallTime - currentSystemUptime;
-            // There may be some small time differences. If the detected boot times are more than
-            // 2 seconds apart, it's safe to say that the device was rebooted in between
-            return Math.abs(bootTimeNew -bootTimeOld) > 2000;
         }
     }
 }

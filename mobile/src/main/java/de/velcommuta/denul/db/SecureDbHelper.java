@@ -51,6 +51,14 @@ public class SecureDbHelper extends SQLiteOpenHelper {
             VaultContract.KeyStore.COLUMN_KEY_BYTES + TYPE_TEXT + OPT_NOT_NULL +
             ");";
 
+    private static final String SQL_CREATE_ENTRIES_STEPCOUNTER
+            = "CREATE TABLE " + StepLoggingContract.StepCountLog.TABLE_NAME + "(" +
+            StepLoggingContract.StepCountLog._ID + TYPE_INT + OPT_PRIMARY_KEY + COMMA_SEP +
+            StepLoggingContract.StepCountLog.COLUMN_DATE + TYPE_DATETIME + OPT_NOT_NULL + COMMA_SEP +
+            StepLoggingContract.StepCountLog.COLUMN_TIME + TYPE_DATETIME + OPT_NOT_NULL + COMMA_SEP +
+            StepLoggingContract.StepCountLog.COLUMN_VALUE + TYPE_INT + OPT_NOT_NULL +
+            ");";
+
     private static final String SQL_DROP_LOCATIONLOG =
             "DROP TABLE " + LocationLoggingContract.LocationLog.TABLE_NAME + ";";
 
@@ -60,9 +68,12 @@ public class SecureDbHelper extends SQLiteOpenHelper {
     private static final String SQL_DROP_KEYSTORE =
             "DROP TABLE " + VaultContract.KeyStore.TABLE_NAME + ";";
 
-    public static final String DATABASE_NAME = "location.db";
+    private static final String SQL_DROP_STEPCOUNTER =
+            "DROP TABLE " + StepLoggingContract.StepCountLog.TABLE_NAME + ";";
 
-    public static final int DATABASE_VERSION = 4;
+    public static final String DATABASE_NAME = "location.db"; // TODO Update
+
+    public static final int DATABASE_VERSION = 5;
 
 
     /**
@@ -87,6 +98,7 @@ public class SecureDbHelper extends SQLiteOpenHelper {
         db.execSQL(SQL_CREATE_ENTRIES_LOCATIONSESSIONS);
         db.execSQL(SQL_CREATE_ENTRIES_LOCATIONLOG);
         db.execSQL(SQL_CREATE_ENTRIES_KEYSTORE);
+        db.execSQL(SQL_CREATE_ENTRIES_STEPCOUNTER);
     }
 
     @Override
@@ -95,6 +107,7 @@ public class SecureDbHelper extends SQLiteOpenHelper {
         db.execSQL(SQL_DROP_LOCATIONLOG);
         db.execSQL(SQL_DROP_LOCATIONSESSIONS);
         db.execSQL(SQL_DROP_KEYSTORE);
+        db.execSQL(SQL_DROP_STEPCOUNTER);
         onCreate(db);
     }
 }
