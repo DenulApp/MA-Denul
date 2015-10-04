@@ -170,7 +170,7 @@ public class PedometerService extends Service implements SensorEventListener, Se
         // increment the step counter, disregarding the actual value of the event
         Long cvalue = mHistory.get(timestamp);
         if (cvalue != null) {
-            mHistory.put(timestamp, cvalue+1);
+            mHistory.put(timestamp, cvalue + (long) 1);
         } else {
             mHistory.put(timestamp, (long) 1);
         }
@@ -500,50 +500,29 @@ public class PedometerService extends Service implements SensorEventListener, Se
                             continue;
                         }
 
-                        // Detect if a reboot happened
-                        if (rebootHappened(stopTimeSystem, stopTimeWall, currentSystemUptime, currentSystemWallTime)) {
-                            Log.d(TAG, "doInBackground: The system was rebooted between service starts");
-                            // Take the intersection of both sets
-                            Set<DateTime> intersect = new HashSet<>(result.keySet());
-                            intersect.retainAll(oldHashtable.keySet());
-                            if (intersect.isEmpty()) {
-                                // If the intersection is empty, we can just add all elements from the old hashtable to the current one,
-                                // without fear of overwriting important data
-                                result.putAll(oldHashtable);
-                            } else {
-                                for (DateTime t : oldHashtable.keySet()) {
-                                    if (result.containsKey(t)) {
-                                        // There is already a value under this key, Add the step counts
-                                        long oldval = result.get(t);
-                                        oldval += oldHashtable.get(t);
-                                        result.put(t, oldval);
-                                    } else {
-                                        // No collision, transfer value
-                                        result.put(t, oldHashtable.get(t));
-                                    }
-                                }
-                            }
+                        // Merge the two Hashtables
+                        // Take the intersection of both sets
+                        Set<DateTime> intersect = new HashSet<>(result.keySet());
+                        intersect.retainAll(oldHashtable.keySet());
+                        if (intersect.isEmpty()) {
+                            // If the intersection is empty, we can just add all elements from the old hashtable to the current one,
+                            // without fear of overwriting important data
+                            result.putAll(oldHashtable);
                         } else {
-                            Log.d(TAG, "doInBackground: The system was NOT rebooted between service starts");
-                            // There was no reboot in between these two service starts
-                            Set<DateTime> intersect = new HashSet<>(result.keySet());
-                            intersect.retainAll(oldHashtable.keySet());
-                            if (intersect.isEmpty()) {
-                                // If the intersection is empty, we can just add all elements from the old hashtable to the current one,
-                                // without fear of overwriting important data
-                                result.putAll(oldHashtable);
-                            } else {
-                                for (DateTime t : oldHashtable.keySet()) {
-                                    if (!result.containsKey(t)) {
-                                        // Result for that timeslot is not yet in the cache
-                                        result.put(t, oldHashtable.get(t));
-                                    }
-                                    // If the cache already contains a result for the timeslot, it is by definition more recent
-                                    // So, the value from the cache file can be discarded
+                            for (DateTime t : oldHashtable.keySet()) {
+                                if (result.containsKey(t)) {
+                                    // There is already a value under this key, Add the step counts
+                                    long oldval = result.get(t);
+                                    oldval += oldHashtable.get(t);
+                                    result.put(t, oldval);
+                                } else {
+                                    // No collision, transfer value
+                                    result.put(t, oldHashtable.get(t));
                                 }
                             }
                         }
                         Log.i(TAG, "doInBackground: merge complete");
+
                         // At this point, we have successfully merged the two Hashtables into one
                         // Let's continue with the next one. For that, we need to update the current timestamp
                         // to the timestamp at the beginning of the older service start
