@@ -40,6 +40,7 @@ import java.util.Hashtable;
 import java.util.Set;
 
 import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
 
 import de.greenrobot.event.EventBus;
 import de.velcommuta.denul.R;
@@ -62,6 +63,7 @@ public class PedometerService extends Service implements SensorEventListener, Se
     private DatabaseServiceBinder mDatabaseBinder = null;
 
     private Hashtable<DateTime, Long> mHistory;
+    // TODO Think about replacing this with a Hashtable<DateTime, Int>
 
     private long mStartTimeWall = System.currentTimeMillis();
     private long mStartTimeSystem = SystemClock.elapsedRealtime();
@@ -145,6 +147,9 @@ public class PedometerService extends Service implements SensorEventListener, Se
         mSensorManager.unregisterListener(this);
         saveState();
         mEventBus.unregister(this);
+        if (mDatabaseBinder != null) {
+            unbindService(this);
+        }
         Log.d(TAG, "onDestroy: Shutting down");
     }
 
@@ -160,7 +165,15 @@ public class PedometerService extends Service implements SensorEventListener, Se
     @Override
     public void onSensorChanged(SensorEvent event) {
         DateTime timestamp = new DateTime().withMillis(0).withSecondOfMinute(0).withMinuteOfHour(0);
-        mHistory.put(timestamp, (long) event.values[0]);
+        // We are saving step counts per hour. Thus, the exact value of the event is not interesting
+        // to us. Instead, we use the fact that we will get one event per step, and can thus simply
+        // increment the step counter, disregarding the actual value of the event
+        Long cvalue = mHistory.get(timestamp);
+        if (cvalue != null) {
+            mHistory.put(timestamp, cvalue+1);
+        } else {
+            mHistory.put(timestamp, (long) 1);
+        }
     }
 
 
@@ -248,8 +261,10 @@ public class PedometerService extends Service implements SensorEventListener, Se
             i += 1;
             file = new File(getFilesDir(), "pedometer-" + i + ".cache");
         }
-        try (FileOutputStream fos = new FileOutputStream(file)) {
+        try {
+            FileOutputStream fos = new FileOutputStream(file);
             fos.write(cipheredState);
+            fos.close();
         } catch (IOException e) {
             Log.e(TAG, "saveState: Encountered IOException during write, aborting.", e);
             return;
@@ -313,7 +328,22 @@ public class PedometerService extends Service implements SensorEventListener, Se
         // Close the cursor
         c.close();
         // Decode and return the PrivateKey
-        return Crypto.decodePrivateKey(encoded);
+        PrivateKey pk = Crypto.decodePrivateKey(encoded);
+        try {
+            if (!Arrays.equals(Crypto.decryptRSA(Crypto.encryptRSA(new byte[] {0x00}, mPubkey), pk), new byte[] {0x00})) {
+                Log.e(TAG, "loadPrivateKey: Verification failed");
+                return null;
+            } else {
+                Log.d(TAG, "loadPrivateKey: Verification successful");
+                return pk;
+            }
+        } catch (IllegalBlockSizeException e) {
+            Log.e(TAG, "loadPrivateKey: IllegalBlockSizeException while verifying keypair", e);
+            return null;
+        } catch (BadPaddingException e) {
+            Log.e(TAG, "loadPrivateKey: BadPaddingException while verifying keypair", e);
+            return null;
+        }
     }
 
 
@@ -342,6 +372,7 @@ public class PedometerService extends Service implements SensorEventListener, Se
      * @param serialized The serialized object as a byte[]
      * @return The deserialized Hashtable<DateTime, Long>, or null if an error occured
      */
+    @SuppressWarnings("unchecked")
     private Hashtable<DateTime, Long> deserializeFromByteArray(byte[] serialized) {
         // Set up deserialization chain
         try (ByteArrayInputStream bis = new ByteArrayInputStream(serialized);
@@ -384,7 +415,10 @@ public class PedometerService extends Service implements SensorEventListener, Se
 
         @Override
         protected Hashtable<DateTime, Long> doInBackground(Void... v) {
-            Hashtable<DateTime, Long> result = mHistory;
+            // Create a copy of the current hashtable to perform work on
+            Hashtable<DateTime, Long> result = new Hashtable<>(mHistory);
+            // Create variable to save number of files into
+            int highestSeenFile;
             // Detect if cache files exist
             File file = new File(getFilesDir(), "pedometer.cache");
             int i = 0;
@@ -402,20 +436,26 @@ public class PedometerService extends Service implements SensorEventListener, Se
                     file = new File(getFilesDir(), "pedometer-" + i + ".cache");
                 }
                 Log.d(TAG, "doInBackground: Found " + i + " cache files");
+                highestSeenFile = i-1;
                 // Get the current time (for reboot detection)
                 long currentSystemWallTime = mStartTimeWall;
                 long currentSystemUptime   = mStartTimeSystem;
                 // As the files are created in order, the oldest file is pedometer.cache, followed by pedometer-1.cache, and so on
                 // We will be working backwards in time
                 if (i > 0) {
-                    for (i -= 1; i > 0; i--) {
+                    for (i -= 1; i >= 0; i--) {
                         Log.i(TAG, "doInBackground: Processing file " + i);
                         byte[] filebytes;
                         try {
                             // Get file pointer
-                            file = new File(getFilesDir(), "pedometer-" + i + ".cache");
+                            if (i > 0) {
+                                file = new File(getFilesDir(), "pedometer-" + i + ".cache");
+                            } else {
+                                file = new File(getFilesDir(), "pedometer.cache");
+                            }
                             RandomAccessFile fobj = new RandomAccessFile(file, "r");
                             filebytes = new byte[(int) fobj.length()];
+                            fobj.read(filebytes);
                             fobj.close();
                         } catch (FileNotFoundException e) {
                             Log.e(TAG, "doInBackground: File not found - wtf", e);
@@ -462,6 +502,7 @@ public class PedometerService extends Service implements SensorEventListener, Se
 
                         // Detect if a reboot happened
                         if (rebootHappened(stopTimeSystem, stopTimeWall, currentSystemUptime, currentSystemWallTime)) {
+                            Log.d(TAG, "doInBackground: The system was rebooted between service starts");
                             // Take the intersection of both sets
                             Set<DateTime> intersect = new HashSet<>(result.keySet());
                             intersect.retainAll(oldHashtable.keySet());
@@ -472,8 +513,10 @@ public class PedometerService extends Service implements SensorEventListener, Se
                             } else {
                                 for (DateTime t : oldHashtable.keySet()) {
                                     if (result.containsKey(t)) {
-                                        // There is already a value under this key,
-                                        // TODO
+                                        // There is already a value under this key, Add the step counts
+                                        long oldval = result.get(t);
+                                        oldval += oldHashtable.get(t);
+                                        result.put(t, oldval);
                                     } else {
                                         // No collision, transfer value
                                         result.put(t, oldHashtable.get(t));
@@ -481,16 +524,50 @@ public class PedometerService extends Service implements SensorEventListener, Se
                                 }
                             }
                         } else {
-                            // TODO
+                            Log.d(TAG, "doInBackground: The system was NOT rebooted between service starts");
+                            // There was no reboot in between these two service starts
+                            Set<DateTime> intersect = new HashSet<>(result.keySet());
+                            intersect.retainAll(oldHashtable.keySet());
+                            if (intersect.isEmpty()) {
+                                // If the intersection is empty, we can just add all elements from the old hashtable to the current one,
+                                // without fear of overwriting important data
+                                result.putAll(oldHashtable);
+                            } else {
+                                for (DateTime t : oldHashtable.keySet()) {
+                                    if (!result.containsKey(t)) {
+                                        // Result for that timeslot is not yet in the cache
+                                        result.put(t, oldHashtable.get(t));
+                                    }
+                                    // If the cache already contains a result for the timeslot, it is by definition more recent
+                                    // So, the value from the cache file can be discarded
+                                }
+                            }
+                        }
+                        Log.i(TAG, "doInBackground: merge complete");
+                        // At this point, we have successfully merged the two Hashtables into one
+                        // Let's continue with the next one. For that, we need to update the current timestamp
+                        // to the timestamp at the beginning of the older service start
+                        // TODO Delete cache files
+                        currentSystemUptime = startTimeSystem;
+                        currentSystemWallTime = startTimeWall;
+                    }
+                    for (i=highestSeenFile; i >= 0; i--) {
+                        if (i==0) {
+                            File f = new File(getFilesDir(), "pedometer.cache");
+                            Crypto.secureDelete(f);
+                        } else {
+                            File f = new File(getFilesDir(), "pedometer-" + i + ".cache");
+                            Crypto.secureDelete(f);
                         }
                     }
                 }
-
             } else {
+                // If this statement is reached, no cache files have been detected. Return null
                 Log.i(TAG, "doInBackground: No cache files found");
                 return null;
             }
-            return null; // TODO remove
+            Log.i(TAG, "doInBackground: Finished, returning result");
+            return result;
         }
 
         @Override
@@ -499,7 +576,10 @@ public class PedometerService extends Service implements SensorEventListener, Se
                 Log.w(TAG, "onPostExecute: ht == null, aborting");
                 return;
             }
-            // TODO Implement merge into current cache and database save
+            // Replace the cache Hashtable with our merged one
+            mHistory = ht;
+            Log.d(TAG, "onPostExecute: Hashtable replaced");
+            // TODO implement database save
         }
 
         /**

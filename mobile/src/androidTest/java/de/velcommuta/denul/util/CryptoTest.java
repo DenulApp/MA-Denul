@@ -292,9 +292,9 @@ public class CryptoTest extends TestCase {
     }
 
     /**
-     * Test if asym. encryption produces an error if the header version field was modified
+     * Test if hybrid encryption produces an error if the header version field was modified
      */
-    public void testAsymEncryptionDecryptionFailOnModifiedVersionField() {
+    public void testHybridEncryptionDecryptionFailOnModifiedVersionField() {
         KeyPair pair = Crypto.generateRSAKeypair(1024);
         PublicKey pkey = pair.getPublic();
         PrivateKey privkey = pair.getPrivate();
@@ -315,9 +315,9 @@ public class CryptoTest extends TestCase {
 
 
     /**
-     * Test if asym. encryption produces an error if the header algorithm field was modified
+     * Test if hybrid encryption produces an error if the header algorithm field was modified
      */
-    public void testAsymEncryptionDecryptionFailOnModifiedAlgorithmField() {
+    public void testHybridEncryptionDecryptionFailOnModifiedAlgorithmField() {
         KeyPair pair = Crypto.generateRSAKeypair(1024);
         PublicKey pkey = pair.getPublic();
         PrivateKey privkey = pair.getPrivate();
@@ -338,9 +338,9 @@ public class CryptoTest extends TestCase {
 
 
     /**
-     * Test if asym. encryption produces an error if the header length field was modified to a much too large value
+     * Test if hybrid encryption produces an error if the header length field was modified to a much too large value
      */
-    public void testAsymEncryptionDecryptionFailOnModifiedLengthFieldTooLong() {
+    public void testHybridEncryptionDecryptionFailOnModifiedLengthFieldTooLong() {
         KeyPair pair = Crypto.generateRSAKeypair(1024);
         PublicKey pkey = pair.getPublic();
         PrivateKey privkey = pair.getPrivate();
@@ -361,9 +361,9 @@ public class CryptoTest extends TestCase {
 
 
     /**
-     * Test if asym. encryption produces an error if the header length field was modified to plausible but incorrect value
+     * Test if hybrid encryption produces an error if the header length field was modified to plausible but incorrect value
      */
-    public void testAsymEncryptionDecryptionFailOnModifiedLengthFieldPlausible() {
+    public void testHybridEncryptionDecryptionFailOnModifiedLengthFieldPlausible() {
         KeyPair pair = Crypto.generateRSAKeypair(1024);
         PublicKey pkey = pair.getPublic();
         PrivateKey privkey = pair.getPrivate();
@@ -383,9 +383,9 @@ public class CryptoTest extends TestCase {
     }
 
     /**
-     * Test if asym. encryption produces an error if the sequence number field was modified
+     * Test if hybrid encryption produces an error if the sequence number field was modified
      */
-    public void testAsymEncryptionDecryptionFailOnModifiedSequenceNumber() {
+    public void testHybridEncryptionDecryptionFailOnModifiedSequenceNumber() {
         KeyPair pair = Crypto.generateRSAKeypair(1024);
         PublicKey pkey = pair.getPublic();
         PrivateKey privkey = pair.getPrivate();
@@ -405,9 +405,9 @@ public class CryptoTest extends TestCase {
     }
 
     /**
-     * Test if asym. encryption produces an error if the wrong sequence number was expected
+     * Test if hybrid encryption produces an error if the wrong sequence number was expected
      */
-    public void testAsymEncryptionDecryptionFailOnWrongExpectedSequenceNumber() {
+    public void testHybridEncryptionDecryptionFailOnWrongExpectedSequenceNumber() {
         KeyPair pair = Crypto.generateRSAKeypair(1024);
         PublicKey pkey = pair.getPublic();
         PrivateKey privkey = pair.getPrivate();
@@ -426,9 +426,9 @@ public class CryptoTest extends TestCase {
     }
 
     /**
-     * Test if asym. encryption produces an error if the seqNr is modified and the modified value is expected
+     * Test if hybrid encryption produces an error if the seqNr is modified and the modified value is expected
      */
-    public void testAsymEncryptionDecryptionFailOnWrongExpectedModifiedSequenceNumber() {
+    public void testHybridEncryptionDecryptionFailOnWrongExpectedModifiedSequenceNumber() {
         KeyPair pair = Crypto.generateRSAKeypair(1024);
         PublicKey pkey = pair.getPublic();
         PrivateKey privkey = pair.getPrivate();
@@ -440,6 +440,29 @@ public class CryptoTest extends TestCase {
         byte[] decrypted = null;
         try {
             decrypted = Crypto.decryptHybrid(encrypted, privkey, 1);
+            assertFalse("No exception thrown", true);
+        } catch (BadPaddingException e) {
+            assertTrue("Decryption did not throw exception", true);
+        }
+        assertNull("Decryption did not result in null", decrypted);
+    }
+
+
+    /**
+     * Test if hybrid encryption produces an error if the seqNr is modified and the modified value is expected
+     */
+    public void testHybridEncryptionDecryptionSuccessOnNonVerifiedSequenceNumber() {
+        KeyPair pair = Crypto.generateRSAKeypair(1024);
+        PublicKey pkey = pair.getPublic();
+        PrivateKey privkey = pair.getPrivate();
+        byte[] message = new byte[512];
+        new Random().nextBytes(message);
+        byte[] encrypted = Crypto.encryptHybrid(message, pkey, 1337);
+        encrypted[5] = 0x01;
+        assertNotNull("Hybrid encryption failed", encrypted);
+        byte[] decrypted = null;
+        try {
+            decrypted = Crypto.decryptHybrid(encrypted, privkey, -1);
             assertFalse("No exception thrown", true);
         } catch (BadPaddingException e) {
             assertTrue("Decryption did not throw exception", true);
