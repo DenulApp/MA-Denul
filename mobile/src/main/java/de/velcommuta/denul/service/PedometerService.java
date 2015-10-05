@@ -29,7 +29,6 @@ import org.joda.time.format.DateTimeFormat;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -54,7 +53,9 @@ import de.velcommuta.denul.R;
 import de.velcommuta.denul.db.StepLoggingContract;
 import de.velcommuta.denul.db.VaultContract;
 import de.velcommuta.denul.event.DatabaseAvailabilityEvent;
-import de.velcommuta.denul.util.Crypto;
+import de.velcommuta.denul.crypto.FileOperation;
+import de.velcommuta.denul.crypto.Hybrid;
+import de.velcommuta.denul.crypto.RSA;
 
 /**
  * Pedometer service for step counting using the built-in pedometer, if available
@@ -303,7 +304,7 @@ public class PedometerService extends Service implements SensorEventListener, Se
         System.arraycopy(uptime, 0, plaintext, 0, uptime.length);
         System.arraycopy(state, 0, plaintext, uptime.length, state.length);
         // Encrypt the byte[]
-        byte[] cipheredState = Crypto.encryptHybrid(plaintext, mPubkey, mSeqNr);
+        byte[] cipheredState = Hybrid.encryptHybrid(plaintext, mPubkey, mSeqNr);
         if (cipheredState == null) {
             Log.e(TAG, "saveState: Something went wrong during state encryption, aborting");
             return;
@@ -312,10 +313,10 @@ public class PedometerService extends Service implements SensorEventListener, Se
         // Write to file, taking care not to overwrite existing state
         // Detect first file name that is not already taken
         int i = 0;
-        File file = new File(getFilesDir(), "pedometer.cache");
+        java.io.File file = new java.io.File(getFilesDir(), "pedometer.cache");
         while (file.exists()) {
             i += 1;
-            file = new File(getFilesDir(), "pedometer-" + i + ".cache");
+            file = new java.io.File(getFilesDir(), "pedometer-" + i + ".cache");
         }
         // Write to file
         try {
@@ -447,7 +448,7 @@ public class PedometerService extends Service implements SensorEventListener, Se
         // Check if we actually got a pubkey
         if (pubkey == null) return null;
         // Decode the encoded pubkey into an actual pubkey object
-        return Crypto.decodePublicKey(pubkey);
+        return RSA.decodePublicKey(pubkey);
     }
 
 
@@ -480,9 +481,9 @@ public class PedometerService extends Service implements SensorEventListener, Se
         // Close the cursor
         c.close();
         // Decode and return the PrivateKey
-        PrivateKey pk = Crypto.decodePrivateKey(encoded);
+        PrivateKey pk = RSA.decodePrivateKey(encoded);
         try {
-            if (!Arrays.equals(Crypto.decryptRSA(Crypto.encryptRSA(new byte[] {0x00}, mPubkey), pk), new byte[] {0x00})) {
+            if (!Arrays.equals(RSA.decryptRSA(RSA.encryptRSA(new byte[]{0x00}, mPubkey), pk), new byte[] {0x00})) {
                 Log.e(TAG, "loadPrivateKey: Verification failed");
                 return null;
             } else {
@@ -554,7 +555,7 @@ public class PedometerService extends Service implements SensorEventListener, Se
             // Create variable to save number of files into
             int highestSeenFile;
             // Detect if cache files exist
-            File file = new File(getFilesDir(), "pedometer.cache");
+            java.io.File file = new java.io.File(getFilesDir(), "pedometer.cache");
             int i = 0;
             if (file.exists()) {
                 // We have at least one cache file, load the private key from the database
@@ -567,7 +568,7 @@ public class PedometerService extends Service implements SensorEventListener, Se
                 // Determine which files exist
                 while (file.exists()) {
                     i += 1;
-                    file = new File(getFilesDir(), "pedometer-" + i + ".cache");
+                    file = new java.io.File(getFilesDir(), "pedometer-" + i + ".cache");
                 }
                 Log.d(TAG, "doInBackground: Found " + i + " cache files");
                 highestSeenFile = i-1;
@@ -583,9 +584,9 @@ public class PedometerService extends Service implements SensorEventListener, Se
                         try {
                             // Get file pointer
                             if (i > 0) {
-                                file = new File(getFilesDir(), "pedometer-" + i + ".cache");
+                                file = new java.io.File(getFilesDir(), "pedometer-" + i + ".cache");
                             } else {
-                                file = new File(getFilesDir(), "pedometer.cache");
+                                file = new java.io.File(getFilesDir(), "pedometer.cache");
                             }
                             RandomAccessFile fobj = new RandomAccessFile(file, "r");
                             filebytes = new byte[(int) fobj.length()];
@@ -602,7 +603,7 @@ public class PedometerService extends Service implements SensorEventListener, Se
                         // filebytes now contains the bytes saved in the file. Let's decrypt them.
                         byte[] plaintext;
                         try {
-                            plaintext = Crypto.decryptHybrid(filebytes, pk, -1); // TODO Implement sequence number verification
+                            plaintext = Hybrid.decryptHybrid(filebytes, pk, -1); // TODO Implement sequence number verification
                         } catch (BadPaddingException e) {
                             Log.e(TAG, "doInBackground: BadPaddingException - Skipping file", e);
                             continue;
@@ -666,11 +667,11 @@ public class PedometerService extends Service implements SensorEventListener, Se
                     // Delete all cache files
                     for (i=highestSeenFile; i >= 0; i--) {
                         if (i==0) {
-                            File f = new File(getFilesDir(), "pedometer.cache");
-                            Crypto.secureDelete(f);
+                            java.io.File f = new java.io.File(getFilesDir(), "pedometer.cache");
+                            FileOperation.secureDelete(f);
                         } else {
-                            File f = new File(getFilesDir(), "pedometer-" + i + ".cache");
-                            Crypto.secureDelete(f);
+                            java.io.File f = new java.io.File(getFilesDir(), "pedometer-" + i + ".cache");
+                            FileOperation.secureDelete(f);
                         }
                     }
                 }

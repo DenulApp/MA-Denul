@@ -1,7 +1,5 @@
 package de.velcommuta.denul.ui;
 
-import android.app.Activity;
-import android.app.ActivityManager;
 import android.app.Fragment;
 import android.app.FragmentManager;
 import android.content.ComponentName;
@@ -38,7 +36,7 @@ import de.velcommuta.denul.event.DatabaseAvailabilityEvent;
 import de.velcommuta.denul.service.DatabaseService;
 import de.velcommuta.denul.service.DatabaseServiceBinder;
 import de.velcommuta.denul.service.PedometerService;
-import de.velcommuta.denul.util.Crypto;
+import de.velcommuta.denul.crypto.RSA;
 
 /**
  * Main Activity - Launched on startup of the application
@@ -316,7 +314,7 @@ public class MainActivity extends AppCompatActivity
             // Set the key descriptor to Pedometer key
             keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_NAME, VaultContract.KeyStore.NAME_PEDOMETER_PRIVATE);
             // Add the actual key to the insert
-            keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_BYTES, Crypto.encodeKey(priv));
+            keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_BYTES, RSA.encodeKey(priv));
             // Insert the values into the database
             mDbBinder.insert(VaultContract.KeyStore.TABLE_NAME, null, keyEntry);
 
@@ -325,7 +323,7 @@ public class MainActivity extends AppCompatActivity
             PublicKey pub = keypair.getPublic();
             keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_TYPE, VaultContract.KeyStore.TYPE_RSA_PUB);
             keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_NAME, VaultContract.KeyStore.NAME_PEDOMETER_PUBLIC);
-            String encodedPub = Crypto.encodeKey(pub);
+            String encodedPub = RSA.encodeKey(pub);
             keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_BYTES,encodedPub);
 
             mDbBinder.insert(VaultContract.KeyStore.TABLE_NAME, null, keyEntry);
@@ -378,7 +376,7 @@ public class MainActivity extends AppCompatActivity
         @Override
         protected KeyPair doInBackground(Void... v) {
             Log.d(TAG, "doInBackground: Beginning Keypair generation");
-            return Crypto.generateRSAKeypair(KEYSIZE);
+            return RSA.generateRSAKeypair(KEYSIZE);
         }
 
         @Override
