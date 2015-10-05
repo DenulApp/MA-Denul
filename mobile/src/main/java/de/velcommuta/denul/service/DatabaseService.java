@@ -72,7 +72,6 @@ public class DatabaseService extends Service {
      */
     @Override
     public int onStartCommand(Intent intent, int flags, int StartId) {
-        Log.d(TAG, "onStartCommand: Called");
         if (intent.getBooleanExtra("shutdown", false)) {
             Log.d(TAG, "onStartCommand: Received shutdown intent");
             stopSelf();
