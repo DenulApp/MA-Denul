@@ -72,7 +72,7 @@ public class DatabaseService extends Service {
      */
     @Override
     public int onStartCommand(Intent intent, int flags, int StartId) {
-        if (intent.getBooleanExtra("shutdown", false)) {
+        if (intent != null && intent.getBooleanExtra("shutdown", false)) {
             Log.d(TAG, "onStartCommand: Received shutdown intent");
             stopSelf();
             return START_NOT_STICKY;
@@ -80,7 +80,7 @@ public class DatabaseService extends Service {
         Log.d(TAG, "onStartCommand: Service started");
         EventBus.getDefault().postSticky(new DatabaseAvailabilityEvent(DatabaseAvailabilityEvent.STARTED));
 
-        return START_STICKY;
+        return START_NOT_STICKY;
     }
 
 
