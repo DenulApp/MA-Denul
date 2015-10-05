@@ -1,10 +1,12 @@
 package de.velcommuta.denul.service;
 
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -62,6 +64,7 @@ public class PedometerService extends Service implements SensorEventListener, Se
     private PublicKey mPubkey;
     private int mSeqNr;
     private EventBus mEventBus;
+    private ShutdownReceiver mShutdownReceiver;
 
     private boolean mDatabaseAvailable = false;
     private DatabaseServiceBinder mDatabaseBinder = null;
@@ -96,14 +99,19 @@ public class PedometerService extends Service implements SensorEventListener, Se
             mEventBus = EventBus.getDefault();
             mEventBus.register(this);
 
-        /*
-        Load the public key that is used to safely preserve service results if the database
-        is not open. This could happen, for example, if the device shuts down: The database will
-        be locked, but data will be lost unless it is preserved on disk. But since we don't want
-        unencrypted data lying around, we have to encrypt it in some way.
-        The corresponding private key is saved in the SQLite vault and only available if the
-        database is unlocked
-        */
+            // Register shutdown receiver
+            IntentFilter shutdownFilter = new IntentFilter(Intent.ACTION_SHUTDOWN);
+            mShutdownReceiver = new ShutdownReceiver();
+            registerReceiver(mShutdownReceiver, shutdownFilter);
+
+            /*
+            Load the public key that is used to safely preserve service results if the database
+            is not open. This could happen, for example, if the device shuts down: The database will
+            be locked, but data will be lost unless it is preserved on disk. But since we don't want
+            unencrypted data lying around, we have to encrypt it in some way.
+            The corresponding private key is saved in the SQLite vault and only available if the
+            database is unlocked
+            */
             mPubkey = loadPubkey();
             if (mPubkey == null) {
                 Log.e(TAG, "onStartCommand: Pubkey loading failed, aborting");
@@ -148,6 +156,7 @@ public class PedometerService extends Service implements SensorEventListener, Se
             unbindService(this);
         }
         saveState();
+        unregisterReceiver(mShutdownReceiver);
         Log.d(TAG, "onDestroy: Shutting down");
     }
 
@@ -682,6 +691,19 @@ public class PedometerService extends Service implements SensorEventListener, Se
                 return false;
             }
             return true;
+        }
+    }
+
+
+    public class ShutdownReceiver extends BroadcastReceiver {
+        private final String TAG = "PedometerService:ShutdownReceiver";
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent.getAction().equals(Intent.ACTION_SHUTDOWN)) {
+                Log.i(TAG, "onReceive: Got shutdown broadcast, stopping service");
+                stopSelf();
+            }
         }
     }
 }
