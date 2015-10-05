@@ -56,6 +56,8 @@ import de.velcommuta.denul.event.DatabaseAvailabilityEvent;
 import de.velcommuta.denul.crypto.FileOperation;
 import de.velcommuta.denul.crypto.Hybrid;
 import de.velcommuta.denul.crypto.RSA;
+import de.velcommuta.denul.event.ServiceReplyEvent;
+import de.velcommuta.denul.event.ServiceRequestEvent;
 
 /**
  * Pedometer service for step counting using the built-in pedometer, if available
@@ -223,6 +225,27 @@ public class PedometerService extends Service implements SensorEventListener, Se
 
 
     /**
+     * Callback for EventBus to deliver DatabaseAvailabilityEvents
+     * @param ev the Event
+     */
+    @SuppressWarnings("unused")
+    public void onEvent(ServiceRequestEvent ev) {
+        if (ev.getService() != ServiceRequestEvent.SERVICE_PEDOMETER) {
+            return;
+        }
+        if (ev.getRequest() == ServiceRequestEvent.REQUEST_STATUS) {
+            mEventBus.post(new ServiceReplyEvent(ServiceReplyEvent.SERVICE_PEDOMETER, ServiceReplyEvent.REPLY_STATUS_ONLINE));
+        } else if (ev.getRequest() == ServiceRequestEvent.REQUEST_UPDATE) {
+            if (DatabaseService.isRunning(this)) {
+                requestDatabaseBinder();
+            } else {
+                mEventBus.post(new ServiceReplyEvent(ServiceReplyEvent.SERVICE_PEDOMETER, ServiceReplyEvent.REPLY_UPDATE_FAILED));
+            }
+        }
+    }
+
+
+    /**
      * Request a binder to the Database Service
      */
     private void requestDatabaseBinder() {
@@ -268,7 +291,6 @@ public class PedometerService extends Service implements SensorEventListener, Se
 
 
     ///// Utility functions
-
     /**
      * Get the current timestamp, in the format used in the Hashtable
      * @return The current timestamp
@@ -392,6 +414,7 @@ public class PedometerService extends Service implements SensorEventListener, Se
 
         // Unbind from database
         unbindFromDatabase();
+        mEventBus.post(new ServiceReplyEvent(ServiceReplyEvent.SERVICE_PEDOMETER, ServiceReplyEvent.REPLY_UPDATE_COMPLETE));
     }
 
 

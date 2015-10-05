@@ -45,7 +45,7 @@
         <fragment
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:name="de.velcommuta.denul.ui.StepCountFragment"
+            android:name="de.velcommuta.denul.ui.HeartRateFragment"
             android:id="@+id/fragment2"
             tools:layout="@layout/fragment_step_count"
             android:layout_weight="1"

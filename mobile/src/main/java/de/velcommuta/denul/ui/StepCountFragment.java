@@ -23,6 +23,8 @@ import de.greenrobot.event.EventBus;
 import de.velcommuta.denul.R;
 import de.velcommuta.denul.db.StepLoggingContract;
 import de.velcommuta.denul.event.DatabaseAvailabilityEvent;
+import de.velcommuta.denul.event.ServiceReplyEvent;
+import de.velcommuta.denul.event.ServiceRequestEvent;
 import de.velcommuta.denul.service.DatabaseService;
 import de.velcommuta.denul.service.DatabaseServiceBinder;
 
@@ -86,10 +88,10 @@ public class StepCountFragment extends Fragment implements ServiceConnection {
     @Override
     public void onResume() {
         super.onResume();
+        bindDbService();
+        Log.d(TAG, "onResume: Registering with EventBus");
         mEventBus.register(this);
-        if (mBinder != null) {
-            getStepCountToday();
-        }
+        mEventBus.post(new ServiceRequestEvent(ServiceRequestEvent.SERVICE_PEDOMETER, ServiceRequestEvent.REQUEST_UPDATE));
     }
 
 
@@ -152,7 +154,6 @@ public class StepCountFragment extends Fragment implements ServiceConnection {
             }
         }
         c.close();
-        total += 15000;
         mProgressBar.setProgress(total);
         mStepCountDisplay.setText("" + total);
     }
@@ -203,19 +204,39 @@ public class StepCountFragment extends Fragment implements ServiceConnection {
      */
     public void onEvent(DatabaseAvailabilityEvent ev) {
         if (ev.getStatus() == DatabaseAvailabilityEvent.STARTED) {
-            Log.d(TAG, "onEvent: Service STARTED, binding");
+            Log.d(TAG, "onEvent(DatabaseAvailabilityEvent): Service STARTED, binding");
             bindDbService();
         } else if (ev.getStatus() == DatabaseAvailabilityEvent.OPENED) {
-            Log.d(TAG, "onEvent: Database OPENED");
+            Log.d(TAG, "onEvent(DatabaseAvailabilityEvent): Database OPENED");
             if (mBinder != null) {
                 getStepCountToday();
             }
         } else if (ev.getStatus() == DatabaseAvailabilityEvent.CLOSED) {
-            Log.d(TAG, "onEvent: Database CLOSED");
+            Log.d(TAG, "onEvent(DatabaseAvailabilityEvent): Database CLOSED");
         } else if (ev.getStatus() == DatabaseAvailabilityEvent.STOPPED) {
             getActivity().unbindService(this);
-            Log.d(TAG, "onEvent: Database STOPPED");
+            Log.d(TAG, "onEvent(DatabaseAvailabilityEvent): Database STOPPED");
             mBinder = null;
+        }
+    }
+
+
+    /**
+     * EventHandler for EventBus ServiceReplyEvents
+     * @param ev The event
+     */
+    @SuppressWarnings("unused")
+    public void onEvent(ServiceReplyEvent ev) {
+        if (ev.getService() != ServiceReplyEvent.SERVICE_PEDOMETER) {
+            return;
+        }
+        if (ev.getReply() == ServiceReplyEvent.REPLY_UPDATE_COMPLETE) {
+            if (isDbConnected()) {
+                Log.d(TAG, "onEvent(ServiceReplyEvent): Grabbing the database updates");
+                getStepCountToday();
+            } else {
+                Log.w(TAG, "onEvent(ServiceReplyEvent): Database was updated, but we have no binder :(");
+            }
         }
     }
 }
