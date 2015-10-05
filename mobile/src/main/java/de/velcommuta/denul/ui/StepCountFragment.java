@@ -1,111 +1,221 @@
 package de.velcommuta.denul.ui;
 
-import android.app.Activity;
-import android.net.Uri;
+import android.content.ComponentName;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.app.Fragment;
+import android.os.IBinder;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 
+import net.sqlcipher.Cursor;
+
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+import org.joda.time.format.DateTimeFormat;
+
+import de.greenrobot.event.EventBus;
 import de.velcommuta.denul.R;
+import de.velcommuta.denul.db.StepLoggingContract;
+import de.velcommuta.denul.event.DatabaseAvailabilityEvent;
+import de.velcommuta.denul.service.DatabaseService;
+import de.velcommuta.denul.service.DatabaseServiceBinder;
 
 
 /**
- * A simple {@link Fragment} subclass.
- * Activities that contain this fragment must implement the
- * {@link StepCountFragment.OnFragmentInteractionListener} interface
- * to handle interaction events.
- * Use the {@link StepCountFragment#newInstance} factory method to
- * create an instance of this fragment.
+ * Fragment to display the step count
  */
-public class StepCountFragment extends Fragment {
-    // TODO: Rename parameter arguments, choose names that match
-    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-    private static final String ARG_PARAM1 = "param1";
-    private static final String ARG_PARAM2 = "param2";
+public class StepCountFragment extends Fragment implements ServiceConnection {
+    private static final String TAG = "StepCountFragment";
 
-    // TODO: Rename and change types of parameters
-    private String mParam1;
-    private String mParam2;
+    // Instance variables
+    private TextView mStepCountDisplay;
+    private ProgressBar mProgressBar;
 
-    private OnFragmentInteractionListener mListener;
+    // Database binder
+    private DatabaseServiceBinder mBinder;
+
+    // EventBus
+    private EventBus mEventBus;
 
     /**
      * Use this factory method to create a new instance of
      * this fragment using the provided parameters.
      *
-     * @param param1 Parameter 1.
-     * @param param2 Parameter 2.
      * @return A new instance of fragment StepCountFragment.
      */
-    // TODO: Rename and change types and number of parameters
-    public static StepCountFragment newInstance(String param1, String param2) {
-        StepCountFragment fragment = new StepCountFragment();
-        Bundle args = new Bundle();
-        args.putString(ARG_PARAM1, param1);
-        args.putString(ARG_PARAM2, param2);
-        fragment.setArguments(args);
-        return fragment;
+    public static StepCountFragment newInstance() {
+        return new StepCountFragment();
     }
 
+
+    /**
+     * Required empty constructor
+     */
     public StepCountFragment() {
         // Required empty public constructor
     }
 
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-            mParam1 = getArguments().getString(ARG_PARAM1);
-            mParam2 = getArguments().getString(ARG_PARAM2);
-        }
-    }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_step_count, container, false);
+        View v = inflater.inflate(R.layout.fragment_step_count, container, false);
+        mStepCountDisplay = (TextView)    v.findViewById(R.id.stepcount);
+        mProgressBar      = (ProgressBar) v.findViewById(R.id.progressBar);
+
+        mProgressBar.setMax(10000); // Max = Target number of 10k steps per day
+
+        mEventBus = EventBus.getDefault();
+        return v;
     }
 
-    // TODO: Rename method, update argument and hook method into UI event
-    public void onButtonPressed(Uri uri) {
-        if (mListener != null) {
-            mListener.onFragmentInteraction(uri);
-        }
-    }
-
-    @Override
-    public void onAttach(Activity activity) {
-        super.onAttach(activity);
-        try {
-            mListener = (OnFragmentInteractionListener) activity;
-        } catch (ClassCastException e) {
-            throw new ClassCastException(activity.toString()
-                    + " must implement OnFragmentInteractionListener");
-        }
-    }
 
     @Override
     public void onDetach() {
         super.onDetach();
-        mListener = null;
     }
+
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        mEventBus.register(this);
+        if (mBinder != null) {
+            getStepCountToday();
+        }
+    }
+
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        Log.d(TAG, "onPause: Unbinding and unregistering from eventbus");
+        getActivity().unbindService(this);
+        mEventBus.unregister(this);
+    }
+
+
+    @Override
+    public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+        mBinder = (DatabaseServiceBinder) iBinder;
+        Log.i(TAG, "onServiceConnected: Database binder received");
+        DatabaseAvailabilityEvent ev = mEventBus.getStickyEvent(DatabaseAvailabilityEvent.class);
+        if (ev.getStatus() == DatabaseAvailabilityEvent.OPENED) {
+            onEvent(ev);
+        }
+    }
+
+
+    @Override
+    public void onServiceDisconnected(ComponentName componentName) {
+        mBinder = null;
+        Log.i(TAG, "onServiceDisconnected: Lost database binder");
+    }
+
 
     /**
-     * This interface must be implemented by activities that contain this
-     * fragment to allow an interaction in this fragment to be communicated
-     * to the activity and potentially other fragments contained in that
-     * activity.
-     * <p/>
-     * See the Android Training lesson <a href=
-     * "http://developer.android.com/training/basics/fragments/communicating.html"
-     * >Communicating with Other Fragments</a> for more information.
+     * Check if the database is available
+     * @return True if the database is available, false otherwise
      */
-    public interface OnFragmentInteractionListener {
-        // TODO: Update argument type and name
-        void onFragmentInteraction(Uri uri);
+    private boolean isDbConnected() {
+        return (mBinder != null && mBinder.isDatabaseOpen());
     }
 
+
+    /**
+     * Get todays total step count
+     */
+    private void getStepCountToday() {
+        if (!isDbConnected()) {
+            Log.e(TAG, "getStepCountToday: Database unavailable");
+            return;
+        }
+        Cursor c = mBinder.query(StepLoggingContract.StepCountLog.TABLE_NAME,
+                new String[] {StepLoggingContract.StepCountLog.COLUMN_TIME, StepLoggingContract.StepCountLog.COLUMN_VALUE},
+                StepLoggingContract.StepCountLog.COLUMN_DATE + " LIKE ?",
+                new String[] {formatDay(getTimestamp())},
+                null,
+                null,
+                null);
+        int total = 0;
+        if (c.getCount() > 0) {
+
+            while (c.moveToNext()) {
+                total += c.getInt(c.getColumnIndexOrThrow(StepLoggingContract.StepCountLog.COLUMN_VALUE));
+            }
+        }
+        c.close();
+        total += 15000;
+        mProgressBar.setProgress(total);
+        mStepCountDisplay.setText("" + total);
+    }
+
+
+    /**
+     * Get the current timestamp as a datetime object
+     * @return The current timestamp, accurate to the hour
+     */
+    private DateTime getTimestamp() {
+        return DateTime.now( DateTimeZone.getDefault() ).withMillisOfSecond(0).withSecondOfMinute(0).withMinuteOfHour(0);
+    }
+
+
+    /**
+     * Get the date formatted for the provided DateTime object
+     * @param dt DateTime object
+     * @return A string representation of the date
+     */
+    private String formatDay(DateTime dt) {
+        return dt.toString(DateTimeFormat.forPattern("dd/MM/yyyy"));
+    }
+
+
+    /**
+     * Bind to the database service
+     * @return True if binding is expected to be successful, false otherwise
+     */
+    private boolean bindDbService() {
+        if (!DatabaseService.isRunning(getActivity())) {
+            Log.e(TAG, "bindDbService: Database service not running");
+            return false;
+        }
+        Intent intent = new Intent(getActivity(), DatabaseService.class);
+        if (!getActivity().bindService(intent, this, 0)) {
+            Log.e(TAG, "bindDbService: An error occured during binding :(");
+            return false;
+        } else {
+            Log.d(TAG, "bindDbService: Database service binding request sent");
+            return true;
+        }
+    }
+
+
+    /**
+     * Event handler for EventBus DatabaseAvailabilityEvents
+     * @param ev The event
+     */
+    public void onEvent(DatabaseAvailabilityEvent ev) {
+        if (ev.getStatus() == DatabaseAvailabilityEvent.STARTED) {
+            Log.d(TAG, "onEvent: Service STARTED, binding");
+            bindDbService();
+        } else if (ev.getStatus() == DatabaseAvailabilityEvent.OPENED) {
+            Log.d(TAG, "onEvent: Database OPENED");
+            if (mBinder != null) {
+                getStepCountToday();
+            }
+        } else if (ev.getStatus() == DatabaseAvailabilityEvent.CLOSED) {
+            Log.d(TAG, "onEvent: Database CLOSED");
+        } else if (ev.getStatus() == DatabaseAvailabilityEvent.STOPPED) {
+            getActivity().unbindService(this);
+            Log.d(TAG, "onEvent: Database STOPPED");
+            mBinder = null;
+        }
+    }
 }
