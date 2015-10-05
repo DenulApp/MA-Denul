@@ -71,6 +71,7 @@ public class StepCountFragment extends Fragment implements ServiceConnection {
         View v = inflater.inflate(R.layout.fragment_step_count, container, false);
         mStepCountDisplay = (TextView)    v.findViewById(R.id.stepcount);
         mProgressBar      = (ProgressBar) v.findViewById(R.id.progressBar);
+        // TODO Find a way to overlay a checkmark on the progressbar to show if the daily goal was achieved (overlays?)
 
         mProgressBar.setMax(10000); // Max = Target number of 10k steps per day
 

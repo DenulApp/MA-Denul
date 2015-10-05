@@ -393,7 +393,7 @@ public class PedometerService extends Service implements SensorEventListener, Se
                             + StepLoggingContract.StepCountLog.COLUMN_TIME + " LIKE ?";
                     String[] selectionArgs = {formatDate(ts), formatTime(ts)};
                     mDatabaseBinder.update(StepLoggingContract.StepCountLog.TABLE_NAME, update, selection, selectionArgs);
-                }
+                } // TODO Add the values up if no cache file was found
             } else {
                 Log.d(TAG, "saveToDatabase: Inserting value");
                 ContentValues entry = new ContentValues();
