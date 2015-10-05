@@ -1,11 +1,16 @@
 package de.velcommuta.denul.service;
 
+import android.app.Activity;
+import android.app.ActivityManager;
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Binder;
 import android.os.IBinder;
+import android.os.SystemClock;
 import android.util.Log;
 
 import net.sqlcipher.Cursor;
@@ -28,6 +33,9 @@ public class DatabaseService extends Service {
     private SQLiteDatabase mSQLiteHandler;
     private MyBinder mBinder = new MyBinder();
 
+    // Alarm manager
+    private AlarmManager mManager;
+    private PendingIntent mIntent;
 
     ///// Lifecycle Management
     /**
@@ -46,6 +54,9 @@ public class DatabaseService extends Service {
     @Override
     public IBinder onBind(Intent intent) {
         Log.d(TAG, "onBind: Service is bound, returning binder");
+        if (mManager != null) {
+            mManager.cancel(mIntent);
+        }
         return mBinder;
     }
 
@@ -61,8 +72,15 @@ public class DatabaseService extends Service {
      */
     @Override
     public int onStartCommand(Intent intent, int flags, int StartId) {
+        Log.d(TAG, "onStartCommand: Called");
+        if (intent.getBooleanExtra("shutdown", false)) {
+            Log.d(TAG, "onStartCommand: Received shutdown intent");
+            stopSelf();
+            return START_NOT_STICKY;
+        }
         Log.d(TAG, "onStartCommand: Service started");
         EventBus.getDefault().postSticky(new DatabaseAvailabilityEvent(DatabaseAvailabilityEvent.STARTED));
+
         return START_STICKY;
     }
 
@@ -71,11 +89,13 @@ public class DatabaseService extends Service {
     public void onDestroy() {
         // Close SQLite handler
         Log.d(TAG, "onDestroy: Closing database");
-        EventBus.getDefault().postSticky(new DatabaseAvailabilityEvent(DatabaseAvailabilityEvent.STOPPED));
+
         if (mSQLiteHandler != null) {
             mSQLiteHandler.close();
+            EventBus.getDefault().postSticky(new DatabaseAvailabilityEvent(DatabaseAvailabilityEvent.CLOSED));
         }
         mSQLiteHandler = null;
+        EventBus.getDefault().postSticky(new DatabaseAvailabilityEvent(DatabaseAvailabilityEvent.STOPPED));
     }
 
 
@@ -89,7 +109,15 @@ public class DatabaseService extends Service {
      */
     @Override
     public boolean onUnbind(Intent intent) {
-        // TODO Start timer etc
+        Log.i(TAG, "onUnbind: All clients have unbound, setting self-destruct timer");
+        mManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+        Intent database = new Intent(this, DatabaseService.class);
+        database.putExtra("shutdown", true);
+        mIntent = PendingIntent.getService(this, 0, database, 0);
+
+        mManager.set(AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                SystemClock.elapsedRealtime() + 10 * 1000, // FIXME 10 seconds -> 15 Minutes
+                mIntent);
         return true;
     }
 
@@ -101,7 +129,10 @@ public class DatabaseService extends Service {
      */
     @Override
     public void onRebind(Intent intent) {
-        // TODO Stop timer etc
+        if (mManager != null) {
+            Log.i(TAG, "onRebind: Rebound, canceling timer");
+            mManager.cancel(mIntent);
+        }
     }
 
 
@@ -255,5 +286,20 @@ public class DatabaseService extends Service {
             if (!(mSQLiteHandler != null && mSQLiteHandler.isOpen()))
                 throw new SQLiteException("Database is not open");
         }
+    }
+
+    /**
+     * Check if the database service is running
+     * @param ctx Context of the calling application
+     * @return True if yes, false if not
+     */
+    public static boolean isRunning(Context ctx) {
+        ActivityManager manager = (ActivityManager) ctx.getSystemService(Activity.ACTIVITY_SERVICE);
+        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+            if ("de.velcommuta.denul.service.DatabaseService".equals(service.service.getClassName())) {
+                return true; // Package name matches, our service is running
+            }
+        }
+        return false; // No matching package name found => Our service is not running
     }
 }

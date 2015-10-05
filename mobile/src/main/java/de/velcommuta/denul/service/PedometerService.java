@@ -154,7 +154,7 @@ public class PedometerService extends Service implements SensorEventListener, Se
         mEventBus.unregister(this);
         if (mDatabaseBinder != null) {
             saveToDatabase();
-            unbindService(this);
+            unbindFromDatabase();
         }
         saveState();
         unregisterReceiver(mShutdownReceiver);
@@ -184,7 +184,8 @@ public class PedometerService extends Service implements SensorEventListener, Se
             mHistory.put(timestamp, (long) 1);
             if (mDatabaseAvailable) {
                 // If the database is currently available, this is a good time to save our state to it
-                saveToDatabase();
+                // Request a database binder, which will kick off the process of saving to the database
+                requestDatabaseBinder();
             }
         }
     }
@@ -226,10 +227,45 @@ public class PedometerService extends Service implements SensorEventListener, Se
     /**
      * Request a binder to the Database Service
      */
-    public void requestDatabaseBinder() {
-        Log.d(TAG, "requestDatabaseBinder: Requesting binding");
-        Intent intent = new Intent(this, DatabaseService.class);
-        bindService(intent, this, 0);
+    private void requestDatabaseBinder() {
+        if (DatabaseService.isRunning(this)) {
+            Log.d(TAG, "requestDatabaseBinder: Requesting binding");
+            Intent intent = new Intent(this, DatabaseService.class);
+            bindService(intent, this, 0);
+        } else {
+            Log.w(TAG, "requestDatabaseBinder: Database not opened");
+        }
+    }
+
+
+    /**
+     * Unbind from the database
+     */
+    private void unbindFromDatabase() {
+        Log.i(TAG, "unbindFromDatabase: Unbinding");
+        unbindService(this);
+        mDatabaseBinder = null;
+        mDatabaseAvailable = false;
+    }
+
+
+    @Override
+    public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+        Log.d(TAG, "onServiceConnected: Service connection received");
+        mDatabaseBinder = (DatabaseServiceBinder) iBinder;
+        // Check if the database has been opened in the meantime, and if yes, notify the EventHandler
+        DatabaseAvailabilityEvent ev = EventBus.getDefault().getStickyEvent(DatabaseAvailabilityEvent.class);
+        if (ev.getStatus() == DatabaseAvailabilityEvent.OPENED) {
+            onEvent(ev);
+        }
+    }
+
+
+    @Override
+    public void onServiceDisconnected(ComponentName componentName) {
+        Log.w(TAG, "onServiceDisconnected: Service connection lost");
+        mDatabaseBinder = null;
+        mDatabaseAvailable = false;
     }
 
 
@@ -346,6 +382,9 @@ public class PedometerService extends Service implements SensorEventListener, Se
                 mHistory.remove(ts);
             }
         }
+
+        // Unbind from database
+        unbindFromDatabase();
     }
 
 
@@ -495,24 +534,6 @@ public class PedometerService extends Service implements SensorEventListener, Se
         }
     }
 
-    @Override
-    public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
-        Log.d(TAG, "onServiceConnected: Service connection received");
-        mDatabaseBinder = (DatabaseServiceBinder) iBinder;
-        // Check if the database has been opened in the meantime, and if yes, notify the EventHandler
-        DatabaseAvailabilityEvent ev = EventBus.getDefault().getStickyEvent(DatabaseAvailabilityEvent.class);
-        if (ev.getStatus() == DatabaseAvailabilityEvent.OPENED) {
-            onEvent(ev);
-        }
-    }
-
-    @Override
-    public void onServiceDisconnected(ComponentName componentName) {
-        Log.w(TAG, "onServiceDisconnected: Service connection lost");
-        mDatabaseBinder = null;
-        mDatabaseAvailable = false;
-    }
-
 
     /**
      * AsyncTask to load data from the encrypted cache in the background
@@ -659,12 +680,12 @@ public class PedometerService extends Service implements SensorEventListener, Se
         @Override
         protected void onPostExecute(Hashtable<DateTime, Long> ht) {
             if (ht == null) {
-                Log.w(TAG, "onPostExecute: ht == null, aborting");
-                return;
+                Log.i(TAG, "onPostExecute: ht == null");
+            } else {
+                // Replace the cache Hashtable with our merged one
+                mHistory = ht;
+                Log.d(TAG, "onPostExecute: Hashtable replaced");
             }
-            // Replace the cache Hashtable with our merged one
-            mHistory = ht;
-            Log.d(TAG, "onPostExecute: Hashtable replaced, saving to Database");
             saveToDatabase();
         }
 

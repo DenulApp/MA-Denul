@@ -81,10 +81,6 @@ public class MainActivity extends AppCompatActivity
             }
         }
 
-        // Prepare DB and get handler
-        // TODO If I ever add a different launch activity with a passphrase prompt, this will have to be moved
-        startDatabaseService();
-
 
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
@@ -113,16 +109,25 @@ public class MainActivity extends AppCompatActivity
     public void onResume() {
         super.onResume();
         Log.d(TAG, "onResume: Registering with EventBus");
+        // Bind to Database service, if possible
+        if (!bindDbService()) {
+            // The Database service is not running. Start it
+            startDatabaseService(); // TODO Send user to passphrase activity once it is implemented
+        }
         mEventBus = EventBus.getDefault();
         mEventBus.register(this);
     }
 
+
     public void onPause() {
         super.onPause();
         Log.d(TAG, "onPause: Unregistering from EventBus");
+        // Unbind from the database service to prevent memory leaks
+        unbindDbService();
         mEventBus.unregister(this);
         mEventBus = null;
     }
+
 
     @Override
     public void onDestroy() {
@@ -230,21 +235,6 @@ public class MainActivity extends AppCompatActivity
     }
 
 
-    /**
-     * Checks if the Database Service is running
-     * @return True if the service is running, false otherwise
-     */
-    private boolean isDatabaseServiceRunning() {
-        ActivityManager manager = (ActivityManager) getSystemService(Activity.ACTIVITY_SERVICE);
-        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
-            if ("de.velcommuta.denul.service.DatabaseService".equals(service.service.getClassName())) {
-                return true; // Package name matches, our service is running
-            }
-        }
-        return false; // No matching package name found => Our service is not running
-    }
-
-
     ///// Service Management
     /**
      * Starts the pedometer service
@@ -266,17 +256,31 @@ public class MainActivity extends AppCompatActivity
 
     /**
      * Get a binder to the database
+     * @return true if the binder was successfully requested, false otherwise
      */
-    private void bindDbService() {
-        if (!isDatabaseServiceRunning()) {
-            Log.e(TAG, "bindDbService: Trying to bind to a non-running database service. Aborting");
-            return;
+    private boolean bindDbService() {
+        if (!DatabaseService.isRunning(this)) {
+            Log.w(TAG, "bindDbService: Trying to bind to a non-running database service. Aborting");
+            return false;
         }
         Intent intent = new Intent(this, DatabaseService.class);
         if (!bindService(intent, this, 0)) {
             Log.e(TAG, "bindDbService: An error occured during binding :(");
+            return false;
         } else {
             Log.d(TAG, "bindDbService: Database service binding request sent");
+            return true;
+        }
+    }
+
+
+    /**
+     * Unbind from the Database service
+     */
+    private void unbindDbService() {
+        if (mDbBinder != null) {
+            unbindService(this);
+            mDbBinder = null;
         }
     }
 
