@@ -101,6 +101,7 @@ public class PedometerService extends Service implements SensorEventListener, Se
 
             // Register shutdown receiver
             IntentFilter shutdownFilter = new IntentFilter(Intent.ACTION_SHUTDOWN);
+            shutdownFilter.addAction(Intent.ACTION_REBOOT);
             mShutdownReceiver = new ShutdownReceiver();
             registerReceiver(mShutdownReceiver, shutdownFilter);
 
@@ -696,12 +697,12 @@ public class PedometerService extends Service implements SensorEventListener, Se
 
 
     public class ShutdownReceiver extends BroadcastReceiver {
-        private final String TAG = "PedometerService:ShutdownReceiver";
+        private final String TAG = "ShutdownReceiver";
 
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (intent.getAction().equals(Intent.ACTION_SHUTDOWN)) {
-                Log.i(TAG, "onReceive: Got shutdown broadcast, stopping service");
+            if (intent.getAction().equals(Intent.ACTION_SHUTDOWN) || intent.getAction().equals(Intent.ACTION_REBOOT)) {
+                Log.i(TAG, "onReceive: Got shutdown / reboot broadcast, stopping service");
                 stopSelf();
             }
         }
