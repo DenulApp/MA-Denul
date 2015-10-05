@@ -238,6 +238,13 @@ public class DatabaseService extends Service {
             return mSQLiteHandler.query(table, columns, selection, selectionArgs, groupBy, having, orderBy);
         }
 
+        @Override
+        public int update(String table, ContentValues values, String selection, String[] selectionArgs) {
+            assertOpen();
+            Log.d(TAG, "update: Running update");
+            return mSQLiteHandler.update(table, values, selection, selectionArgs);
+        }
+
 
         ///// Utility functions
         /**

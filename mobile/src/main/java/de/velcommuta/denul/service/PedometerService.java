@@ -20,6 +20,7 @@ import android.util.Log;
 import net.sqlcipher.Cursor;
 
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormat;
 
 import java.io.ByteArrayInputStream;
@@ -169,7 +170,12 @@ public class PedometerService extends Service implements SensorEventListener, Se
         if (cvalue != null) {
             mHistory.put(timestamp, cvalue + (long) 1);
         } else {
+            // We have just rolled over to a new hour
             mHistory.put(timestamp, (long) 1);
+            if (mDatabaseAvailable) {
+                // If the database is currently available, this is a good time to save our state to it
+                saveToDatabase();
+            }
         }
     }
 
@@ -224,7 +230,7 @@ public class PedometerService extends Service implements SensorEventListener, Se
      * @return The current timestamp
      */
     private DateTime getTimestamp() {
-        return new DateTime().withMillis(0).withSecondOfMinute(0).withMinuteOfHour(0);
+        return DateTime.now( DateTimeZone.getDefault() ).withMillisOfSecond(0).withSecondOfMinute(0).withMinuteOfHour(0);
     }
     /**
      * Save the state of the service into an encrypted file
@@ -295,6 +301,7 @@ public class PedometerService extends Service implements SensorEventListener, Se
      * service
      */
     private void saveToDatabase() {
+        // TODO Compartmentalize into functions
         if (mDatabaseBinder == null | !mDatabaseAvailable) {
             Log.e(TAG, "saveToDatabase: Database unavailable");
             return;
@@ -302,19 +309,24 @@ public class PedometerService extends Service implements SensorEventListener, Se
         DateTime currentTimestamp = getTimestamp();
         mDatabaseBinder.beginTransaction();
         for (DateTime ts : mHistory.keySet()) {
-            if (ts.equals(currentTimestamp)) {
-                continue;
+            int c = isInDatabase(ts);
+            if (c != -1) {
+                if (c < mHistory.get(ts)) {
+                    ContentValues update = new ContentValues();
+                    update.put(StepLoggingContract.StepCountLog.COLUMN_VALUE, mHistory.get(ts));
+                    String selection = StepLoggingContract.StepCountLog.COLUMN_DATE + " LIKE ? AND "
+                            + StepLoggingContract.StepCountLog.COLUMN_TIME + " LIKE ?";
+                    String[] selectionArgs = {formatDate(ts), formatTime(ts)};
+                    mDatabaseBinder.update(StepLoggingContract.StepCountLog.TABLE_NAME, update, selection, selectionArgs);
+                }
+            } else {
+                Log.d(TAG, "saveToDatabase: Inserting value");
+                ContentValues entry = new ContentValues();
+                entry.put(StepLoggingContract.StepCountLog.COLUMN_DATE, formatDate(ts));
+                entry.put(StepLoggingContract.StepCountLog.COLUMN_TIME, formatTime(ts));
+                entry.put(StepLoggingContract.StepCountLog.COLUMN_VALUE, mHistory.get(ts));
+                mDatabaseBinder.insert(StepLoggingContract.StepCountLog.TABLE_NAME, null, entry);
             }
-            if (isInDatabase(ts)) {
-                Log.w(TAG, "saveToDatabase: Value already present, skipping");
-                continue;
-            }
-            Log.d(TAG, "saveToDatabase: Inserting value");
-            ContentValues entry = new ContentValues();
-            entry.put(StepLoggingContract.StepCountLog.COLUMN_DATE, ts.toString(DateTimeFormat.forPattern("dd/MM/yyyy")));
-            entry.put(StepLoggingContract.StepCountLog.COLUMN_TIME, ts.toString(DateTimeFormat.forPattern("HH:mm")));
-            entry.put(StepLoggingContract.StepCountLog.COLUMN_VALUE, mHistory.get(ts));
-            mDatabaseBinder.insert(StepLoggingContract.StepCountLog.TABLE_NAME, null, entry);
         }
         Log.d(TAG, "saveToDatabase: All values saved, committing");
         mDatabaseBinder.commit();
@@ -324,31 +336,50 @@ public class PedometerService extends Service implements SensorEventListener, Se
                 mHistory.remove(ts);
             }
         }
+    }
 
+
+    /**
+     * Format a given DateTime for the date column of the database
+     * @param dt The DateTime object
+     * @return The String representation of the day
+     */
+    private String formatDate(DateTime dt) {
+        return dt.toString(DateTimeFormat.forPattern("dd/MM/yyyy"));
+    }
+
+
+    /**
+     * Format a given DateTime for the time column of the database
+     * @param dt The DateTime Object
+     * @return The String representation of the time
+     */
+    private String formatTime(DateTime dt) {
+        return dt.toString(DateTimeFormat.forPattern("HH:mm"));
     }
 
 
     /**
      * Check if a certain DateTime is already present in the database
      * @param dt DateTime
-     * @return True if it is present, false otherwise
+     * @return The saved step count for that key, if present, or -1 if no step count was found
      */
-    private boolean isInDatabase(DateTime dt) {
+    private int isInDatabase(DateTime dt) {
+        int rv = -1;
         Cursor c = mDatabaseBinder.query(StepLoggingContract.StepCountLog.TABLE_NAME,
                 new String[]{StepLoggingContract.StepCountLog.COLUMN_VALUE},
-                StepLoggingContract.StepCountLog.COLUMN_DATE + " = '" + dt.toString(DateTimeFormat.forPattern("dd/MM/yyyy")) + "' AND " +
-                        StepLoggingContract.StepCountLog.COLUMN_TIME + " = '" + dt.toString(DateTimeFormat.forPattern("HH:mm")) + "'",
+                StepLoggingContract.StepCountLog.COLUMN_DATE + " = '" + formatDate(dt) + "' AND " +
+                        StepLoggingContract.StepCountLog.COLUMN_TIME + " = '" + formatTime(dt) + "'",
                 null,
                 null,
                 null,
                 null);
-        if (c.getCount() == 0) {
-            c.close();
-            return false;
-        } else {
-            c.close();
-            return true;
+        if (c.getCount() != 0) {
+            c.moveToFirst();
+            rv = c.getInt(c.getColumnIndexOrThrow(StepLoggingContract.StepCountLog.COLUMN_VALUE));
         }
+        c.close();
+        return rv;
     }
 
     /**

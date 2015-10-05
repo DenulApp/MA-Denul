@@ -60,4 +60,14 @@ public interface DatabaseServiceBinder {
      * @return A cursor object that can be used to retrieve the data
      */
     Cursor query(String table, String[] columns, String selection, String[] selectionArgs, String groupBy, String having, String orderBy);
+
+    /**
+     * Send an UPDATE query to the SQLite database
+     * @param table The table to be updated
+     * @param values The values to update it with
+     * @param selection The selection of which entries should be updated
+     * @param selectionArgs The arguments to replace wildcards ("?")
+     * @return The number of updated entries
+     */
+    int update(String table, ContentValues values, String selection, String[] selectionArgs);
 }
