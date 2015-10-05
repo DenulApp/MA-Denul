@@ -501,6 +501,62 @@ public class PedometerService extends Service implements SensorEventListener, Se
 
 
     /**
+     * Load the highest seen sequence number from the database
+     * @return The sequence number, or -1 if an error occured
+     */
+    private int getMaxSequenceNumber() {
+        if (mDatabaseBinder == null || !mDatabaseAvailable) {
+            Log.e(TAG, "getMaxSequenceNumber: Database unavailable");
+            return -1;
+        }
+        Cursor c = mDatabaseBinder.query(VaultContract.SequenceNumberStore.TABLE_NAME,
+                new String[]{VaultContract.SequenceNumberStore.COLUMN_SNR_VALUE},
+                VaultContract.SequenceNumberStore.COLUMN_SNR_TYPE + " LIKE ?",
+                new String[]{VaultContract.SequenceNumberStore.TYPE_PEDOMETER},
+                null,
+                null,
+                null);
+        if (c.getCount() == 0) {
+            c.close();
+            return -1;
+        } else {
+            c.moveToFirst();
+            int res = c.getInt(c.getColumnIndexOrThrow(VaultContract.SequenceNumberStore.COLUMN_SNR_VALUE));
+            c.close();
+            return res;
+        }
+    }
+
+
+    /**
+     * Store an updated maximum seen sequence number
+     * @param seqnr The sequence number
+     */
+    private void storeSequenceNumber(int seqnr) {
+        if (!mDatabaseAvailable || mDatabaseBinder == null) {
+            Log.e(TAG, "storeSequenceNumber: Database unavailable");
+        }
+        int cSeqNr = getMaxSequenceNumber();
+        if (cSeqNr == -1) {
+            Log.d(TAG, "storeSequenceNumber: Inserting new value");
+            ContentValues insert = new ContentValues();
+            insert.put(VaultContract.SequenceNumberStore.COLUMN_SNR_TYPE, VaultContract.SequenceNumberStore.TYPE_PEDOMETER);
+            insert.put(VaultContract.SequenceNumberStore.COLUMN_SNR_VALUE, seqnr);
+            mDatabaseBinder.insert(VaultContract.SequenceNumberStore.TABLE_NAME, null, insert);
+        } else {
+            Log.d(TAG, "storeSequenceNumber: Updating value");
+            ContentValues values = new ContentValues();
+            values.put(VaultContract.SequenceNumberStore.COLUMN_SNR_VALUE, seqnr);
+            mDatabaseBinder.update(VaultContract.SequenceNumberStore.TABLE_NAME,
+                    values,
+                    VaultContract.SequenceNumberStore.COLUMN_SNR_TYPE + " LIKE ?",
+                    new String[]{VaultContract.SequenceNumberStore.TYPE_PEDOMETER}
+            );
+        }
+    }
+
+
+    /**
      * Serialize the hashtable into a byte[]
      * @param ht The hashtable
      * @return The serialized hashtable, or null if serialization failed
@@ -565,116 +621,129 @@ public class PedometerService extends Service implements SensorEventListener, Se
                     return null;
                 }
                 Log.d(TAG, "doInBackground: got pk");
+                // Load the highest seen sequence number
+                int seqnr = getMaxSequenceNumber();
+                if (seqnr == -1) {
+                    Log.w(TAG, "doInBackground: No sequence number found in database. Accepting all sequence numbers (saw " + seqnr + ")");
+                }
                 // Determine which files exist
                 while (file.exists()) {
                     i += 1;
                     file = new java.io.File(getFilesDir(), "pedometer-" + i + ".cache");
                 }
                 Log.d(TAG, "doInBackground: Found " + i + " cache files");
+                // Set some variables for later
                 highestSeenFile = i-1;
+                if (seqnr + (i-1) != (mSeqNr - 1)) {
+                    Log.w(TAG, "doInBackground: Something's fishy, sequence numbers aren't adding up. Continuing for now (snr " + seqnr + ", mSnr: " + mSeqNr + ")");
+                }
                 // Get the current time (for reboot detection)
                 long currentSystemWallTime = mStartTimeWall;
                 long currentSystemUptime   = mStartTimeSystem;
                 // As the files are created in order, the oldest file is pedometer.cache, followed by pedometer-1.cache, and so on
                 // We will be working backwards in time
-                if (i > 0) {
-                    for (i -= 1; i >= 0; i--) {
-                        Log.i(TAG, "doInBackground: Processing file " + i);
-                        byte[] filebytes;
-                        try {
-                            // Get file pointer
-                            if (i > 0) {
-                                file = new java.io.File(getFilesDir(), "pedometer-" + i + ".cache");
-                            } else {
-                                file = new java.io.File(getFilesDir(), "pedometer.cache");
-                            }
-                            RandomAccessFile fobj = new RandomAccessFile(file, "r");
-                            filebytes = new byte[(int) fobj.length()];
-                            fobj.read(filebytes);
-                            fobj.close();
-                        } catch (FileNotFoundException e) {
-                            Log.e(TAG, "doInBackground: File not found - wtf", e);
-                            continue;
-                        } catch (IOException e) {
-                            Log.e(TAG, "doInBackground: IOException: ", e);
-                            continue;
-                        }
-
-                        // filebytes now contains the bytes saved in the file. Let's decrypt them.
-                        byte[] plaintext;
-                        try {
-                            plaintext = Hybrid.decryptHybrid(filebytes, pk, -1); // TODO Implement sequence number verification
-                        } catch (BadPaddingException e) {
-                            Log.e(TAG, "doInBackground: BadPaddingException - Skipping file", e);
-                            continue;
-                        }
-                        // Check if the decryption worked - result should have at least 32 bytes due to our header
-                        if (plaintext == null || plaintext.length < 32) {
-                            Log.e(TAG, "doInBackground: Decryption failed, skipping file");
-                            continue;
-                        }
-
-                        // Load the headers
-                        ByteBuffer buf = ByteBuffer.wrap(Arrays.copyOfRange(plaintext, 0, 32));
-                        long startTimeSystem = buf.getLong();
-                        long startTimeWall   = buf.getLong();
-                        long stopTimeSystem  = buf.getLong();
-                        long stopTimeWall    = buf.getLong();
-                        // See if times check out
-                        if (!timeDifferencesSane(startTimeSystem, startTimeWall, stopTimeSystem, stopTimeWall, currentSystemUptime, currentSystemWallTime)) {
-                            Log.e(TAG, "doInBackground: Time differences are not sane, skipping file");
-                            continue;
-                        }
-
-                        // De-Serialize saved Hashtable
-                        Hashtable<DateTime, Long> oldHashtable = deserializeFromByteArray(Arrays.copyOfRange(plaintext, 32, plaintext.length));
-                        if (oldHashtable == null ) {
-                            Log.e(TAG, "doInBackground: loaded hashtable is null, skipping");
-                            currentSystemUptime = startTimeSystem;
-                            currentSystemWallTime = startTimeWall;
-                            continue;
-                        }
-
-                        // Merge the two Hashtables
-                        // Take the intersection of both sets
-                        Set<DateTime> intersect = new HashSet<>(result.keySet());
-                        intersect.retainAll(oldHashtable.keySet());
-                        if (intersect.isEmpty()) {
-                            // If the intersection is empty, we can just add all elements from the old hashtable to the current one,
-                            // without fear of overwriting important data
-                            result.putAll(oldHashtable);
+                for (i -= 1; i >= 0; i--) {
+                    Log.i(TAG, "doInBackground: Processing file " + i);
+                    byte[] filebytes;
+                    try {
+                        // Get file pointer
+                        if (i > 0) {
+                            file = new java.io.File(getFilesDir(), "pedometer-" + i + ".cache");
                         } else {
-                            for (DateTime t : oldHashtable.keySet()) {
-                                if (result.containsKey(t)) {
-                                    // There is already a value under this key, Add the step counts
-                                    long oldval = result.get(t);
-                                    oldval += oldHashtable.get(t);
-                                    result.put(t, oldval);
-                                } else {
-                                    // No collision, transfer value
-                                    result.put(t, oldHashtable.get(t));
-                                }
-                            }
+                            file = new java.io.File(getFilesDir(), "pedometer.cache");
                         }
-                        Log.i(TAG, "doInBackground: merge complete");
+                        RandomAccessFile fobj = new RandomAccessFile(file, "r");
+                        filebytes = new byte[(int) fobj.length()];
+                        fobj.read(filebytes);
+                        fobj.close();
+                    } catch (FileNotFoundException e) {
+                        Log.e(TAG, "doInBackground: File not found - wtf", e);
+                        continue;
+                    } catch (IOException e) {
+                        Log.e(TAG, "doInBackground: IOException: ", e);
+                        continue;
+                    }
 
-                        // At this point, we have successfully merged the two Hashtables into one
-                        // Let's continue with the next one. For that, we need to update the current timestamp
-                        // to the timestamp at the beginning of the older service start
+                    // filebytes now contains the bytes saved in the file. Let's decrypt them.
+                    byte[] plaintext;
+                    try {
+                        if (seqnr != -1) {
+                            plaintext = Hybrid.decryptHybrid(filebytes, pk, seqnr + i);
+                        } else {
+                            // No known good sequence number available, skip sequence number verification
+                            plaintext = Hybrid.decryptHybrid(filebytes, pk, -1);
+                        }
+                    } catch (BadPaddingException e) {
+                        Log.e(TAG, "doInBackground: BadPaddingException - Skipping file", e);
+                        continue;
+                    }
+                    // Check if the decryption worked - result should have at least 32 bytes due to our header
+                    if (plaintext == null || plaintext.length < 32) {
+                        Log.e(TAG, "doInBackground: Decryption failed, skipping file");
+                        continue;
+                    }
+
+                    // Load the headers
+                    ByteBuffer buf = ByteBuffer.wrap(Arrays.copyOfRange(plaintext, 0, 32));
+                    long startTimeSystem = buf.getLong();
+                    long startTimeWall   = buf.getLong();
+                    long stopTimeSystem  = buf.getLong();
+                    long stopTimeWall    = buf.getLong();
+                    // See if times check out
+                    if (!timeDifferencesSane(startTimeSystem, startTimeWall, stopTimeSystem, stopTimeWall, currentSystemUptime, currentSystemWallTime)) {
+                        Log.e(TAG, "doInBackground: Time differences are not sane, skipping file");
+                        continue;
+                    }
+
+                    // De-Serialize saved Hashtable
+                    Hashtable<DateTime, Long> oldHashtable = deserializeFromByteArray(Arrays.copyOfRange(plaintext, 32, plaintext.length));
+                    if (oldHashtable == null ) {
+                        Log.e(TAG, "doInBackground: loaded hashtable is null, skipping");
                         currentSystemUptime = startTimeSystem;
                         currentSystemWallTime = startTimeWall;
+                        continue;
                     }
-                    // Delete all cache files
-                    for (i=highestSeenFile; i >= 0; i--) {
-                        if (i==0) {
-                            java.io.File f = new java.io.File(getFilesDir(), "pedometer.cache");
-                            FileOperation.secureDelete(f);
-                        } else {
-                            java.io.File f = new java.io.File(getFilesDir(), "pedometer-" + i + ".cache");
-                            FileOperation.secureDelete(f);
+
+                    // Merge the two Hashtables
+                    // Take the intersection of both sets
+                    Set<DateTime> intersect = new HashSet<>(result.keySet());
+                    intersect.retainAll(oldHashtable.keySet());
+                    if (intersect.isEmpty()) {
+                        // If the intersection is empty, we can just add all elements from the old hashtable to the current one,
+                        // without fear of overwriting important data
+                        result.putAll(oldHashtable);
+                    } else {
+                        for (DateTime t : oldHashtable.keySet()) {
+                            if (result.containsKey(t)) {
+                                // There is already a value under this key, Add the step counts
+                                long oldval = result.get(t);
+                                oldval += oldHashtable.get(t);
+                                result.put(t, oldval);
+                            } else {
+                                // No collision, transfer value
+                                result.put(t, oldHashtable.get(t));
+                            }
                         }
                     }
+                    Log.i(TAG, "doInBackground: merge complete");
+
+                    // At this point, we have successfully merged the two Hashtables into one
+                    // Let's continue with the next one. For that, we need to update the current timestamp
+                    // to the timestamp at the beginning of the older service start
+                    currentSystemUptime = startTimeSystem;
+                    currentSystemWallTime = startTimeWall;
                 }
+                // Delete all cache files
+                for (i=highestSeenFile; i >= 0; i--) {
+                    if (i==0) {
+                        java.io.File f = new java.io.File(getFilesDir(), "pedometer.cache");
+                        FileOperation.secureDelete(f);
+                    } else {
+                        java.io.File f = new java.io.File(getFilesDir(), "pedometer-" + i + ".cache");
+                        FileOperation.secureDelete(f);
+                    }
+                }
+                storeSequenceNumber(mSeqNr);
             } else {
                 // If this statement is reached, no cache files have been detected. Return null
                 Log.i(TAG, "doInBackground: No cache files found");

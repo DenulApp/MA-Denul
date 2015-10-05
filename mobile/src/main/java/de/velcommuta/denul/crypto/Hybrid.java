@@ -212,7 +212,7 @@ public class Hybrid {
      * @return The header
      * @throws BadPaddingException If the message is shorter than the header
      */
-    protected static byte[] getHeader(byte[] message) throws BadPaddingException {
+    public static byte[] getHeader(byte[] message) throws BadPaddingException {
         if (message.length < BYTES_HEADER) {
             Log.e(TAG, "getHeader: message shorter than header, aborting");
             throw new BadPaddingException("Incorrect header");
@@ -244,7 +244,7 @@ public class Hybrid {
      * @return The length, as int
      * @throws BadPaddingException If the header has an incorrect length
      */
-    protected static int parseSeqNr(byte[] header) throws BadPaddingException{
+    public static int parseSeqNr(byte[] header) throws BadPaddingException{
         if (header.length != BYTES_HEADER) {
             Log.e(TAG, "parseAsymCiphertextLength: Malformed header");
             throw new BadPaddingException("Malformed hybrid header");

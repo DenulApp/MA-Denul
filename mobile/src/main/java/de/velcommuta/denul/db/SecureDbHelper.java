@@ -63,7 +63,7 @@ public class SecureDbHelper extends SQLiteOpenHelper {
             = "CREATE TABLE " + VaultContract.SequenceNumberStore.TABLE_NAME + "(" +
             VaultContract.SequenceNumberStore._ID + TYPE_INT + OPT_PRIMARY_KEY + COMMA_SEP +
             VaultContract.SequenceNumberStore.COLUMN_SNR_TYPE + TYPE_TEXT + OPT_NOT_NULL + COMMA_SEP +
-            VaultContract.SequenceNumberStore.COLUMN_SNR_VALUE + TYPE_TEXT + OPT_NOT_NULL +
+            VaultContract.SequenceNumberStore.COLUMN_SNR_VALUE + TYPE_INT + OPT_NOT_NULL +
             ");";
 
     private static final String SQL_DROP_LOCATIONLOG =
@@ -83,7 +83,7 @@ public class SecureDbHelper extends SQLiteOpenHelper {
 
     public static final String DATABASE_NAME = "location.db"; // TODO Update
 
-    public static final int DATABASE_VERSION = 6;
+    public static final int DATABASE_VERSION = 7;
 
 
     /**
@@ -109,19 +109,16 @@ public class SecureDbHelper extends SQLiteOpenHelper {
         db.execSQL(SQL_CREATE_ENTRIES_LOCATIONLOG);
         db.execSQL(SQL_CREATE_ENTRIES_KEYSTORE);
         db.execSQL(SQL_CREATE_ENTRIES_STEPCOUNTER);
+        db.execSQL(SQL_CREATE_ENTRIES_SEQUENCE_NUMBERS);
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        if (oldVersion == 5 && newVersion == 6) {
-            db.execSQL(SQL_CREATE_ENTRIES_SEQUENCE_NUMBERS);
-        } else {
-            db.execSQL(SQL_DROP_LOCATIONLOG);
-            db.execSQL(SQL_DROP_LOCATIONSESSIONS);
-            db.execSQL(SQL_DROP_KEYSTORE);
-            db.execSQL(SQL_DROP_STEPCOUNTER);
-            db.execSQL(SQL_DROP_SEQUENCE_NUMBERS);
-            onCreate(db);
-        }
+        db.execSQL(SQL_DROP_LOCATIONLOG);
+        db.execSQL(SQL_DROP_LOCATIONSESSIONS);
+        db.execSQL(SQL_DROP_KEYSTORE);
+        db.execSQL(SQL_DROP_STEPCOUNTER);
+        db.execSQL(SQL_DROP_SEQUENCE_NUMBERS);
+        onCreate(db);
     }
 }

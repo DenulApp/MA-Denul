@@ -270,7 +270,8 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
             } else if (mStartStopButton.getText().equals(getString(R.string.stop_run))) {
                 // The user wants to stop a run
                 stopTracking();
-
+                Intent intent = new Intent(getActivity(), PedometerService.class);
+                getActivity().stopService(intent); // TODO Debugging, remove
             } else if (mStartStopButton.getText().equals(getString(R.string.reset_run))) {
                 // The user wants to reset the results of a run
                 resetTrackingState();
