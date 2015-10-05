@@ -59,6 +59,13 @@ public class SecureDbHelper extends SQLiteOpenHelper {
             StepLoggingContract.StepCountLog.COLUMN_VALUE + TYPE_INT + OPT_NOT_NULL +
             ");";
 
+    private static final String SQL_CREATE_ENTRIES_SEQUENCE_NUMBERS
+            = "CREATE TABLE " + VaultContract.SequenceNumberStore.TABLE_NAME + "(" +
+            VaultContract.SequenceNumberStore._ID + TYPE_INT + OPT_PRIMARY_KEY + COMMA_SEP +
+            VaultContract.SequenceNumberStore.COLUMN_SNR_TYPE + TYPE_TEXT + OPT_NOT_NULL + COMMA_SEP +
+            VaultContract.SequenceNumberStore.COLUMN_SNR_VALUE + TYPE_TEXT + OPT_NOT_NULL +
+            ");";
+
     private static final String SQL_DROP_LOCATIONLOG =
             "DROP TABLE " + LocationLoggingContract.LocationLog.TABLE_NAME + ";";
 
@@ -71,9 +78,12 @@ public class SecureDbHelper extends SQLiteOpenHelper {
     private static final String SQL_DROP_STEPCOUNTER =
             "DROP TABLE " + StepLoggingContract.StepCountLog.TABLE_NAME + ";";
 
+    private static final String SQL_DROP_SEQUENCE_NUMBERS =
+            "DROP TABLE " + VaultContract.SequenceNumberStore.TABLE_NAME + ";";
+
     public static final String DATABASE_NAME = "location.db"; // TODO Update
 
-    public static final int DATABASE_VERSION = 5;
+    public static final int DATABASE_VERSION = 6;
 
 
     /**
@@ -103,11 +113,15 @@ public class SecureDbHelper extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        // TODO Proper code when we go into production
-        db.execSQL(SQL_DROP_LOCATIONLOG);
-        db.execSQL(SQL_DROP_LOCATIONSESSIONS);
-        db.execSQL(SQL_DROP_KEYSTORE);
-        db.execSQL(SQL_DROP_STEPCOUNTER);
-        onCreate(db);
+        if (oldVersion == 5 && newVersion == 6) {
+            db.execSQL(SQL_CREATE_ENTRIES_SEQUENCE_NUMBERS);
+        } else {
+            db.execSQL(SQL_DROP_LOCATIONLOG);
+            db.execSQL(SQL_DROP_LOCATIONSESSIONS);
+            db.execSQL(SQL_DROP_KEYSTORE);
+            db.execSQL(SQL_DROP_STEPCOUNTER);
+            db.execSQL(SQL_DROP_SEQUENCE_NUMBERS);
+            onCreate(db);
+        }
     }
 }

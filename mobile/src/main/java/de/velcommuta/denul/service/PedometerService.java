@@ -128,11 +128,6 @@ public class PedometerService extends Service implements SensorEventListener, Se
                 Log.e(TAG, "onStartCommand: Something went wrong while loading the sequence number. Restarting at zero"); // TODO Is this a good idea?
                 mSeqNr = 0;
             }
-            // Increment sequence number
-            SharedPreferences.Editor edit = getSharedPreferences(getString(R.string.preferences_keystore), Context.MODE_PRIVATE).edit();
-            edit.putInt(getString(R.string.preferences_keystore_seqnr), mSeqNr + 1);
-            edit.apply();
-
 
             // initialize data structure
             mHistory = new Hashtable<>();
@@ -313,13 +308,16 @@ public class PedometerService extends Service implements SensorEventListener, Se
             Log.e(TAG, "saveState: Something went wrong during state encryption, aborting");
             return;
         }
+
         // Write to file, taking care not to overwrite existing state
+        // Detect first file name that is not already taken
         int i = 0;
         File file = new File(getFilesDir(), "pedometer.cache");
         while (file.exists()) {
             i += 1;
             file = new File(getFilesDir(), "pedometer-" + i + ".cache");
         }
+        // Write to file
         try {
             FileOutputStream fos = new FileOutputStream(file);
             fos.write(cipheredState);
@@ -329,6 +327,12 @@ public class PedometerService extends Service implements SensorEventListener, Se
             return;
         }
         Log.d(TAG, "saveState: Successfully wrote state to file");
+
+        // Increment sequence number
+        SharedPreferences.Editor edit = getSharedPreferences(getString(R.string.preferences_keystore), Context.MODE_PRIVATE).edit();
+        edit.putInt(getString(R.string.preferences_keystore_seqnr), mSeqNr + 1);
+        edit.apply();
+        Log.d(TAG, "saveState: Incremented Sequence number");
     }
 
 

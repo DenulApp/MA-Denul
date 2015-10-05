@@ -40,6 +40,7 @@ import javax.crypto.spec.SecretKeySpec;
  * Wrapper for the horrible BouncyCastle / SpongyCastle API
  */
 public class Crypto {
+    // TODO Refactor this Class into multiple classes in different files
     public static final String TAG = "Crypto";
 
     // Constants for hybrid encryption header lengths
@@ -58,8 +59,10 @@ public class Crypto {
     private static final int OFFSET_SEQNR       = OFFSET_ALGO + BYTES_HEADER_ALGO;
     private static final int OFFSET_LENGTH_ASYM = OFFSET_SEQNR + BYTES_HEADER_SEQNR;
 
-    // Constants for hybrid encryption header values
+    ///// Constants for hybrid encryption header values
+    // Version numbers
     protected static final byte VERSION_1 = 0x00;
+    // Algorithm identifiers
     protected static final byte ALGO_RSA_OAEP_SHA256_MGF1_WITH_AES_256_GCM = 0x00;
 
     // Insert provider
@@ -95,6 +98,7 @@ public class Crypto {
         }
     }
 
+
     /**
      * Decode a public key encoded with encodeKey
      * @param encoded The base64-encoded public key
@@ -112,6 +116,7 @@ public class Crypto {
             return null;
         }
     }
+
 
     ///// Key generation
     /**
@@ -139,6 +144,7 @@ public class Crypto {
         }
     }
 
+
     /**
      * Generates a random AES256 key and returns it as a byte[]
      * @return The generated AES256 key
@@ -160,6 +166,7 @@ public class Crypto {
         }
     }
 
+
     ///// Encryption and Decryption
     /**
      * Encrypt some data using AES in GCM mode.
@@ -170,6 +177,7 @@ public class Crypto {
     public static byte[] encryptAES(byte[] data, byte[] keyenc) {
         return encryptAES(data, keyenc, null);
     }
+
 
     /**
      * Encrypt some data using AES in GCM mode.
@@ -208,6 +216,7 @@ public class Crypto {
         }
     }
 
+
     /**
      * Decrypt a piece of AES256-encrypted data with its key
      * @param datawithiv Data with first bytes representing the IV
@@ -219,6 +228,7 @@ public class Crypto {
     public static byte[] decryptAES(byte[] datawithiv, byte[] keyenc) throws BadPaddingException {
         return decryptAES(datawithiv, keyenc, null);
     }
+
 
     /**
      * Decrypt a piece of AES256-encrypted data with its key
@@ -255,6 +265,7 @@ public class Crypto {
         return null;
     }
 
+
     /**
      * Encrypt a piece of data using RSA public key encryption
      * @param data The data to be encrypted
@@ -278,6 +289,7 @@ public class Crypto {
         return null;
     }
 
+
     /**
      * Decrypt RSA-encrypted data with the corresponding private key
      * @param data Encrypted data
@@ -297,8 +309,8 @@ public class Crypto {
         return null;
     }
 
-    ///// Hybrid encryption
 
+    ///// Hybrid encryption
     /**
      * Perform a hybrid encryption on the provided data, using AES256 and the provided RSA public key.
      * @param data Data
@@ -359,6 +371,7 @@ public class Crypto {
         // Return the output value
         return output;
     }
+
 
     /**
      * Decrypts a hybrid-encrypted block of data
@@ -430,6 +443,7 @@ public class Crypto {
         return cleartext;
     }
 
+
     // Helper functions for header generation and parsing
     /**
      * Generate a header for a hybrid-encrypted packet
@@ -454,6 +468,7 @@ public class Crypto {
         return header;
     }
 
+
     /**
      * Get the header from an encrypted blob of data
      * @param message The whole message (headers plus encrypted contents)
@@ -467,6 +482,7 @@ public class Crypto {
         }
         return Arrays.copyOfRange(message, 0, BYTES_HEADER);
     }
+
 
     /**
      * Parses the length of the asymmetrically encrypted ciphertext from the header
@@ -483,6 +499,7 @@ public class Crypto {
                 Arrays.copyOfRange(header, OFFSET_LENGTH_ASYM, OFFSET_LENGTH_ASYM + BYTES_HEADER_LENGTH_ASYM)
         ).getInt();
     }
+
 
     /**
      * Parses the sequence number from the header

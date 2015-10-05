@@ -24,11 +24,26 @@ public class VaultContract {
         // Encoded key
         public static final String COLUMN_KEY_BYTES = "key";
 
-        ///// Values
+        ///// Constants
         public static final int TYPE_RSA_PRIV = 0;
         public static final int TYPE_RSA_PUB  = 1;
 
         public static final String NAME_PEDOMETER_PRIVATE = "internal-pedometer-private-key";
         public static final String NAME_PEDOMETER_PUBLIC = "internal-pedometer-public-key";
+    }
+
+
+    public static abstract class SequenceNumberStore implements BaseColumns {
+        // Name of the SQLite table
+        public static final String TABLE_NAME = "seqnrstore";
+
+        ///// Column names
+        // Sequence number type identifier
+        public static final String COLUMN_SNR_TYPE = "seqnr_type";
+        // Sequence number
+        public static final String COLUMN_SNR_VALUE = "seqnr";
+
+        ///// Constants
+        public static final String TYPE_PEDOMETER = "internal-pedometer";
     }
 }
