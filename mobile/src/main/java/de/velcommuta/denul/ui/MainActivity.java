@@ -71,7 +71,7 @@ public class MainActivity extends AppCompatActivity
             //        .installDefaultEventBus();
         }
         // Launch pedometer service if it is not running
-        if (!isPedometerServiceRunning()) {
+        if (!PedometerService.isRunning(this)) {
             String pubkey = getSharedPreferences(getString(R.string.preferences_keystore), Context.MODE_PRIVATE).getString(getString(R.string.preferences_keystore_rsapub), null);
             if (pubkey != null) {
                 startPedometerService();
@@ -219,21 +219,6 @@ public class MainActivity extends AppCompatActivity
                 .commit();
     }
 
-    ///// Utility functions
-    /**
-     * Checks if the Pedometer Service is running
-     * @return True if the service is running, false otherwise
-     */
-    private boolean isPedometerServiceRunning() {
-        ActivityManager manager = (ActivityManager) getSystemService(Activity.ACTIVITY_SERVICE);
-        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
-            if ("de.velcommuta.denul.service.PedometerService".equals(service.service.getClassName())) {
-                return true; // Package name matches, our service is running
-            }
-        }
-        return false; // No matching package name found => Our service is not running
-    }
-
 
     ///// Service Management
     /**
@@ -299,7 +284,9 @@ public class MainActivity extends AppCompatActivity
         Log.d(TAG, "onServiceConnected: New service connection received");
         mDbBinder = (DatabaseServiceBinder) iBinder;
         // TODO Debugging code, move to passphrase activity once it is added
-        mDbBinder.openDatabase("VerySecureHardcodedPasswordOlolol123");
+        if (!mDbBinder.isDatabaseOpen()) {
+            mDbBinder.openDatabase("VerySecureHardcodedPasswordOlolol123");
+        }
     }
 
 
@@ -356,7 +343,7 @@ public class MainActivity extends AppCompatActivity
             edit.apply();
             Log.d(TAG, "setGeneratedKeypair: Saved into SharedPreference");
 
-            if (!isPedometerServiceRunning()) {
+            if (!PedometerService.isRunning(this)) {
                 startPedometerService();
             }
         } else {

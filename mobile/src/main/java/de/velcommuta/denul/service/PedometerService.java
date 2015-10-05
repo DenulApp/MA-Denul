@@ -1,5 +1,7 @@
 package de.velcommuta.denul.service;
 
+import android.app.Activity;
+import android.app.ActivityManager;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -727,5 +729,21 @@ public class PedometerService extends Service implements SensorEventListener, Se
                 stopSelf();
             }
         }
+    }
+
+
+    /**
+     * Check if an instance of this service is running
+     * @param ctx Context of the calling activity
+     * @return True if the service is running, false otherwise
+     */
+    public static boolean isRunning(Context ctx) {
+        ActivityManager manager = (ActivityManager) ctx.getSystemService(Activity.ACTIVITY_SERVICE);
+        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+            if ("de.velcommuta.denul.service.PedometerService".equals(service.service.getClassName())) {
+                return true; // Package name matches, our service is running
+            }
+        }
+        return false; // No matching package name found => Our service is not running
     }
 }

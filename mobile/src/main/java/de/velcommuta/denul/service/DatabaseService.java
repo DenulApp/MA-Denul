@@ -116,7 +116,7 @@ public class DatabaseService extends Service {
         mIntent = PendingIntent.getService(this, 0, database, 0);
 
         mManager.set(AlarmManager.ELAPSED_REALTIME_WAKEUP,
-                SystemClock.elapsedRealtime() + 10 * 1000, // FIXME 10 seconds -> 15 Minutes
+                SystemClock.elapsedRealtime() + 15 * 60 * 1000, // TODO Let the user choose this time somewhere
                 mIntent);
         return true;
     }
