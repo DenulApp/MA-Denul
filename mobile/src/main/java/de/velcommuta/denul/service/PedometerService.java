@@ -88,6 +88,9 @@ public class PedometerService extends Service implements SensorEventListener, Se
     private Binder mBinder;
     private List<UpdateListener> mListeners;
 
+    private String FORMAT_DATE = "dd/MM/yyyy";
+    private String FORMAT_TIME = "HH:mm";
+
     ///// Service lifecycle management
     /**
      * Required (empty) constructor
@@ -96,6 +99,7 @@ public class PedometerService extends Service implements SensorEventListener, Se
     }
 
 
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (mSensorManager == null) {
@@ -247,7 +251,6 @@ public class PedometerService extends Service implements SensorEventListener, Se
             // We have just rolled over to a new hour
             mCache.put(timestamp, (long) 1);
             mToday.put(timestamp, (long) 1);
-            // TODO Save to database AND overwrite current cache file
             if (DatabaseService.isRunning(this)) {
                 // If the database is currently available, this is a good time to save our state to it
                 // Request a database binder, which will kick off the process of saving to the database
@@ -353,15 +356,12 @@ public class PedometerService extends Service implements SensorEventListener, Se
      * Recalculate todays sum total of steps
      */
     private void updateTodaySum() {
+        Log.d(TAG, "updateTodaySum: called");
         // Update the cache for todays events
         mTodaySum = 0;
         // Get the current day as a string format for later comparison
-        String formatDate = formatDate( getTimestamp() );
-        for (DateTime dt : mCache.keySet()) {
-            if (formatDate(dt).equals(formatDate)) {
-                mToday.put(dt, mCache.get(dt));
-                mTodaySum += mCache.get(dt);
-            }
+        for (DateTime dt : mToday.keySet()) {
+            mTodaySum += mToday.get(dt);
         }
     }
 
@@ -577,7 +577,7 @@ public class PedometerService extends Service implements SensorEventListener, Se
      * @return The String representation of the day
      */
     private String formatDate(DateTime dt) {
-        return dt.toString(DateTimeFormat.forPattern("dd/MM/yyyy"));
+        return dt.toString(DateTimeFormat.forPattern(FORMAT_DATE));
     }
 
 
@@ -587,7 +587,7 @@ public class PedometerService extends Service implements SensorEventListener, Se
      * @return The String representation of the time
      */
     private String formatTime(DateTime dt) {
-        return dt.toString(DateTimeFormat.forPattern("HH:mm"));
+        return dt.toString(DateTimeFormat.forPattern(FORMAT_TIME));
     }
 
 
@@ -706,29 +706,35 @@ public class PedometerService extends Service implements SensorEventListener, Se
 
     /**
      * Load todays sum of steps
-     * TODO Also load the individual entries for mToday
-     * TODO Something is fishy here, the results are weird
      */
     private void loadHistoryToday() {
         if (!mDatabaseAvailable || mDatabaseBinder == null) {
             Log.e(TAG, "loadHistoryToday: Database unavailable");
             return;
         }
+        String date = formatDate(getTimestamp());
         Cursor c = mDatabaseBinder.query(StepLoggingContract.StepCountLog.TABLE_NAME,
-                new String[] {"SUM(" + StepLoggingContract.StepCountLog.COLUMN_VALUE + ")"},
+                new String[] {StepLoggingContract.StepCountLog.COLUMN_TIME, StepLoggingContract.StepCountLog.COLUMN_VALUE},
                 StepLoggingContract.StepCountLog.COLUMN_DATE + " LIKE ?",
-                new String[] {formatDate(getTimestamp())},
-                StepLoggingContract.StepCountLog.COLUMN_DATE, // groupby
+                new String[] {date},
+                null, // groupby
                 null, // having
                 null); // orderby
         if (c.getCount() > 0) {
-            c.moveToFirst();
-            mTodaySum = c.getInt(c.getColumnIndexOrThrow("SUM("+StepLoggingContract.StepCountLog.COLUMN_VALUE + ")"));
+            while (c.moveToNext()) {
+                long value = c.getInt(c.getColumnIndexOrThrow(StepLoggingContract.StepCountLog.COLUMN_VALUE));
+                String time = c.getString(c.getColumnIndexOrThrow(StepLoggingContract.StepCountLog.COLUMN_TIME));
+                DateTime timestamp = DateTime.parse(date + " " + time, DateTimeFormat.forPattern(FORMAT_DATE + " " + FORMAT_TIME));
+                if (!mToday.contains(timestamp) || mToday.get(timestamp) < value) {
+                    mToday.put(timestamp, value);
+                }
+            }
             Log.d(TAG, "loadHistoryToday: Got a result");
         } else {
             Log.d(TAG, "loadHistoryToday: Nothing in the database for today");
         }
         c.close();
+        updateTodaySum();
         notifyListeners();
     }
 
@@ -877,7 +883,6 @@ public class PedometerService extends Service implements SensorEventListener, Se
                 }
                 // Get the current time (for reboot detection)
                 long currentSystemWallTime = mStartTimeWall;
-                long currentSystemUptime   = mStartTimeSystem;
                 // As the files are created in order, the oldest file is pedometer.cache, followed by pedometer-1.cache, and so on
                 // We will be working backwards in time
                 for (i -= 1; i >= 0; i--) {
@@ -921,7 +926,7 @@ public class PedometerService extends Service implements SensorEventListener, Se
                     long stopTimeSystem  = buf.getLong();
                     long stopTimeWall    = buf.getLong();
                     // See if times check out
-                    if (!timeDifferencesSane(startTimeSystem, startTimeWall, stopTimeSystem, stopTimeWall, currentSystemUptime, currentSystemWallTime)) {
+                    if (!timeDifferencesSane(startTimeSystem, startTimeWall, stopTimeSystem, stopTimeWall, currentSystemWallTime)) {
                         Log.e(TAG, "doInBackground: Time differences are not sane, skipping file");
                         continue;
                     }
@@ -930,7 +935,6 @@ public class PedometerService extends Service implements SensorEventListener, Se
                     Hashtable<DateTime, Long> oldHashtable = deserializeFromByteArray(Arrays.copyOfRange(plaintext, 32, plaintext.length));
                     if (oldHashtable == null ) {
                         Log.e(TAG, "doInBackground: loaded hashtable is null, skipping");
-                        currentSystemUptime = startTimeSystem;
                         currentSystemWallTime = startTimeWall;
                         continue;
                     }
@@ -945,7 +949,6 @@ public class PedometerService extends Service implements SensorEventListener, Se
                     // At this point, we have successfully merged the two Hashtables into one
                     // Let's continue with the next one. For that, we need to update the current timestamp
                     // to the timestamp at the beginning of the older service start
-                    currentSystemUptime = startTimeSystem;
                     currentSystemWallTime = startTimeWall;
                 }
                 // Delete all cache files
@@ -985,13 +988,12 @@ public class PedometerService extends Service implements SensorEventListener, Se
          * @param startTimeWall Start time of the service in the cache file, as ms since epoch
          * @param stopTimeSystem Stop time of the service in the cache file, as ms since boot
          * @param stopTimeWall Stop time of the service in the cache file, as ms since epoch
-         * @param currentSystemUptime Current system time, as ms since boot
          * @param currentSystemWallTime Current system time, as ms since epoch
          * @return True if the values are sane, false otherwise
          */
         private boolean timeDifferencesSane(long startTimeSystem, long startTimeWall,
                                             long stopTimeSystem, long stopTimeWall,
-                                            long currentSystemUptime, long currentSystemWallTime) {
+                                            long currentSystemWallTime) {
             if (startTimeSystem > stopTimeSystem) {
                 Log.e(TAG, "timeDifferencesSane: service stopped before it was started - relative");
                 return false;
