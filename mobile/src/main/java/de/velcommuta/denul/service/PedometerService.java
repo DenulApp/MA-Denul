@@ -30,7 +30,7 @@ import org.joda.time.format.DateTimeFormat;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.FileNotFoundException;
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -107,6 +107,18 @@ public class PedometerService extends Service implements SensorEventListener, Se
                 stopSelf();
                 return Service.START_STICKY;
             }
+            File oldSessionCache = new File(getFilesDir(), "pedometer-session.cache");
+            if (oldSessionCache.exists()) {
+                Log.i(TAG, "onStartCommand: Found orphaned session cache");
+                File crashedSessionCache = new File(getFilesDir(), "pedometer-session-crash.cache");
+                if (!crashedSessionCache.exists()) {
+                    oldSessionCache.renameTo(crashedSessionCache);
+                } else {
+                    Log.w(TAG, "onStartCommand: Loosing old session cache");
+                    FileOperation.secureDelete(crashedSessionCache);
+                    oldSessionCache.renameTo(crashedSessionCache);
+                }
+            }
 
             // Register with EventBus
             mEventBus = EventBus.getDefault();
@@ -181,7 +193,33 @@ public class PedometerService extends Service implements SensorEventListener, Se
         if (mBinder == null) {
             mBinder = new MyPedometerBinder();
         }
+        if (DatabaseService.isRunning(this)) {
+            // Save stuff to the database
+            requestDatabaseBinder();
+        }
+        saveCache();
         return mBinder;
+    }
+
+
+    @Override
+    public void onRebind(Intent intent) {
+        if (DatabaseService.isRunning(this)) {
+            // Save stuff to the database
+            requestDatabaseBinder();
+        }
+        saveCache();
+    }
+
+
+    @Override
+    public boolean onUnbind(Intent intent) {
+        if (DatabaseService.isRunning(this)) {
+            // Save stuff to the database
+            requestDatabaseBinder();
+        }
+        saveCache();
+        return true;
     }
 
 
@@ -196,6 +234,10 @@ public class PedometerService extends Service implements SensorEventListener, Se
         if (cvalue != null) {
             mCache.put(timestamp, cvalue + (long) 1);
             mToday.put(timestamp, cvalue + (long) 1);
+            if (cvalue % 100 == 0) {
+                // Save the current step count every 100 steps
+                saveCache();
+            }
         } else {
             if (timestamp.getHourOfDay() == 0) {
                 // We have rolled over to a new day, reset the "today" cache
@@ -211,6 +253,7 @@ public class PedometerService extends Service implements SensorEventListener, Se
                 // Request a database binder, which will kick off the process of saving to the database
                 requestDatabaseBinder();
             }
+            saveCache();
         }
         // Update daily sum
         mTodaySum += 1;
@@ -324,14 +367,15 @@ public class PedometerService extends Service implements SensorEventListener, Se
 
 
     /**
-     * Save the state of the service into an encrypted file
+     * Helper function for the state saving functions. This function serializes and encrypts the state
+     * @return The encrypted state, as byte[]
      */
-    private void saveState() {
+    private byte[] prepareCipheredState() {
         // Serialize the state
         byte[] state = serializeToByteArray(mCache);
         if (state == null) {
-            Log.e(TAG, "saveState: Something went wrong during serialization, aborting");
-            return;
+            Log.e(TAG, "prepareCipheredState: Something went wrong during serialization, aborting");
+            return null;
         }
         // Add a bunch of timestamps to allow us to later reconstruct when reboots happened and when
         // the service was restarted for other reasons, which will be important for cache
@@ -353,10 +397,19 @@ public class PedometerService extends Service implements SensorEventListener, Se
         // Encrypt the byte[]
         byte[] cipheredState = Hybrid.encryptHybrid(plaintext, mPubkey, mSeqNr);
         if (cipheredState == null) {
-            Log.e(TAG, "saveState: Something went wrong during state encryption, aborting");
-            return;
+            Log.e(TAG, "prepareCipheredState: Something went wrong during state encryption, aborting");
+            return null;
         }
+        return cipheredState;
+    }
 
+
+    /**
+     * Write the provided encrypted state to the persistent cache file (pedometer,cache or pedometer-n.cache, with n => 1)
+     * @param cipheredState The state
+     * @return True if successful, false otherwise
+     */
+    private boolean writeToPersistentCache(byte[] cipheredState) {
         // Write to file, taking care not to overwrite existing state
         // Detect first file name that is not already taken
         int i = 0;
@@ -371,16 +424,80 @@ public class PedometerService extends Service implements SensorEventListener, Se
             fos.write(cipheredState);
             fos.close();
         } catch (IOException e) {
-            Log.e(TAG, "saveState: Encountered IOException during write, aborting.", e);
+            Log.e(TAG, "writeToPersistentCache: Encountered IOException during write, aborting.", e);
+            return false;
+        }
+        Log.d(TAG, "writeToPersistentCache: Successfully wrote state to file");
+        return true;
+    }
+
+
+    /**
+     * Write the provided encrypted state to the session cache file (pedometer-session,cache)
+     * @param cipheredState The state
+     * @return True if successful, false otherwise
+     */
+    private boolean writeToSessionCache(byte[] cipheredState) {
+        File file = new File(getFilesDir(), "pedometer-session.cache");
+        if (file.exists()) {
+            FileOperation.secureDelete(file);
+        }
+        // Write to file
+        try {
+            FileOutputStream fos = new FileOutputStream(file);
+            fos.write(cipheredState);
+            fos.close();
+        } catch (IOException e) {
+            Log.e(TAG, "writeToSessionCache: Encountered IOException during write, aborting.", e);
+            return false;
+        }
+        Log.d(TAG, "writeToSessionCache: Successfully wrote state to file");
+        return true;
+    }
+
+
+    /**
+     * Save the state of the service into an encrypted file
+     */
+    private void saveState() {
+        byte[] cipheredState = prepareCipheredState();
+        if (cipheredState == null) {
+            Log.e(TAG, "saveState: PrepareCipheredState failed, aborting");
             return;
         }
-        Log.d(TAG, "saveState: Successfully wrote state to file");
+        // Write to persistent cache
+        if (writeToPersistentCache(cipheredState)) {
 
-        // Increment sequence number
-        SharedPreferences.Editor edit = getSharedPreferences(getString(R.string.preferences_keystore), Context.MODE_PRIVATE).edit();
-        edit.putInt(getString(R.string.preferences_keystore_seqnr), mSeqNr + 1);
-        edit.apply();
-        Log.d(TAG, "saveState: Incremented Sequence number");
+            // Increment sequence number
+            SharedPreferences.Editor edit = getSharedPreferences(getString(R.string.preferences_keystore), Context.MODE_PRIVATE).edit();
+            edit.putInt(getString(R.string.preferences_keystore_seqnr), mSeqNr + 1);
+            edit.apply();
+            Log.d(TAG, "saveState: Incremented Sequence number");
+        } else {
+            Log.e(TAG, "saveState: Saving to file failed, aborting");
+        }
+        File file = new File(getFilesDir(), "pedometer-session.cache");
+        if (file.exists()) {
+            FileOperation.secureDelete(file);
+            Log.d(TAG, "saveState: Deleted Session Cache");
+        }
+    }
+
+
+    /**
+     * Save the state of the service into a temporary encrypted file
+     */
+    private void saveCache() {
+        byte[] cipheredState = prepareCipheredState();
+        if (cipheredState == null) {
+            Log.e(TAG, "saveCache: prepareCipheredState failed, aborting");
+            return;
+        }
+        if (writeToSessionCache(cipheredState)) {
+            Log.d(TAG, "saveCache: Success");
+        } else {
+            Log.e(TAG, "saveCache: An error occured while saving to disk");
+        }
     }
 
 
@@ -418,7 +535,7 @@ public class PedometerService extends Service implements SensorEventListener, Se
                             + StepLoggingContract.StepCountLog.COLUMN_TIME + " LIKE ?";
                     String[] selectionArgs = {formatDate(ts), formatTime(ts)};
                     mDatabaseBinder.update(StepLoggingContract.StepCountLog.TABLE_NAME, update, selection, selectionArgs);
-                } // TODO Add the values up if no cache file was found
+                }
             } else {
                 Log.d(TAG, "saveToDatabase: Inserting value");
                 ContentValues entry = new ContentValues();
@@ -590,6 +707,7 @@ public class PedometerService extends Service implements SensorEventListener, Se
     /**
      * Load todays sum of steps
      * TODO Also load the individual entries for mToday
+     * TODO Something is fishy here, the results are weird
      */
     private void loadHistoryToday() {
         if (!mDatabaseAvailable || mDatabaseBinder == null) {
@@ -693,19 +811,53 @@ public class PedometerService extends Service implements SensorEventListener, Se
         @Override
         protected Hashtable<DateTime, Long> doInBackground(Void... v) {
             // Create a copy of the current hashtable to perform work on
-            Hashtable<DateTime, Long> result = new Hashtable<>(mCache);
+            Hashtable<DateTime, Long> result = null;
+            // Load private key
+            PrivateKey pk = loadPrivateKey();
+            if (pk == null) {
+                Log.e(TAG, "doInBackground: Private key retrieval failed, aborting");
+                return null;
+            }
+
             // Create variable to save number of files into
             int highestSeenFile;
+            // Detect if session cache exists
+            File file = new File(getFilesDir(), "pedometer-session-crash.cache");
+            if (file.exists()) {
+                // Read in the file
+                byte[] filebytes = readFileRaw(file);
+                if (filebytes == null) {
+                    // Something went wrong while reading the file, abort
+                    Log.e(TAG, "doInBackground: Error reading session cache, skipping");
+                } else {
+                    // File read successfully
+                    try {
+                        // Decrypt data from file
+                        byte[] plaintext = Hybrid.decryptHybrid(filebytes, pk, mSeqNr);
+                        if (plaintext != null && plaintext.length >= 32) {
+                            // Plaintext seems sane, deserialize data
+                            Hashtable<DateTime, Long> oldHashtable = deserializeFromByteArray(Arrays.copyOfRange(plaintext, 32, plaintext.length));
+                            // Merge into result
+                            result = new Hashtable<>(mCache);
+                            result = merge(result, oldHashtable);
+                            Log.i(TAG, "doInBackground: Successfully loaded Session cache file");
+                        } else {
+                            // Plaintext has a weird format, ignore it
+                            Log.e(TAG, "doInBackground: Decryption produced nonsense, skipping session file");
+                        }
+                    } catch (BadPaddingException e) {
+                        // Something went wrong during decryption, ignore
+                        Log.e(TAG, "doInBackground: Bad Padding Exception, skipping session cache file");
+                    }
+                }
+                // Delete file
+                FileOperation.secureDelete(file);
+            }
+
             // Detect if cache files exist
-            java.io.File file = new java.io.File(getFilesDir(), "pedometer.cache");
+            file = new File(getFilesDir(), "pedometer.cache");
             int i = 0;
             if (file.exists()) {
-                // We have at least one cache file, load the private key from the database
-                PrivateKey pk = loadPrivateKey();
-                if (pk == null) {
-                    Log.e(TAG, "doInBackground: Private key retrieval failed, aborting");
-                    return null;
-                }
                 Log.d(TAG, "doInBackground: got pk");
                 // Load the highest seen sequence number
                 int seqnr = getMaxSequenceNumber();
@@ -730,23 +882,16 @@ public class PedometerService extends Service implements SensorEventListener, Se
                 // We will be working backwards in time
                 for (i -= 1; i >= 0; i--) {
                     Log.i(TAG, "doInBackground: Processing file " + i);
-                    byte[] filebytes;
-                    try {
-                        // Get file pointer
-                        if (i > 0) {
-                            file = new java.io.File(getFilesDir(), "pedometer-" + i + ".cache");
-                        } else {
-                            file = new java.io.File(getFilesDir(), "pedometer.cache");
-                        }
-                        RandomAccessFile fobj = new RandomAccessFile(file, "r");
-                        filebytes = new byte[(int) fobj.length()];
-                        fobj.read(filebytes);
-                        fobj.close();
-                    } catch (FileNotFoundException e) {
-                        Log.e(TAG, "doInBackground: File not found - wtf", e);
-                        continue;
-                    } catch (IOException e) {
-                        Log.e(TAG, "doInBackground: IOException: ", e);
+
+                    // Get file pointer
+                    if (i > 0) {
+                        file = new File(getFilesDir(), "pedometer-" + i + ".cache");
+                    } else {
+                        file = new File(getFilesDir(), "pedometer.cache");
+                    }
+                    byte[] filebytes = readFileRaw(file);
+                    if (filebytes == null) {
+                        Log.e(TAG, "doInBackground: Loading of file failed, skipping");
                         continue;
                     }
 
@@ -791,26 +936,10 @@ public class PedometerService extends Service implements SensorEventListener, Se
                     }
 
                     // Merge the two Hashtables
-                    // Take the intersection of both sets
-                    Set<DateTime> intersect = new HashSet<>(result.keySet());
-                    intersect.retainAll(oldHashtable.keySet());
-                    if (intersect.isEmpty()) {
-                        // If the intersection is empty, we can just add all elements from the old hashtable to the current one,
-                        // without fear of overwriting important data
-                        result.putAll(oldHashtable);
-                    } else {
-                        for (DateTime t : oldHashtable.keySet()) {
-                            if (result.containsKey(t)) {
-                                // There is already a value under this key, Add the step counts
-                                long oldval = result.get(t);
-                                oldval += oldHashtable.get(t);
-                                result.put(t, oldval);
-                            } else {
-                                // No collision, transfer value
-                                result.put(t, oldHashtable.get(t));
-                            }
-                        }
+                    if (result == null) {
+                        result = new Hashtable<>(mCache);
                     }
+                    result = merge(result, oldHashtable);
                     Log.i(TAG, "doInBackground: merge complete");
 
                     // At this point, we have successfully merged the two Hashtables into one
@@ -833,7 +962,6 @@ public class PedometerService extends Service implements SensorEventListener, Se
             } else {
                 // If this statement is reached, no cache files have been detected. Return null
                 Log.i(TAG, "doInBackground: No cache files found");
-                return null;
             }
             Log.i(TAG, "doInBackground: Finished, returning result");
             return result;
@@ -875,6 +1003,59 @@ public class PedometerService extends Service implements SensorEventListener, Se
                 return false;
             }
             return true;
+        }
+
+
+        /**
+         * Read the raw bytes from a file and return them
+         * @param file The file to read
+         * @return The raw bytes, or null if an error occured
+         */
+        private byte[] readFileRaw(File file) {
+            byte[] filebytes = null;
+
+            try {
+                RandomAccessFile fobj = new RandomAccessFile(file, "r");
+                filebytes = new byte[(int) fobj.length()];
+                fobj.read(filebytes);
+                fobj.close();
+            }
+            catch (IOException e) {
+                Log.e(TAG, "readFileRaw: Error during read: ", e);
+            }
+            return filebytes;
+        }
+
+
+        /**
+         * Merge two hashtables
+         * @param base The base hashtable
+         * @param newvalues The new hashtable
+         * @return The merged hashtable
+         */
+        private Hashtable<DateTime, Long> merge(Hashtable<DateTime,Long> base, Hashtable<DateTime, Long> newvalues) {
+            // Take the intersection of both sets
+            Set<DateTime> intersect = new HashSet<>(base.keySet());
+            Hashtable<DateTime, Long> result = new Hashtable<>();
+            intersect.retainAll(newvalues.keySet());
+            if (intersect.isEmpty()) {
+                // If the intersection is empty, we can just add all elements from the old hashtable to the current one,
+                // without fear of overwriting important data
+                result.putAll(newvalues);
+            } else {
+                for (DateTime t : newvalues.keySet()) {
+                    if (base.containsKey(t)) {
+                        // There is already a value under this key, Add the step counts
+                        long oldval = base.get(t);
+                        oldval += newvalues.get(t);
+                        result.put(t, oldval);
+                    } else {
+                        // No collision, transfer value
+                        result.put(t, newvalues.get(t));
+                    }
+                }
+            }
+            return result;
         }
     }
 
