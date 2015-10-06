@@ -43,8 +43,6 @@ import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.maps.android.ui.IconGenerator;
 
-import net.sqlcipher.database.SQLiteDatabase;
-
 import java.util.List;
 
 import de.greenrobot.event.EventBus;
@@ -53,7 +51,9 @@ import de.velcommuta.denul.db.LocationLoggingContract;
 import de.velcommuta.denul.event.DatabaseResultEvent;
 import de.velcommuta.denul.event.GPSLocationEvent;
 import de.velcommuta.denul.event.GPSTrackEvent;
+import de.velcommuta.denul.service.DatabaseServiceBinder;
 import de.velcommuta.denul.service.GPSTrackingService;
+import de.velcommuta.denul.service.PedometerService;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -311,7 +311,6 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         // Start GPS tracking service
         Intent intent = new Intent(getActivity(), GPSTrackingService.class);
         getActivity().startService(intent);
-        // TODO Convert to foreground service w/ notification
 
         Log.d(TAG, "startTracking: Started run");
     }
@@ -887,7 +886,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
     @SuppressWarnings("unused")
     public void onEventAsync(GPSTrackEvent ev) {
         // Get a handler on the database
-        SQLiteDatabase db = ((MainActivity)getActivity()).getLocationDatabaseHandler();
+        DatabaseServiceBinder db = ((MainActivity)getActivity()).getDbBinder();
         if (db == null) {
             EventBus.getDefault().post(new DatabaseResultEvent("Database not open"));
             return;
@@ -926,7 +925,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
             db.insert(LocationLoggingContract.LocationLog.TABLE_NAME, null, entry);
         }
         // Finish transaction
-        db.endTransaction();
+        db.commit();
         // Notify main thread
         EventBus.getDefault().post(new DatabaseResultEvent(getString(R.string.save_success)));
     }

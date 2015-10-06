@@ -8,7 +8,7 @@ import net.sqlcipher.database.SQLiteOpenHelper;
 /**
  * DB Helper for the location logging database
  */
-public class LocationLoggingDbHelper extends SQLiteOpenHelper {
+public class SecureDbHelper extends SQLiteOpenHelper {
     // Universal constants for the construction of SQL queries
     private static final String TYPE_TEXT = " TEXT";
     private static final String TYPE_INT = " INTEGER";
@@ -43,22 +43,54 @@ public class LocationLoggingDbHelper extends SQLiteOpenHelper {
             LocationLoggingContract.LocationSessions.COLUMN_NAME_MODE + TYPE_INT + OPT_DEFAULT_ZERO +
             ");";
 
+    private static final String SQL_CREATE_ENTRIES_KEYSTORE
+            = "CREATE TABLE " + VaultContract.KeyStore.TABLE_NAME + "(" +
+            VaultContract.KeyStore._ID + TYPE_INT + OPT_PRIMARY_KEY + COMMA_SEP +
+            VaultContract.KeyStore.COLUMN_KEY_TYPE + TYPE_INT + OPT_NOT_NULL + COMMA_SEP +
+            VaultContract.KeyStore.COLUMN_KEY_NAME + TYPE_TEXT + COMMA_SEP +
+            VaultContract.KeyStore.COLUMN_KEY_BYTES + TYPE_TEXT + OPT_NOT_NULL +
+            ");";
+
+    private static final String SQL_CREATE_ENTRIES_STEPCOUNTER
+            = "CREATE TABLE " + StepLoggingContract.StepCountLog.TABLE_NAME + "(" +
+            StepLoggingContract.StepCountLog._ID + TYPE_INT + OPT_PRIMARY_KEY + COMMA_SEP +
+            StepLoggingContract.StepCountLog.COLUMN_DATE + TYPE_DATETIME + OPT_NOT_NULL + COMMA_SEP +
+            StepLoggingContract.StepCountLog.COLUMN_TIME + TYPE_DATETIME + OPT_NOT_NULL + COMMA_SEP +
+            StepLoggingContract.StepCountLog.COLUMN_VALUE + TYPE_INT + OPT_NOT_NULL +
+            ");";
+
+    private static final String SQL_CREATE_ENTRIES_SEQUENCE_NUMBERS
+            = "CREATE TABLE " + VaultContract.SequenceNumberStore.TABLE_NAME + "(" +
+            VaultContract.SequenceNumberStore._ID + TYPE_INT + OPT_PRIMARY_KEY + COMMA_SEP +
+            VaultContract.SequenceNumberStore.COLUMN_SNR_TYPE + TYPE_TEXT + OPT_NOT_NULL + COMMA_SEP +
+            VaultContract.SequenceNumberStore.COLUMN_SNR_VALUE + TYPE_INT + OPT_NOT_NULL +
+            ");";
+
     private static final String SQL_DROP_LOCATIONLOG =
             "DROP TABLE " + LocationLoggingContract.LocationLog.TABLE_NAME + ";";
 
     private static final String SQL_DROP_LOCATIONSESSIONS =
             "DROP TABLE " + LocationLoggingContract.LocationSessions.TABLE_NAME + ";";
 
-    public static final String DATABASE_NAME = "location.db";
+    private static final String SQL_DROP_KEYSTORE =
+            "DROP TABLE " + VaultContract.KeyStore.TABLE_NAME + ";";
 
-    public static final int DATABASE_VERSION = 2;
+    private static final String SQL_DROP_STEPCOUNTER =
+            "DROP TABLE " + StepLoggingContract.StepCountLog.TABLE_NAME + ";";
+
+    private static final String SQL_DROP_SEQUENCE_NUMBERS =
+            "DROP TABLE " + VaultContract.SequenceNumberStore.TABLE_NAME + ";";
+
+    public static final String DATABASE_NAME = "location.db"; // TODO Update
+
+    public static final int DATABASE_VERSION = 7;
 
 
     /**
      * Constructor for Helper function
      * @param ctx Context object
      */
-    public LocationLoggingDbHelper(Context ctx) {
+    public SecureDbHelper(Context ctx) {
         super(ctx, DATABASE_NAME, null, DATABASE_VERSION);
     }
 
@@ -75,13 +107,18 @@ public class LocationLoggingDbHelper extends SQLiteOpenHelper {
     public void onCreate(SQLiteDatabase db) {
         db.execSQL(SQL_CREATE_ENTRIES_LOCATIONSESSIONS);
         db.execSQL(SQL_CREATE_ENTRIES_LOCATIONLOG);
+        db.execSQL(SQL_CREATE_ENTRIES_KEYSTORE);
+        db.execSQL(SQL_CREATE_ENTRIES_STEPCOUNTER);
+        db.execSQL(SQL_CREATE_ENTRIES_SEQUENCE_NUMBERS);
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        // TODO Proper code when we go into production
         db.execSQL(SQL_DROP_LOCATIONLOG);
         db.execSQL(SQL_DROP_LOCATIONSESSIONS);
+        db.execSQL(SQL_DROP_KEYSTORE);
+        db.execSQL(SQL_DROP_STEPCOUNTER);
+        db.execSQL(SQL_DROP_SEQUENCE_NUMBERS);
         onCreate(db);
     }
 }
