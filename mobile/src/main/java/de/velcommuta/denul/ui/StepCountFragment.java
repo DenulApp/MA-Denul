@@ -13,26 +13,16 @@ import android.view.ViewGroup;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
-import net.sqlcipher.Cursor;
-
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
-import org.joda.time.format.DateTimeFormat;
-
-import de.greenrobot.event.EventBus;
 import de.velcommuta.denul.R;
-import de.velcommuta.denul.db.StepLoggingContract;
-import de.velcommuta.denul.event.DatabaseAvailabilityEvent;
-import de.velcommuta.denul.event.ServiceReplyEvent;
-import de.velcommuta.denul.event.ServiceRequestEvent;
-import de.velcommuta.denul.service.DatabaseService;
-import de.velcommuta.denul.service.DatabaseServiceBinder;
+import de.velcommuta.denul.service.PedometerService;
+import de.velcommuta.denul.service.PedometerServiceBinder;
+import de.velcommuta.denul.service.UpdateListener;
 
 
 /**
  * Fragment to display the step count
  */
-public class StepCountFragment extends Fragment implements ServiceConnection {
+public class StepCountFragment extends Fragment implements ServiceConnection, UpdateListener {
     private static final String TAG = "StepCountFragment";
 
     // Instance variables
@@ -40,10 +30,8 @@ public class StepCountFragment extends Fragment implements ServiceConnection {
     private ProgressBar mProgressBar;
 
     // Database binder
-    private DatabaseServiceBinder mBinder;
+    private PedometerServiceBinder mBinder;
 
-    // EventBus
-    private EventBus mEventBus;
 
     /**
      * Use this factory method to create a new instance of
@@ -69,13 +57,12 @@ public class StepCountFragment extends Fragment implements ServiceConnection {
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         View v = inflater.inflate(R.layout.fragment_step_count, container, false);
-        mStepCountDisplay = (TextView)    v.findViewById(R.id.stepcount);
-        mProgressBar      = (ProgressBar) v.findViewById(R.id.progressBar);
+        mStepCountDisplay = (TextView) v.findViewById(R.id.stepcount);
+        mProgressBar = (ProgressBar) v.findViewById(R.id.progressBar);
         // TODO Find a way to overlay a checkmark on the progressbar to show if the daily goal was achieved (overlays?)
 
         mProgressBar.setMax(10000); // Max = Target number of 10k steps per day
 
-        mEventBus = EventBus.getDefault();
         return v;
     }
 
@@ -89,155 +76,68 @@ public class StepCountFragment extends Fragment implements ServiceConnection {
     @Override
     public void onResume() {
         super.onResume();
-        bindDbService();
-        Log.d(TAG, "onResume: Registering with EventBus");
-        mEventBus.register(this);
-        mEventBus.post(new ServiceRequestEvent(ServiceRequestEvent.SERVICE_PEDOMETER, ServiceRequestEvent.REQUEST_UPDATE));
+        Log.d(TAG, "onResume: Getting binding");
+        bindPedometerService();
     }
 
 
     @Override
     public void onPause() {
         super.onPause();
-        Log.d(TAG, "onPause: Unbinding and unregistering from eventbus");
+        Log.d(TAG, "onPause: Unbinding and unregistering listeners");
+        mBinder.removeUpdateListener(this);
         getActivity().unbindService(this);
-        mEventBus.unregister(this);
     }
 
 
     @Override
     public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
-        mBinder = (DatabaseServiceBinder) iBinder;
-        Log.i(TAG, "onServiceConnected: Database binder received");
-        DatabaseAvailabilityEvent ev = mEventBus.getStickyEvent(DatabaseAvailabilityEvent.class);
-        if (ev.getStatus() == DatabaseAvailabilityEvent.OPENED) {
-            onEvent(ev);
-        }
+        mBinder = (PedometerServiceBinder) iBinder;
+        Log.i(TAG, "onServiceConnected: Pedometer binder received");
+        mBinder.addUpdateListener(this);
+        updateUI();
     }
 
 
     @Override
     public void onServiceDisconnected(ComponentName componentName) {
         mBinder = null;
-        Log.i(TAG, "onServiceDisconnected: Lost database binder");
+        Log.i(TAG, "onServiceDisconnected: Lost Pedometer binder");
     }
 
 
     /**
-     * Check if the database is available
-     * @return True if the database is available, false otherwise
+     * Bind to the Pedometer service
      */
-    private boolean isDbConnected() {
-        return (mBinder != null && mBinder.isDatabaseOpen());
+    private void bindPedometerService() {
+        if (!PedometerService.isRunning(getActivity())) {
+            Log.e(TAG, "bindPedometerService: PedometerService not running");
+            return;
+        }
+        Intent intent = new Intent(getActivity(), PedometerService.class);
+        getActivity().bindService(intent, this, 0);
     }
 
 
     /**
      * Get todays total step count
      */
-    private void getStepCountToday() {
-        if (!isDbConnected()) {
-            Log.e(TAG, "getStepCountToday: Database unavailable");
+    private void updateUI() {
+        if (mBinder == null) {
+            Log.e(TAG, "updateUI: Binder is null, aborting");
             return;
         }
-        Cursor c = mBinder.query(StepLoggingContract.StepCountLog.TABLE_NAME,
-                new String[] {StepLoggingContract.StepCountLog.COLUMN_TIME, StepLoggingContract.StepCountLog.COLUMN_VALUE},
-                StepLoggingContract.StepCountLog.COLUMN_DATE + " LIKE ?",
-                new String[] {formatDay(getTimestamp())},
-                null,
-                null,
-                null);
-        int total = 0;
-        if (c.getCount() > 0) {
-
-            while (c.moveToNext()) {
-                total += c.getInt(c.getColumnIndexOrThrow(StepLoggingContract.StepCountLog.COLUMN_VALUE));
-            }
-        }
-        c.close();
+        int total = mBinder.getSumToday();
         mProgressBar.setProgress(total);
         mStepCountDisplay.setText("" + total);
     }
 
 
     /**
-     * Get the current timestamp as a datetime object
-     * @return The current timestamp, accurate to the hour
+     * Update listener for the pedometer service
      */
-    private DateTime getTimestamp() {
-        return DateTime.now( DateTimeZone.getDefault() ).withMillisOfSecond(0).withSecondOfMinute(0).withMinuteOfHour(0);
-    }
-
-
-    /**
-     * Get the date formatted for the provided DateTime object
-     * @param dt DateTime object
-     * @return A string representation of the date
-     */
-    private String formatDay(DateTime dt) {
-        return dt.toString(DateTimeFormat.forPattern("dd/MM/yyyy"));
-    }
-
-
-    /**
-     * Bind to the database service
-     * @return True if binding is expected to be successful, false otherwise
-     */
-    private boolean bindDbService() {
-        if (!DatabaseService.isRunning(getActivity())) {
-            Log.e(TAG, "bindDbService: Database service not running");
-            return false;
-        }
-        Intent intent = new Intent(getActivity(), DatabaseService.class);
-        if (!getActivity().bindService(intent, this, 0)) {
-            Log.e(TAG, "bindDbService: An error occured during binding :(");
-            return false;
-        } else {
-            Log.d(TAG, "bindDbService: Database service binding request sent");
-            return true;
-        }
-    }
-
-
-    /**
-     * Event handler for EventBus DatabaseAvailabilityEvents
-     * @param ev The event
-     */
-    public void onEvent(DatabaseAvailabilityEvent ev) {
-        if (ev.getStatus() == DatabaseAvailabilityEvent.STARTED) {
-            Log.d(TAG, "onEvent(DatabaseAvailabilityEvent): Service STARTED, binding");
-            bindDbService();
-        } else if (ev.getStatus() == DatabaseAvailabilityEvent.OPENED) {
-            Log.d(TAG, "onEvent(DatabaseAvailabilityEvent): Database OPENED");
-            if (mBinder != null) {
-                getStepCountToday();
-            }
-        } else if (ev.getStatus() == DatabaseAvailabilityEvent.CLOSED) {
-            Log.d(TAG, "onEvent(DatabaseAvailabilityEvent): Database CLOSED");
-        } else if (ev.getStatus() == DatabaseAvailabilityEvent.STOPPED) {
-            getActivity().unbindService(this);
-            Log.d(TAG, "onEvent(DatabaseAvailabilityEvent): Database STOPPED");
-            mBinder = null;
-        }
-    }
-
-
-    /**
-     * EventHandler for EventBus ServiceReplyEvents
-     * @param ev The event
-     */
-    @SuppressWarnings("unused")
-    public void onEvent(ServiceReplyEvent ev) {
-        if (ev.getService() != ServiceReplyEvent.SERVICE_PEDOMETER) {
-            return;
-        }
-        if (ev.getReply() == ServiceReplyEvent.REPLY_UPDATE_COMPLETE) {
-            if (isDbConnected()) {
-                Log.d(TAG, "onEvent(ServiceReplyEvent): Grabbing the database updates");
-                getStepCountToday();
-            } else {
-                Log.w(TAG, "onEvent(ServiceReplyEvent): Database was updated, but we have no binder :(");
-            }
-        }
+    @Override
+    public void update() {
+        updateUI();
     }
 }

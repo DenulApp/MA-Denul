@@ -17,6 +17,7 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.AsyncTask;
+import android.os.Binder;
 import android.os.IBinder;
 import android.os.SystemClock;
 import android.util.Log;
@@ -43,6 +44,8 @@ import java.security.PublicKey;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 
 import javax.crypto.BadPaddingException;
@@ -56,8 +59,6 @@ import de.velcommuta.denul.event.DatabaseAvailabilityEvent;
 import de.velcommuta.denul.crypto.FileOperation;
 import de.velcommuta.denul.crypto.Hybrid;
 import de.velcommuta.denul.crypto.RSA;
-import de.velcommuta.denul.event.ServiceReplyEvent;
-import de.velcommuta.denul.event.ServiceRequestEvent;
 
 /**
  * Pedometer service for step counting using the built-in pedometer, if available
@@ -74,11 +75,18 @@ public class PedometerService extends Service implements SensorEventListener, Se
     private boolean mDatabaseAvailable = false;
     private DatabaseServiceBinder mDatabaseBinder = null;
 
-    private Hashtable<DateTime, Long> mHistory;
+    private Hashtable<DateTime, Long> mCache;
+    private Hashtable<DateTime, Long> mToday;
     // TODO Think about replacing this with a Hashtable<DateTime, Int>
+
+    // Daily sum of steps
+    private int mTodaySum = 0;
 
     private long mStartTimeWall = System.currentTimeMillis();
     private long mStartTimeSystem = SystemClock.elapsedRealtime();
+
+    private Binder mBinder;
+    private List<UpdateListener> mListeners;
 
     ///// Service lifecycle management
     /**
@@ -133,7 +141,9 @@ public class PedometerService extends Service implements SensorEventListener, Se
             }
 
             // initialize data structure
-            mHistory = new Hashtable<>();
+            mCache = new Hashtable<>();
+            mToday = new Hashtable<>();
+            mListeners = new LinkedList<>();
 
             // Set up the pedometer
             // Get Sensor Manager
@@ -164,8 +174,14 @@ public class PedometerService extends Service implements SensorEventListener, Se
 
     @Override
     public IBinder onBind(Intent intent) {
-        // Service is not bindable
-        return null;
+        if (!isRunning(this)) {
+            Log.e(TAG, "onBind: Service bound but not started before, aborting");
+            return null;
+        }
+        if (mBinder == null) {
+            mBinder = new MyPedometerBinder();
+        }
+        return mBinder;
     }
 
 
@@ -176,18 +192,29 @@ public class PedometerService extends Service implements SensorEventListener, Se
         // We are saving step counts per hour. Thus, the exact value of the event is not interesting
         // to us. Instead, we use the fact that we will get one event per step, and can thus simply
         // increment the step counter, disregarding the actual value of the event
-        Long cvalue = mHistory.get(timestamp);
+        Long cvalue = mCache.get(timestamp);
         if (cvalue != null) {
-            mHistory.put(timestamp, cvalue + (long) 1);
+            mCache.put(timestamp, cvalue + (long) 1);
+            mToday.put(timestamp, cvalue + (long) 1);
         } else {
+            if (timestamp.getHourOfDay() == 0) {
+                // We have rolled over to a new day, reset the "today" cache
+                mToday.clear();
+                mTodaySum = 0;
+            }
             // We have just rolled over to a new hour
-            mHistory.put(timestamp, (long) 1);
-            if (mDatabaseAvailable) {
+            mCache.put(timestamp, (long) 1);
+            mToday.put(timestamp, (long) 1);
+            // TODO Save to database AND overwrite current cache file
+            if (DatabaseService.isRunning(this)) {
                 // If the database is currently available, this is a good time to save our state to it
                 // Request a database binder, which will kick off the process of saving to the database
                 requestDatabaseBinder();
             }
         }
+        // Update daily sum
+        mTodaySum += 1;
+        notifyListeners();
     }
 
 
@@ -220,27 +247,6 @@ public class PedometerService extends Service implements SensorEventListener, Se
             Log.d(TAG, "onEvent(DatabaseAvailabilityEvent): Service STOPPED");
             mDatabaseAvailable = false;
             mDatabaseBinder = null;
-        }
-    }
-
-
-    /**
-     * Callback for EventBus to deliver DatabaseAvailabilityEvents
-     * @param ev the Event
-     */
-    @SuppressWarnings("unused")
-    public void onEvent(ServiceRequestEvent ev) {
-        if (ev.getService() != ServiceRequestEvent.SERVICE_PEDOMETER) {
-            return;
-        }
-        if (ev.getRequest() == ServiceRequestEvent.REQUEST_STATUS) {
-            mEventBus.post(new ServiceReplyEvent(ServiceReplyEvent.SERVICE_PEDOMETER, ServiceReplyEvent.REPLY_STATUS_ONLINE));
-        } else if (ev.getRequest() == ServiceRequestEvent.REQUEST_UPDATE) {
-            if (DatabaseService.isRunning(this)) {
-                requestDatabaseBinder();
-            } else {
-                mEventBus.post(new ServiceReplyEvent(ServiceReplyEvent.SERVICE_PEDOMETER, ServiceReplyEvent.REPLY_UPDATE_FAILED));
-            }
         }
     }
 
@@ -298,12 +304,31 @@ public class PedometerService extends Service implements SensorEventListener, Se
     private DateTime getTimestamp() {
         return DateTime.now( DateTimeZone.getDefault() ).withMillisOfSecond(0).withSecondOfMinute(0).withMinuteOfHour(0);
     }
+
+
+    /**
+     * Recalculate todays sum total of steps
+     */
+    private void updateTodaySum() {
+        // Update the cache for todays events
+        mTodaySum = 0;
+        // Get the current day as a string format for later comparison
+        String formatDate = formatDate( getTimestamp() );
+        for (DateTime dt : mCache.keySet()) {
+            if (formatDate(dt).equals(formatDate)) {
+                mToday.put(dt, mCache.get(dt));
+                mTodaySum += mCache.get(dt);
+            }
+        }
+    }
+
+
     /**
      * Save the state of the service into an encrypted file
      */
     private void saveState() {
         // Serialize the state
-        byte[] state = serializeToByteArray(mHistory);
+        byte[] state = serializeToByteArray(mCache);
         if (state == null) {
             Log.e(TAG, "saveState: Something went wrong during serialization, aborting");
             return;
@@ -383,12 +408,12 @@ public class PedometerService extends Service implements SensorEventListener, Se
         }
         DateTime currentTimestamp = getTimestamp();
         mDatabaseBinder.beginTransaction();
-        for (DateTime ts : mHistory.keySet()) {
+        for (DateTime ts : mCache.keySet()) {
             int c = isInDatabase(ts);
             if (c != -1) {
-                if (c < mHistory.get(ts)) {
+                if (c < mCache.get(ts)) {
                     ContentValues update = new ContentValues();
-                    update.put(StepLoggingContract.StepCountLog.COLUMN_VALUE, mHistory.get(ts));
+                    update.put(StepLoggingContract.StepCountLog.COLUMN_VALUE, mCache.get(ts));
                     String selection = StepLoggingContract.StepCountLog.COLUMN_DATE + " LIKE ? AND "
                             + StepLoggingContract.StepCountLog.COLUMN_TIME + " LIKE ?";
                     String[] selectionArgs = {formatDate(ts), formatTime(ts)};
@@ -399,22 +424,33 @@ public class PedometerService extends Service implements SensorEventListener, Se
                 ContentValues entry = new ContentValues();
                 entry.put(StepLoggingContract.StepCountLog.COLUMN_DATE, formatDate(ts));
                 entry.put(StepLoggingContract.StepCountLog.COLUMN_TIME, formatTime(ts));
-                entry.put(StepLoggingContract.StepCountLog.COLUMN_VALUE, mHistory.get(ts));
+                entry.put(StepLoggingContract.StepCountLog.COLUMN_VALUE, mCache.get(ts));
                 mDatabaseBinder.insert(StepLoggingContract.StepCountLog.TABLE_NAME, null, entry);
             }
         }
         Log.d(TAG, "saveToDatabase: All values saved, committing");
         mDatabaseBinder.commit();
         Log.d(TAG, "saveToDatabase: Removing saved values");
-        for (DateTime ts : mHistory.keySet()) {
+        for (DateTime ts : mCache.keySet()) {
             if (!ts.equals(currentTimestamp)) {
-                mHistory.remove(ts);
+                mCache.remove(ts);
             }
         }
 
+        // Load todays sum
+        loadHistoryToday();
         // Unbind from database
         unbindFromDatabase();
-        mEventBus.post(new ServiceReplyEvent(ServiceReplyEvent.SERVICE_PEDOMETER, ServiceReplyEvent.REPLY_UPDATE_COMPLETE));
+    }
+
+
+    /**
+     * Notify all registered listeners that new data is available
+     */
+    private void notifyListeners() {
+        for (UpdateListener l : mListeners) {
+            l.update();
+        }
     }
 
 
@@ -552,6 +588,33 @@ public class PedometerService extends Service implements SensorEventListener, Se
 
 
     /**
+     * Load todays sum of steps
+     * TODO Also load the individual entries for mToday
+     */
+    private void loadHistoryToday() {
+        if (!mDatabaseAvailable || mDatabaseBinder == null) {
+            Log.e(TAG, "loadHistoryToday: Database unavailable");
+            return;
+        }
+        Cursor c = mDatabaseBinder.query(StepLoggingContract.StepCountLog.TABLE_NAME,
+                new String[] {"SUM(" + StepLoggingContract.StepCountLog.COLUMN_VALUE + ")"},
+                StepLoggingContract.StepCountLog.COLUMN_DATE + " LIKE ?",
+                new String[] {formatDate(getTimestamp())},
+                StepLoggingContract.StepCountLog.COLUMN_DATE, // groupby
+                null, // having
+                null); // orderby
+        if (c.getCount() > 0) {
+            c.moveToFirst();
+            mTodaySum = c.getInt(c.getColumnIndexOrThrow("SUM("+StepLoggingContract.StepCountLog.COLUMN_VALUE + ")"));
+            Log.d(TAG, "loadHistoryToday: Got a result");
+        } else {
+            Log.d(TAG, "loadHistoryToday: Nothing in the database for today");
+        }
+        c.close();
+        notifyListeners();
+    }
+
+    /**
      * Store an updated maximum seen sequence number
      * @param seqnr The sequence number
      */
@@ -630,7 +693,7 @@ public class PedometerService extends Service implements SensorEventListener, Se
         @Override
         protected Hashtable<DateTime, Long> doInBackground(Void... v) {
             // Create a copy of the current hashtable to perform work on
-            Hashtable<DateTime, Long> result = new Hashtable<>(mHistory);
+            Hashtable<DateTime, Long> result = new Hashtable<>(mCache);
             // Create variable to save number of files into
             int highestSeenFile;
             // Detect if cache files exist
@@ -782,7 +845,7 @@ public class PedometerService extends Service implements SensorEventListener, Se
                 Log.i(TAG, "onPostExecute: ht == null");
             } else {
                 // Replace the cache Hashtable with our merged one
-                mHistory = ht;
+                mCache = ht;
                 Log.d(TAG, "onPostExecute: Hashtable replaced");
             }
             saveToDatabase();
@@ -824,6 +887,50 @@ public class PedometerService extends Service implements SensorEventListener, Se
             if (intent.getAction().equals(Intent.ACTION_SHUTDOWN) || intent.getAction().equals(Intent.ACTION_REBOOT)) {
                 Log.i(TAG, "onReceive: Got shutdown / reboot broadcast, stopping service");
                 stopSelf();
+            }
+        }
+    }
+
+
+    /**
+     * Private binder class
+     */
+    private class MyPedometerBinder extends Binder implements PedometerServiceBinder {
+
+        /**
+         * Get todays sum of steps
+         * @return Todays sum of steps
+         */
+        @Override
+        public int getSumToday() {
+            return mTodaySum;
+        }
+
+
+        /**
+         * Get todays event list
+         * @return Todays event list
+         */
+        @Override
+        public Hashtable<DateTime, Long> getToday() {
+            return mToday;
+        }
+
+
+        @Override
+        public void addUpdateListener(UpdateListener listener) {
+            Log.d(TAG, "addUpdateListener: Update listener received");
+            mListeners.add(listener);
+        }
+
+
+        @Override
+        public void removeUpdateListener(UpdateListener listener) {
+            if (mListeners.contains(listener)) {
+                Log.d(TAG, "removeUpdateListener: Listener removed");
+                mListeners.remove(listener);
+            } else {
+                Log.w(TAG, "removeUpdateListener: Listener was not registered, doing nothing");
             }
         }
     }
