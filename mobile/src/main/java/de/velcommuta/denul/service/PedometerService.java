@@ -109,7 +109,7 @@ public class PedometerService extends Service implements SensorEventListener, Se
                 // No step counter sensor available :(
                 Log.e(TAG, "onStartCommand: No step count sensor available, stopping service");
                 stopSelf();
-                return Service.START_STICKY;
+                return Service.START_NOT_STICKY;
             }
             File oldSessionCache = new File(getFilesDir(), "pedometer-session.cache");
             if (oldSessionCache.exists()) {
@@ -146,7 +146,7 @@ public class PedometerService extends Service implements SensorEventListener, Se
             if (mPubkey == null) {
                 Log.e(TAG, "onStartCommand: Pubkey loading failed, aborting");
                 stopSelf();
-                return Service.START_STICKY;
+                return Service.START_NOT_STICKY;
             }
             Log.d(TAG, "onStartCommand: Successfully loaded Pubkey");
             // Load sequence number
@@ -176,14 +176,18 @@ public class PedometerService extends Service implements SensorEventListener, Se
 
     @Override
     public void onDestroy() {
-        mSensorManager.unregisterListener(this);
-        mEventBus.unregister(this);
+        if (mSensorManager != null) {
+            mSensorManager.unregisterListener(this);
+            saveState();
+            unregisterReceiver(mShutdownReceiver);
+        }
+        if (mEventBus != null) {
+            mEventBus.unregister(this);
+        }
         if (mDatabaseBinder != null) {
             saveToDatabase();
             unbindFromDatabase();
         }
-        saveState();
-        unregisterReceiver(mShutdownReceiver);
         Log.d(TAG, "onDestroy: Shutting down");
     }
 
