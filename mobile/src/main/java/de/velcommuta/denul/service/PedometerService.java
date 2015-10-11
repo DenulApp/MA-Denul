@@ -42,6 +42,7 @@ import java.nio.ByteBuffer;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.Arrays;
+import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.LinkedList;
@@ -552,7 +553,9 @@ public class PedometerService extends Service implements SensorEventListener, Se
         Log.d(TAG, "saveToDatabase: All values saved, committing");
         mDatabaseBinder.commit();
         Log.d(TAG, "saveToDatabase: Removing saved values");
-        for (DateTime ts : mCache.keySet()) {
+        Enumeration<DateTime> keys = mCache.keys();
+        while (keys.hasMoreElements()) {
+            DateTime ts = keys.nextElement();
             if (!ts.equals(currentTimestamp)) {
                 mCache.remove(ts);
             }
