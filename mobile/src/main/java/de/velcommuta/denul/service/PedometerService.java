@@ -78,6 +78,7 @@ public class PedometerService extends Service implements SensorEventListener, Se
 
     private Hashtable<DateTime, Long> mCache;
     private Hashtable<DateTime, Long> mToday;
+    private DateTime mLastTick;
     // TODO Think about replacing this with a Hashtable<DateTime, Int>
 
     // Daily sum of steps
@@ -160,6 +161,7 @@ public class PedometerService extends Service implements SensorEventListener, Se
             // initialize data structure
             mCache = new Hashtable<>();
             mToday = new Hashtable<>();
+            mLastTick = getTimestamp();
             mListeners = new LinkedList<>();
 
             // Set up the pedometer
@@ -248,11 +250,13 @@ public class PedometerService extends Service implements SensorEventListener, Se
                 saveCache();
             }
         } else {
-            if (timestamp.getHourOfDay() == 0) {
+            if (timestamp.getDayOfMonth() != mLastTick.getDayOfMonth()) {
                 // We have rolled over to a new day, reset the "today" cache
                 mToday.clear();
                 mTodaySum = 0;
             }
+            // Update the last seen timestamp
+            mLastTick = timestamp;
             // We have just rolled over to a new hour
             mCache.put(timestamp, (long) 1);
             mToday.put(timestamp, (long) 1);
