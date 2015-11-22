@@ -83,7 +83,9 @@ public class AES {
             aesCipher.init(Cipher.ENCRYPT_MODE, key);
             // Get the algorithm parameters
             AlgorithmParameters params = aesCipher.getParameters();
-            // Extract the IV
+            // Set the IV
+            // TODO Specify IV as parameter to function so we can use ctr values as IV?
+            // Reminder: IV Reuse is deadly when using AES-GCM
             byte[] iv = params.getParameterSpec(IvParameterSpec.class).getIV();
             // Add header to authentication
             if (header != null) {
