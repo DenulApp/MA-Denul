@@ -38,6 +38,11 @@ public interface Protocol {
     int connect(Connection conn);
 
     /**
+     * Disconect from the server
+     */
+    void disconnect();
+
+    /**
      * Retrieve a key saved under a specific value from the server.
      * @param key The key to check for
      * @return The value saved under that key, or null if the key is not set
