@@ -35,6 +35,8 @@ dependencies {
     // Play services (for maps and stuff like that)
     compile 'com.google.android.gms:play-services-location:8.1.0'
     compile 'com.google.android.gms:play-services-maps:8.1.0'
+    // Protocol buffers
+    compile 'com.google.protobuf:protobuf-java:2.6.1'
     // Android maps utils (for markers on maps)
     compile 'com.google.maps.android:android-maps-utils:0.4+'
     // MPAndroidChart for charts (doh)
