@@ -42,6 +42,7 @@ import java.nio.ByteBuffer;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.Arrays;
+import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.LinkedList;
@@ -77,6 +78,7 @@ public class PedometerService extends Service implements SensorEventListener, Se
 
     private Hashtable<DateTime, Long> mCache;
     private Hashtable<DateTime, Long> mToday;
+    private DateTime mLastTick;
     // TODO Think about replacing this with a Hashtable<DateTime, Int>
 
     // Daily sum of steps
@@ -109,7 +111,7 @@ public class PedometerService extends Service implements SensorEventListener, Se
                 // No step counter sensor available :(
                 Log.e(TAG, "onStartCommand: No step count sensor available, stopping service");
                 stopSelf();
-                return Service.START_STICKY;
+                return Service.START_NOT_STICKY;
             }
             File oldSessionCache = new File(getFilesDir(), "pedometer-session.cache");
             if (oldSessionCache.exists()) {
@@ -146,7 +148,7 @@ public class PedometerService extends Service implements SensorEventListener, Se
             if (mPubkey == null) {
                 Log.e(TAG, "onStartCommand: Pubkey loading failed, aborting");
                 stopSelf();
-                return Service.START_STICKY;
+                return Service.START_NOT_STICKY;
             }
             Log.d(TAG, "onStartCommand: Successfully loaded Pubkey");
             // Load sequence number
@@ -159,6 +161,7 @@ public class PedometerService extends Service implements SensorEventListener, Se
             // initialize data structure
             mCache = new Hashtable<>();
             mToday = new Hashtable<>();
+            mLastTick = getTimestamp();
             mListeners = new LinkedList<>();
 
             // Set up the pedometer
@@ -176,14 +179,18 @@ public class PedometerService extends Service implements SensorEventListener, Se
 
     @Override
     public void onDestroy() {
-        mSensorManager.unregisterListener(this);
-        mEventBus.unregister(this);
+        if (mSensorManager != null) {
+            mSensorManager.unregisterListener(this);
+            saveState();
+            unregisterReceiver(mShutdownReceiver);
+        }
+        if (mEventBus != null) {
+            mEventBus.unregister(this);
+        }
         if (mDatabaseBinder != null) {
             saveToDatabase();
             unbindFromDatabase();
         }
-        saveState();
-        unregisterReceiver(mShutdownReceiver);
         Log.d(TAG, "onDestroy: Shutting down");
     }
 
@@ -243,11 +250,13 @@ public class PedometerService extends Service implements SensorEventListener, Se
                 saveCache();
             }
         } else {
-            if (timestamp.getHourOfDay() == 0) {
+            if (timestamp.getDayOfMonth() != mLastTick.getDayOfMonth()) {
                 // We have rolled over to a new day, reset the "today" cache
                 mToday.clear();
                 mTodaySum = 0;
             }
+            // Update the last seen timestamp
+            mLastTick = timestamp;
             // We have just rolled over to a new hour
             mCache.put(timestamp, (long) 1);
             mToday.put(timestamp, (long) 1);
@@ -548,7 +557,9 @@ public class PedometerService extends Service implements SensorEventListener, Se
         Log.d(TAG, "saveToDatabase: All values saved, committing");
         mDatabaseBinder.commit();
         Log.d(TAG, "saveToDatabase: Removing saved values");
-        for (DateTime ts : mCache.keySet()) {
+        Enumeration<DateTime> keys = mCache.keys();
+        while (keys.hasMoreElements()) {
+            DateTime ts = keys.nextElement();
             if (!ts.equals(currentTimestamp)) {
                 mCache.remove(ts);
             }

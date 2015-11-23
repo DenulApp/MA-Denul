@@ -85,8 +85,10 @@ public class StepCountFragment extends Fragment implements ServiceConnection, Up
     public void onPause() {
         super.onPause();
         Log.d(TAG, "onPause: Unbinding and unregistering listeners");
-        mBinder.removeUpdateListener(this);
-        getActivity().unbindService(this);
+        if (mBinder != null) {
+            mBinder.removeUpdateListener(this);
+            getActivity().unbindService(this);
+        }
     }
 
 
