@@ -33,10 +33,12 @@ public class TLSConnection implements Connection {
      * @throws SSLHandshakeException If the certificate hostname validation fails
      */
     public TLSConnection(String host, int port) throws IOException, UnknownHostException, SSLHandshakeException {
+        Log.d(TAG, "TLSConnection: Establishing connection to " + host + ":" + port);
         // Get SSL Socket factory
         SocketFactory factory = SSLSocketFactory.getDefault();
         // Create a socket and connect to the host and port, throwing an exception if anything
         // goes wrong
+        Log.d(TAG, "TLSConnection: Establishing connection to " + host + ":" + port);
         mSocket = (SSLSocket) factory.createSocket(host, port);
         // We need to verify the certificate hostname explicitly. Get a hostname verifier
         HostnameVerifier hv = HttpsURLConnection.getDefaultHostnameVerifier();
@@ -44,8 +46,10 @@ public class TLSConnection implements Connection {
         SSLSession s = mSocket.getSession();
         // Verify the hostname
         if (!hv.verify(host, s)) {
+            Log.e(TAG, "TLSConnection: Hostname verification failed - expected " + host + ", found " + s.getPeerPrincipal());
             throw new SSLHandshakeException("Expected " + host + ", but found " + s.getPeerPrincipal());
         }
+        Log.d(TAG, "TLSConnection: Connection established using " + s.getProtocol() + " (" +  s.getCipherSuite() + ")");
     }
 
     @Override
@@ -65,6 +69,7 @@ public class TLSConnection implements Connection {
         // Send the message over the socket
         out.write(fullmsg);
         out.flush();
+        Log.d(TAG, "transceive: Message sent");
 
         // Receive the reply - Receive the length of the reply
         byte[] lenbytes = new byte[4];
@@ -75,6 +80,7 @@ public class TLSConnection implements Connection {
         } while (rcvlen < 4);
         // Parse the received bytes into an integer
         int replylen = ByteBuffer.wrap(lenbytes).getInt();
+        Log.d(TAG, "transceive: Reply has " + replylen + " bytes");
 
         // Receive the body of the reply (again, in a loop to make sure we get it all)
         byte[] replyBytes = new byte[replylen];
@@ -84,6 +90,7 @@ public class TLSConnection implements Connection {
         } while (rcvlen < replylen);
 
         // Return received bytes
+        Log.d(TAG, "transceive: Reply received, returning");
         return replyBytes;
     }
 
