@@ -17,6 +17,4 @@ public class TLSConnectionTest extends TestCase {
             fail("Exception thrown where none was expected: " + e);
         }
     }
-
-
 }
