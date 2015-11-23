@@ -1,0 +1,3 @@
+[submodule "libvicbf"]
+	path = libvicbf
+	url = https://github.com/malexmave/libvicbf
