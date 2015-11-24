@@ -8,6 +8,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Dictionary;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
@@ -153,7 +154,11 @@ public class ProtobufProtocol implements Protocol {
 
     @Override
     public Dictionary<String, byte[]> getMany(List<String> keys) {
-        return null;
+        Dictionary<String, byte[]> rv = new Hashtable<>();
+        for (String key : keys) {
+            rv.put(key, get(key));
+        }
+        return rv;
     }
 
 
