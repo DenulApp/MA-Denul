@@ -103,4 +103,9 @@ public class TLSConnection implements Connection {
             Log.w(TAG, "close: Trying to close socket that is not open");
         }
     }
+
+    @Override
+    public boolean isOpen() {
+        return mSocket.isConnected();
+    }
 }

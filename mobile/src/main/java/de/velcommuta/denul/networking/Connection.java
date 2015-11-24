@@ -20,4 +20,10 @@ public interface Connection {
      * @throws IOException if the underlying socket throws it
      */
     void close() throws IOException;
+
+    /**
+     * Check if the connection is open
+     * @return true if the connection is open, false otherwise
+     */
+    boolean isOpen();
 }
