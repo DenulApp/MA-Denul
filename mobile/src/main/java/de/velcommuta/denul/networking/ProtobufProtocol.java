@@ -31,6 +31,10 @@ public class ProtobufProtocol implements Protocol {
     public int connect(Connection conn) {
         // Store the connection object
         mConnection = conn;
+        if (!mConnection.isOpen()) {
+            Log.e(TAG, "connect: Connection is not connected");
+            return CONNECT_FAIL_NO_CONNECTION;
+        }
         // Get a clientHello message
         MetaMessage.Wrapper ch = getClientHelloMsg();
 
@@ -39,7 +43,7 @@ public class ProtobufProtocol implements Protocol {
         MetaMessage.Wrapper reply = transceiveWrapper(ch);
         if (reply == null) {
             Log.e(TAG, "connect: Wrapper parsing failed, aborting");
-            return CONNECT_FAIL_UNKNOWN_MESSAGE;
+            return CONNECT_FAIL_PROTOCOL_ERROR;
         }
         // Extract the ServerHello from the wrapper
         C2S.ServerHello serverHello = toServerHello(reply);
@@ -56,15 +60,15 @@ public class ProtobufProtocol implements Protocol {
                     Log.d(TAG, "connect: Deserialized VICBF");
                 } catch (IOException e) {
                     Log.e(TAG, "connect: IOException while parsing VICBF. Aborting");
-                    return CONNECT_FAIL_UNKNOWN_MESSAGE;
+                    return CONNECT_FAIL_PROTOCOL_ERROR;
                 }
             } else {
                 Log.e(TAG, "connect: ServerHello did not contain VICBF data");
-                return CONNECT_FAIL_UNKNOWN_MESSAGE;
+                return CONNECT_FAIL_PROTOCOL_ERROR;
             }
         } else {
             Log.e(TAG, "connect: ServerHello parsing failed");
-            return CONNECT_FAIL_UNKNOWN_MESSAGE;
+            return CONNECT_FAIL_PROTOCOL_ERROR;
         }
         return CONNECT_OK;
     }
@@ -83,7 +87,67 @@ public class ProtobufProtocol implements Protocol {
     @Nullable
     @Override
     public byte[] get(String key) {
-        return new byte[0];
+        // Check if the Connection is still open
+        if (!mConnection.isOpen()) {
+            Log.e(TAG, "get: Underlying Connection not connected");
+            return GET_FAIL_NO_CONNECTION;
+        } else if (!checkKeyFormat(key)) {
+            Log.e(TAG, "get: Bad key format");
+            return GET_FAIL_KEY_FMT;
+        }
+        // Check if the key is in the VICBF
+        if (mVICBF.query(key)) {
+            // Create a Get message for the key
+            MetaMessage.Wrapper get = getGetMsg(key);
+            // Query the server
+            MetaMessage.Wrapper getReplyWrapper = transceiveWrapper(get);
+            // Check if the server replied
+            if (getReplyWrapper == null) {
+                Log.e(TAG, "get: TransceiveWrapper failed, aborting");
+                return GET_FAIL_NO_CONNECTION;
+            }
+
+            // Get the GetReply message from the Wrapper
+            C2S.GetReply getReply = toGetReply(getReplyWrapper);
+            // Ensure that we actually got something
+            if (getReply == null) {
+                Log.e(TAG, "get: Wrapper did not contain a GetReply, aborting");
+                return GET_FAIL_PROTOCOL_ERROR;
+            } else if (!getReply.getKey().equals(key)) {
+                // The Keys do not match
+                Log.w(TAG, "get: Server replied for different key, aborting");
+                return GET_FAIL_PROTOCOL_ERROR;
+            } else if (getReply.getOpcode() == C2S.GetReply.GetReplyCode.GET_FAIL_UNKNOWN_KEY) {
+                // The server does not know about this key
+                Log.w(TAG, "get: Get failed, server does not hold a value for the key");
+                return GET_FAIL_KEY_NOT_TAKEN;
+            } else if (getReply.getOpcode() == C2S.GetReply.GetReplyCode.GET_FAIL_UNKNOWN) {
+                // The server has encountered an unknown error
+                Log.e(TAG, "get: Get failed, server error");
+                return GET_FAIL_PROTOCOL_ERROR;
+            } else if (getReply.getOpcode() == C2S.GetReply.GetReplyCode.GET_FAIL_KEY_FMT) {
+                // The server complained about the key format
+                Log.e(TAG, "get: Get failed, bad key format");
+                return GET_FAIL_KEY_FMT;
+            } else if (getReply.getOpcode() == C2S.GetReply.GetReplyCode.GET_OK) {
+                // The server retrieved the value for us
+                // Check if the Value field is set
+                if (getReply.hasValue()) {
+                    // Return the value
+                    return getReply.getValue().toByteArray();
+                } else {
+                    // The server did not send the value - this should not happen :(
+                    Log.e(TAG, "get: Server reply did not contain data even though it should have");
+                    return GET_FAIL_PROTOCOL_ERROR;
+                }
+            } else {
+                // This condition should never occur if the protocol is used correctly
+                Log.e(TAG, "get: No conditional held, something is wrong");
+                return GET_FAIL_PROTOCOL_ERROR;
+            }
+        } else {
+            return GET_FAIL_KEY_NOT_TAKEN;
+        }
     }
 
 
@@ -155,6 +219,24 @@ public class ProtobufProtocol implements Protocol {
 
 
     /**
+     * Create a Get message for a specific key
+     * @param key The key to get the value for
+     * @return A Get message wrapped in a Wrapper message
+     */
+    private MetaMessage.Wrapper getGetMsg(String key) {
+        // Get a Get builder and a wrapper builder
+        C2S.Get.Builder get = C2S.Get.newBuilder();
+        MetaMessage.Wrapper.Builder wrapper = MetaMessage.Wrapper.newBuilder();
+        // Set the key to Get
+        get.setKey(key);
+        // Pack the Get message in the Wrapper
+        wrapper.setGet(get);
+        // Build and return the Wrapper
+        return wrapper.build();
+    }
+
+
+    /**
      * Extract a ServerHello message from a wrapper
      * @param wrapper The wrapper containing a ServerHello message
      * @return The ServerHello, or null, if the bytes did not represent a ServerHello message
@@ -164,6 +246,21 @@ public class ProtobufProtocol implements Protocol {
             return wrapper.getServerHello();
         } else {
             Log.e(TAG, "toServerHello: Wrapper message did not contain a ServerHello message");
+            return null;
+        }
+    }
+
+
+    /**
+     * Extract a GetReply message from a wrapper
+     * @param wrapper The wrapper containing a GetReply message
+     * @return The GetReply, or null, if the bytes did not represent a GetReply message
+     */
+    private C2S.GetReply toGetReply(MetaMessage.Wrapper wrapper) {
+        if (wrapper.hasGetReply()) {
+            return wrapper.getGetReply();
+        } else {
+            Log.e(TAG, "toGetReply: Wrapper message did not contain a GetReply message");
             return null;
         }
     }
@@ -211,6 +308,17 @@ public class ProtobufProtocol implements Protocol {
             e.printStackTrace();
             return null;
         }
+    }
+
+
+    /**
+     * Check the format of a key
+     * @param key The key to check
+     * @return true if the key has a valid format, false otherwise
+     */
+    protected static boolean checkKeyFormat(String key) {
+        // The key must be a SHA256 hash => 64 hex characters
+        return key != null && key.length() == 64 && key.matches("[0-9a-fA-F]+");
     }
 
 

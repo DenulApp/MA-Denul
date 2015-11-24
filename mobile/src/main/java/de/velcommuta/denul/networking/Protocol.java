@@ -12,25 +12,40 @@ public interface Protocol {
     // Return values for the connect method
     // Connection OK
     int CONNECT_OK = 0;
-    // TODO Create more constants for connection failures with better explanations of the cause
+    // Connection failed, underlying Connection not connected
+    int CONNECT_FAIL_NO_CONNECTION = 1;
     // Connection failed, server sent unexpected message
-    int CONNECT_FAIL_UNKNOWN_MESSAGE = 1;
+    int CONNECT_FAIL_PROTOCOL_ERROR = 2;
     // Connection failed, server protocol version unknown
-    int CONNECT_FAIL_SERVER_PROTO = 2;
+    int CONNECT_FAIL_SERVER_PROTO = 3;
 
     // Return values for the put function
     // Put succeeded
     int PUT_OK = 0;
+    // Put failed, underlying connection not open
+    int PUT_FAIL_NO_CONNECTION = 1;
     // Put failed because the key was already taken
-    int PUT_FAIL_KEY_TAKEN = 1;
+    int PUT_FAIL_KEY_TAKEN = 2;
 
     // Return values for the delete function
     // Deletion succeeded
     int DEL_OK = 0;
+    // Deletion failed, underlying connection not open
+    int DEL_FAIL_NO_CONNECTION = 1;
     // Deletion failed, key is not present on the server
-    int DEL_FAIL_KEY_NOT_TAKEN = 1;
+    int DEL_FAIL_KEY_NOT_TAKEN = 2;
     // Deletion failed, authentication token was incorrect
-    int DEL_FAIL_AUTH_INCORRECT = 2;
+    int DEL_FAIL_AUTH_INCORRECT = 3;
+
+    // Return values for the Get function in case of errors
+    // Get failed, key not taken
+    byte[] GET_FAIL_KEY_NOT_TAKEN = null;
+    // Get failed, not connected
+    byte[] GET_FAIL_NO_CONNECTION = new byte[] {0x00};
+    // Get failed, protocol error
+    byte[] GET_FAIL_PROTOCOL_ERROR = new byte[] {0x01};
+    // Get failed, bad key format
+    byte[] GET_FAIL_KEY_FMT = new byte[] {0x02};
 
     /**
      * Establish a connection using this protocol, via the provided Connection
