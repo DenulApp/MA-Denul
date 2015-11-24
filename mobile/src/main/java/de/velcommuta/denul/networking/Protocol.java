@@ -13,8 +13,10 @@ public interface Protocol {
     // Connection OK
     int CONNECT_OK = 0;
     // TODO Create more constants for connection failures with better explanations of the cause
-    // Connection failed
-    int CONNECT_FAIL = 1;
+    // Connection failed, server sent unexpected message
+    int CONNECT_FAIL_UNKNOWN_MESSAGE = 1;
+    // Connection failed, server protocol version unknown
+    int CONNECT_FAIL_SERVER_PROTO = 2;
 
     // Return values for the put function
     // Put succeeded
