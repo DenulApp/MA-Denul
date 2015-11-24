@@ -117,8 +117,6 @@ public class ProtobufProtocol implements Protocol {
     }
 
     // Helper functions
-
-
     /**
      * Send a wrapper message to the server and receive and parse a wrapper message in return
      * @param wrapper The wrapper to send to the server
@@ -137,6 +135,7 @@ public class ProtobufProtocol implements Protocol {
         // Convert byte[] into Wrapper and return it
         return toWrapperMessage(reply);
     }
+
 
     /**
      * Create a ClientHello message for the current protocol version
@@ -214,9 +213,8 @@ public class ProtobufProtocol implements Protocol {
         }
     }
 
+
     final protected static char[] hexArray = "0123456789ABCDEF".toCharArray();
-
-
     /**
      * Temporary helper function to be removed later. Used to convert byte[] to Strings for debugging
      * @param bytes The byte[]
