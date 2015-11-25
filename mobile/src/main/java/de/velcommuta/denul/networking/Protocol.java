@@ -2,8 +2,8 @@ package de.velcommuta.denul.networking;
 
 import android.support.annotation.Nullable;
 
-import java.util.Dictionary;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Interface for communication protocol implementations
@@ -26,6 +26,10 @@ public interface Protocol {
     int PUT_FAIL_NO_CONNECTION = 1;
     // Put failed because the key was already taken
     int PUT_FAIL_KEY_TAKEN = 2;
+    // Put failed, bad key format
+    int PUT_FAIL_KEY_FMT = 3;
+    // Put failed, protocol error
+    int PUT_FAIL_PROTOCOL_ERROR = 4;
 
     // Return values for the delete function
     // Deletion succeeded
@@ -73,7 +77,7 @@ public interface Protocol {
      * @return A dictionary mapping the key Strings to the byte[] values, or null if they are not
      * on the server
      */
-    Dictionary<String, byte[]> getMany(List<String> keys);
+    Map<String, byte[]> getMany(List<String> keys);
 
     /**
      * Insert a value into the database of the server
@@ -90,7 +94,7 @@ public interface Protocol {
      * @return A Dictionary mapping the keys to PUT_* constants defined by the interface, indicating
      * the individual results of the put operations
      */
-    Dictionary<String, Integer> putMany(Dictionary<String, byte[]> records);
+    Map<String, Integer> putMany(Map<String, byte[]> records);
 
     /**
      * Delete a key from the database of the server, authenticating the deletion operation by
@@ -108,5 +112,5 @@ public interface Protocol {
      * @return A dictionary mapping the keys to one of the DEL_* constants defined in the interface,
      * indicating the result of the operation
      */
-    Dictionary<String, Integer> delMany(Dictionary<String, String> records);
+    Map<String, Integer> delMany(Map<String, String> records);
 }

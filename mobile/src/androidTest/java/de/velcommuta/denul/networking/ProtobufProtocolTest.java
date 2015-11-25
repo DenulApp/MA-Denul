@@ -1,9 +1,13 @@
 package de.velcommuta.denul.networking;
 
+import android.util.Log;
+
 import junit.framework.TestCase;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
+import java.util.Arrays;
+import java.util.Random;
 
 import javax.net.ssl.SSLHandshakeException;
 
@@ -88,6 +92,78 @@ public class ProtobufProtocolTest extends TestCase {
             // make sure the reply is null
             assertNull(reply);
             // Disconnect from the server
+            p.disconnect();
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+            fail("UnknownHostException - please make sure the host variable is set correctly");
+        } catch (SSLHandshakeException e) {
+            e.printStackTrace();
+            fail("SSLHandshale failed - are you sure the certificate is valid?");
+        } catch (IOException e) {
+            e.printStackTrace();
+            fail("IOException - are you sure the server is running?");
+        }
+    }
+
+
+    /**
+     * Test the put functions and get the value afterwards
+     */
+    public void testPutGet() {
+        try {
+            // Establish a TLS connection
+            Connection c = new TLSConnection(host, port);
+            // Protocol object
+            Protocol p = new ProtobufProtocol();
+            // Connect
+            p.connect(c);
+            // Get a random key and value
+            byte[] value = new byte[32];
+            new Random().nextBytes(value);
+            String key = ProtobufProtocol.bytesToHex(value);
+            // Put it on the server
+            assertEquals(p.put(key, value), Protocol.PUT_OK);
+            // Retrieve the value
+            byte[] stored = p.get(key);
+            // Test if the returned value is equal to the one we stored
+            assertTrue(Arrays.equals(value, stored));
+            // Disconnect
+            p.disconnect();
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+            fail("UnknownHostException - please make sure the host variable is set correctly");
+        } catch (SSLHandshakeException e) {
+            e.printStackTrace();
+            fail("SSLHandshale failed - are you sure the certificate is valid?");
+        } catch (IOException e) {
+            e.printStackTrace();
+            fail("IOException - are you sure the server is running?");
+        }
+    }
+
+
+    /**
+     * Test putting a bad key on the server
+     */
+    public void testPutBadKey() {
+        try {
+            // Establish a TLS connection
+            Connection c = new TLSConnection(host, port);
+            // Protocol object
+            Protocol p = new ProtobufProtocol();
+            // Connect
+            p.connect(c);
+            // Get a random key and value
+            byte[] value = new byte[31];
+            new Random().nextBytes(value);
+            String key = ProtobufProtocol.bytesToHex(value);
+            // Put it on the server
+            assertEquals(p.put(key, value), Protocol.PUT_FAIL_KEY_FMT);
+            // Retrieve the value
+            byte[] stored = p.get(key);
+            // Test if the returned value is equal to the one we stored
+            assertTrue(Arrays.equals(stored, Protocol.GET_FAIL_KEY_FMT));
+            // Disconnect
             p.disconnect();
         } catch (UnknownHostException e) {
             e.printStackTrace();

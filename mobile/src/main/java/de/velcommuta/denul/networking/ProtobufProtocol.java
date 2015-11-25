@@ -3,13 +3,14 @@ package de.velcommuta.denul.networking;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
+import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.Dictionary;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
@@ -153,8 +154,8 @@ public class ProtobufProtocol implements Protocol {
 
 
     @Override
-    public Dictionary<String, byte[]> getMany(List<String> keys) {
-        Dictionary<String, byte[]> rv = new Hashtable<>();
+    public Map<String, byte[]> getMany(List<String> keys) {
+        Map<String, byte[]> rv = new HashMap<>();
         for (String key : keys) {
             rv.put(key, get(key));
         }
@@ -164,13 +165,66 @@ public class ProtobufProtocol implements Protocol {
 
     @Override
     public int put(String key, byte[] value) {
-        return 0;
+        // Check if the Connection is still open
+        if (!mConnection.isOpen()) {
+            Log.e(TAG, "put: Underlying Connection not connected");
+            return PUT_FAIL_NO_CONNECTION;
+        } else if (!checkKeyFormat(key) || value == null) {
+            Log.e(TAG, "put: Bad key or value format");
+            return PUT_FAIL_KEY_FMT;
+        }
+        // Get a wrapper message with the key-value-pair
+        MetaMessage.Wrapper store = getStoreMsg(key, value);
+        // Transceive and get reply
+        MetaMessage.Wrapper storeReplyWrapper = transceiveWrapper(store);
+        // Check if the reply is null
+        if (storeReplyWrapper == null) {
+            Log.e(TAG, "put: Transceive failed, reply is null");
+            return PUT_FAIL_NO_CONNECTION;
+        }
+        // Extract the StoreReply
+        C2S.StoreReply storeReply = toStoreReply(storeReplyWrapper);
+        // Check if extraction went well
+        if (storeReply == null) {
+            Log.e(TAG, "put: Reply did not contain a StoreReply");
+            return PUT_FAIL_PROTOCOL_ERROR;
+        } else if (!storeReply.getKey().equals(key)) {
+            // Server did not reply with the correct key
+            Log.e(TAG, "put: Reply contained incorrect key");
+            return PUT_FAIL_PROTOCOL_ERROR;
+        } else if (storeReply.getOpcode() == C2S.StoreReply.StoreReplyCode.STORE_FAIL_KEY_TAKEN) {
+            // Server replied that the key was already taken
+            Log.e(TAG, "put: Put failed, key was already taken");
+            return PUT_FAIL_KEY_TAKEN;
+        } else if (storeReply.getOpcode() == C2S.StoreReply.StoreReplyCode.STORE_FAIL_KEY_FMT) {
+            // Server complained about the key format
+            Log.e(TAG, "put: Put failed, bad key format");
+            return PUT_FAIL_KEY_FMT;
+        } else if (storeReply.getOpcode() == C2S.StoreReply.StoreReplyCode.STORE_FAIL_UNKNOWN) {
+            // Server experienced unknown error :(
+            Log.e(TAG, "put: Server got unknown error");
+            return PUT_FAIL_PROTOCOL_ERROR;
+        } else if (storeReply.getOpcode() == C2S.StoreReply.StoreReplyCode.STORE_OK) {
+            // Success
+            // Put the key into the local VICBF
+            mVICBF.insert(key);
+            // Return success
+            return PUT_OK;
+        }
+        // This statement should be unreachable if nothing went completely wrong
+        return PUT_FAIL_PROTOCOL_ERROR;
     }
 
 
     @Override
-    public Dictionary<String, Integer> putMany(Dictionary<String, byte[]> records) {
-        return null;
+    public Map<String, Integer> putMany(Map<String, byte[]> records) {
+        // Prepare return-hashtable
+        Map<String, Integer> rv = new HashMap<>();
+        // Send inserts for all values in the input dictionary
+        for (String key : records.keySet()) {
+            rv.put(key, put(key, records.get(key)));
+        }
+        return rv;
     }
 
 
@@ -181,7 +235,7 @@ public class ProtobufProtocol implements Protocol {
 
 
     @Override
-    public Dictionary<String, Integer> delMany(Dictionary<String, String> records) {
+    public Map<String, Integer> delMany(Map<String, String> records) {
         return null;
     }
 
@@ -242,6 +296,27 @@ public class ProtobufProtocol implements Protocol {
 
 
     /**
+     * Create a Store message for a specific key-value-pair and wrap it in a Wrapper message
+     * @param key The key of the KV Pair
+     * @param values The value
+     * @return A Wrapper containing a Store message for the Key-Value-Pair
+     */
+    private MetaMessage.Wrapper getStoreMsg(String key, byte[] values) {
+        // Get a Put builder and a wrapper builder
+        C2S.Store.Builder store = C2S.Store.newBuilder();
+        MetaMessage.Wrapper.Builder wrapper = MetaMessage.Wrapper.newBuilder();
+        // Set the key
+        store.setKey(key);
+        // Set the value
+        store.setValue(ByteString.copyFrom(values));
+        // Put the Store message into the Wrapper
+        wrapper.setStore(store);
+        // Build and return
+        return wrapper.build();
+    }
+
+
+    /**
      * Extract a ServerHello message from a wrapper
      * @param wrapper The wrapper containing a ServerHello message
      * @return The ServerHello, or null, if the bytes did not represent a ServerHello message
@@ -266,6 +341,21 @@ public class ProtobufProtocol implements Protocol {
             return wrapper.getGetReply();
         } else {
             Log.e(TAG, "toGetReply: Wrapper message did not contain a GetReply message");
+            return null;
+        }
+    }
+
+
+    /**
+     * Extract a StoreReply message from a wrapper
+     * @param wrapper The wrapper containing a StoreReply message
+     * @return The StoreReply, or null, if the bytes did not represent a StoreReply message
+     */
+    private C2S.StoreReply toStoreReply(MetaMessage.Wrapper wrapper) {
+        if (wrapper.hasStoreReply()) {
+            return wrapper.getStoreReply();
+        } else {
+            Log.e(TAG, "toStoreReply: Wrapper message did not contain a StoreReply message");
             return null;
         }
     }
@@ -334,7 +424,7 @@ public class ProtobufProtocol implements Protocol {
      * @return A hexadecimal string representation of the byte[]
      * Source: http://stackoverflow.com/a/9855338/1232833
      */
-    private static String bytesToHex(byte[] bytes) {
+    protected static String bytesToHex(byte[] bytes) {
         char[] hexChars = new char[bytes.length * 2];
         for ( int j = 0; j < bytes.length; j++ ) {
             int v = bytes[j] & 0xFF;
