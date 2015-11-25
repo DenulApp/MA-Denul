@@ -38,8 +38,12 @@ public interface Protocol {
     int DEL_FAIL_NO_CONNECTION = 1;
     // Deletion failed, key is not present on the server
     int DEL_FAIL_KEY_NOT_TAKEN = 2;
+    // Deletion failed, bad key format
+    int DEL_FAIL_KEY_FMT = 3;
     // Deletion failed, authentication token was incorrect
-    int DEL_FAIL_AUTH_INCORRECT = 3;
+    int DEL_FAIL_AUTH_INCORRECT = 4;
+    // Deletion failed, protocol error
+    int DEL_FAIL_PROTOCOL_ERROR = 5;
 
     // Return values for the Get function in case of errors
     // Get failed, key not taken

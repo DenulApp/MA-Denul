@@ -1,11 +1,11 @@
 package de.velcommuta.denul.networking;
 
-import android.util.Log;
-
 import junit.framework.TestCase;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Random;
 
@@ -107,9 +107,9 @@ public class ProtobufProtocolTest extends TestCase {
 
 
     /**
-     * Test the put functions and get the value afterwards
+     * Test the put functions, get the value, and delete it afterwards
      */
-    public void testPutGet() {
+    public void testPutGetDelete() {
         try {
             // Establish a TLS connection
             Connection c = new TLSConnection(host, port);
@@ -120,13 +120,16 @@ public class ProtobufProtocolTest extends TestCase {
             // Get a random key and value
             byte[] value = new byte[32];
             new Random().nextBytes(value);
-            String key = ProtobufProtocol.bytesToHex(value);
+            String auth = ProtobufProtocol.bytesToHex(value);
+            String key = authToKey(auth);
             // Put it on the server
             assertEquals(p.put(key, value), Protocol.PUT_OK);
             // Retrieve the value
             byte[] stored = p.get(key);
             // Test if the returned value is equal to the one we stored
             assertTrue(Arrays.equals(value, stored));
+            // Delete the key from the server and ensure it worked
+            assertEquals(p.del(key, auth), Protocol.DEL_OK);
             // Disconnect
             p.disconnect();
         } catch (UnknownHostException e) {
@@ -190,5 +193,23 @@ public class ProtobufProtocolTest extends TestCase {
         assertFalse(ProtobufProtocol.checkKeyFormat("88c1428301b12afd0ad86124bcbe5cd2451f21c2e49797a9999f151df0cafd7"));
         // test with null
         assertFalse(ProtobufProtocol.checkKeyFormat(null));
+    }
+
+
+    /**
+     * Helper function to derive a key that can be authenticated using the provided auth string
+     * @param auth Authenticator
+     * @return A key that is authenticated by that authenticator
+     */
+    private String authToKey(String auth) {
+        MessageDigest md;
+        try {
+            md = MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            fail("SHA256 not supported");
+            return null;
+        }
+        md.update(auth.getBytes());
+        return ProtobufProtocol.bytesToHex(md.digest());
     }
 }

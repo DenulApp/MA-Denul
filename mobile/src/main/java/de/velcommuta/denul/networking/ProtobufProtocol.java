@@ -8,6 +8,8 @@ import com.google.protobuf.InvalidProtocolBufferException;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -229,8 +231,66 @@ public class ProtobufProtocol implements Protocol {
 
 
     @Override
-    public int del(String key, String authenticator) {
-        return 0;
+    public int del(String key, String auth) {
+        // Check if the Connection is still open
+        if (!mConnection.isOpen()) {
+            Log.e(TAG, "del: Underlying Connection not connected");
+            return DEL_FAIL_NO_CONNECTION;
+        } else if (!checkKeyFormat(key) || auth == null || !checkAuthenticator(key, auth)) {
+            Log.e(TAG, "del: Bad key or authenticator format");
+            return DEL_FAIL_KEY_FMT;
+        }
+        Log.e(TAG, "del: Key: " + key);
+        Log.e(TAG, "del: auth: " + auth);
+        // Get a wrapper message with the key-value-pair
+        MetaMessage.Wrapper delete = getDeleteMessage(key, auth);
+        // Transceive and get reply
+        MetaMessage.Wrapper deleteReplyWrapper = transceiveWrapper(delete);
+        // Check if the reply is null
+        if (deleteReplyWrapper == null) {
+            Log.e(TAG, "del: Transceive failed, reply is null");
+            return PUT_FAIL_NO_CONNECTION;
+        }
+        // Extract the DeleteReply
+        C2S.DeleteReply deleteReply = toDeleteReply(deleteReplyWrapper);
+        // Check if extraction went well
+        if (deleteReply == null) {
+            Log.e(TAG, "del: Reply did not contain a DeleteReply");
+            return DEL_FAIL_PROTOCOL_ERROR;
+        } else if (!deleteReply.getKey().equals(key)) {
+            // Server did not reply with the correct key
+            Log.e(TAG, "del: Reply contained incorrect key");
+            return DEL_FAIL_PROTOCOL_ERROR;
+        } else if (deleteReply.getOpcode() == C2S.DeleteReply.DeleteReplyCode.DELETE_OK) {
+            // Success
+            // Remove the key from the VICBF
+            try {
+                mVICBF.remove(key);
+            } catch (Exception e) {
+                Log.e(TAG, "del: Exception while trying to delete key from VICBF: " + e);
+                // TODO Update if the VICBF retrieval code moves
+                connect(mConnection);
+            }
+            return DEL_OK;
+        } else if (deleteReply.getOpcode() == C2S.DeleteReply.DeleteReplyCode.DELETE_FAIL_NOT_FOUND) {
+            // Server replied that no such key is stored on it
+            Log.e(TAG, "del: Deletion failed, no such key");
+            return DEL_FAIL_KEY_NOT_TAKEN;
+        } else if (deleteReply.getOpcode() == C2S.DeleteReply.DeleteReplyCode.DELETE_FAIL_KEY_FMT) {
+            // Server complained about the key format
+            Log.e(TAG, "del: Deletion failed, bad key format");
+            return DEL_FAIL_KEY_FMT;
+        } else if (deleteReply.getOpcode() == C2S.DeleteReply.DeleteReplyCode.DELETE_FAIL_UNKNOWN) {
+            // Server experienced unknown error :(
+            Log.e(TAG, "del: Server got unknown error");
+            return DEL_FAIL_PROTOCOL_ERROR;
+        } else if (deleteReply.getOpcode() == C2S.DeleteReply.DeleteReplyCode.DELETE_FAIL_AUTH) {
+            // Authentication token was not accepted by the server
+            Log.e(TAG, "del: Authentication failed");
+            return DEL_FAIL_AUTH_INCORRECT;
+        }
+        // This statement should be unreachable if nothing went completely wrong
+        return PUT_FAIL_PROTOCOL_ERROR;
     }
 
 
@@ -317,6 +377,28 @@ public class ProtobufProtocol implements Protocol {
 
 
     /**
+     * Create a Delete message for a specific key with its authenticator and wrap it in a Wrapper
+     * message
+     * @param key The key to delete
+     * @param auth The authenticator
+     * @return A Wrapper message containing a Delete message for the key-authenticator pair
+     */
+    private MetaMessage.Wrapper getDeleteMessage(String key, String auth) {
+        // Get a Delete builder and a wrapper builder
+        C2S.Delete.Builder delete = C2S.Delete.newBuilder();
+        MetaMessage.Wrapper.Builder wrapper = MetaMessage.Wrapper.newBuilder();
+        // Set the key
+        delete.setKey(key);
+        // Set the authenticator
+        delete.setAuth(auth);
+        // Put the Delete message into the Wrapper
+        wrapper.setDelete(delete);
+        // Build and return
+        return wrapper.build();
+    }
+
+
+    /**
      * Extract a ServerHello message from a wrapper
      * @param wrapper The wrapper containing a ServerHello message
      * @return The ServerHello, or null, if the bytes did not represent a ServerHello message
@@ -356,6 +438,21 @@ public class ProtobufProtocol implements Protocol {
             return wrapper.getStoreReply();
         } else {
             Log.e(TAG, "toStoreReply: Wrapper message did not contain a StoreReply message");
+            return null;
+        }
+    }
+
+
+    /**
+     * Extract a DeleteReply message from a wrapper
+     * @param wrapper The wrapper containing a DeleteReply message
+     * @return The DeleteReply, or null, if the bytes did not represent a DeleteReply message
+     */
+    private C2S.DeleteReply toDeleteReply(MetaMessage.Wrapper wrapper) {
+        if (wrapper.hasDeleteReply()) {
+            return wrapper.getDeleteReply();
+        } else {
+            Log.e(TAG, "toDeleteReply: Wrapper message did not contain a StoreReply message");
             return null;
         }
     }
@@ -414,6 +511,25 @@ public class ProtobufProtocol implements Protocol {
     protected static boolean checkKeyFormat(String key) {
         // The key must be a SHA256 hash => 64 hex characters
         return key != null && key.length() == 64 && key.matches("[0-9a-fA-F]+");
+    }
+
+
+    /**
+     * Test if the authenticator actually authenticates the key
+     * @param key The key to authenticate
+     * @param auth The authenticator
+     * @return true if the authentitcator is valid, false otherwise
+     */
+    protected static boolean checkAuthenticator(String key, String auth) {
+        MessageDigest md;
+        try {
+            md = MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            Log.e(TAG, "checkAuthenticator: SHA256 not supported");
+            return false;
+        }
+        md.update(auth.getBytes());
+        return ProtobufProtocol.bytesToHex(md.digest()).equals(key);
     }
 
 
