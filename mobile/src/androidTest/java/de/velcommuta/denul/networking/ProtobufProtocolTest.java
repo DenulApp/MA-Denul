@@ -148,6 +148,10 @@ public class ProtobufProtocolTest extends TestCase {
         }
     }
 
+
+    /**
+     * Test the *Many-function of the ProtobufProtocol
+     */
     public void testPutGetDeleteMany() {
         try {
             // Est. connection
