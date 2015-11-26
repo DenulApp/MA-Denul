@@ -6,7 +6,7 @@ package de.velcommuta.denul.service;
  */
 public interface UpdateListener {
     /**
-     * Notify the class that an update is availble
+     * Notify the class that an update is available
      */
     void update();
 }

@@ -12,7 +12,7 @@ android {
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArgument "disableAnalytics", "true"
-        multiDexEnabled = true
+        multiDexEnabled = false
     }
     buildTypes {
         release {
@@ -25,20 +25,38 @@ android {
 dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
     wearApp project(':wear')
+    compile project(':libvicbf')
+    // Compatibility library
     compile 'com.android.support:appcompat-v7:23.0.1'
+    // Design library (needed for sidebar)
     compile 'com.android.support:design:23.0.1'
-    compile 'com.google.android.gms:play-services:8.1.0'
-    compile 'com.github.PhilJay:MPAndroidChart:v2.1.4'
-    compile files('libs/sqlcipher.jar')
+    // Support library v4 (for backwards compatibility)
+    compile 'com.android.support:support-v4:23.0.1'
+    // Play services (for maps and stuff like that)
+    compile 'com.google.android.gms:play-services-location:8.1.0'
+    compile 'com.google.android.gms:play-services-maps:8.1.0'
+    // Protocol buffers
+    compile 'com.google.protobuf:protobuf-java:2.6.1'
+    // Android maps utils (for markers on maps)
     compile 'com.google.maps.android:android-maps-utils:0.4+'
+    // MPAndroidChart for charts (doh)
+    compile 'com.github.PhilJay:MPAndroidChart:v2.1.4'
+    // SQLCipher for encrypted SQLite database
+    compile files('libs/sqlcipher.jar')
+    // EventBus for message passing
     compile 'de.greenrobot:eventbus:2.4.0'
+    // JodaTime for non-retarded time APIs
     compile 'joda-time:joda-time:2.8.2'
+    // Netcipher for Tor support
+    // compile 'info.guardianproject.netcipher:netcipher:1.2'
 
+    // SpongyCastle for non-retarded crypto-APIs
     compile 'com.madgag.spongycastle:core:1.52.0.0'
     compile 'com.madgag.spongycastle:prov:1.52.0.0'
     //compile 'com.madgag.spongycastle:pkix:1.52.0.0' // Currently not needed (provides PKIX support)
     //compile 'com.madgag.spongycastle:pg:1.52.0.0' // Currently not needed (provides PGP support)
 
+    // Testing libraries for... testing, I guess.
     testCompile 'junit:junit:4.12'
     androidTestCompile 'com.android.support.test:runner:0.4'
     androidTestCompile 'com.android.support.test:rules:0.4'
@@ -47,9 +65,6 @@ dependencies {
 
     androidTestCompile 'junit:junit:4.12'
 }
-
-
-
 
 repositories {
     maven { url "https://jitpack.io" }
