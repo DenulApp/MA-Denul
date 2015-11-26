@@ -296,7 +296,13 @@ public class ProtobufProtocol implements Protocol {
 
     @Override
     public Map<String, Integer> delMany(Map<String, String> records) {
-        return null;
+        // Prepare return-hashtable
+        Map<String, Integer> rv = new HashMap<>();
+        // Send deletes for all key-authenticator-pairs in the input dictionary
+        for (String key : records.keySet()) {
+            rv.put(key, del(key, records.get(key)));
+        }
+        return rv;
     }
 
     // Helper functions

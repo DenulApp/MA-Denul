@@ -7,6 +7,10 @@ import java.net.UnknownHostException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import javax.net.ssl.SSLHandshakeException;
@@ -131,6 +135,59 @@ public class ProtobufProtocolTest extends TestCase {
             // Delete the key from the server and ensure it worked
             assertEquals(p.del(key, auth), Protocol.DEL_OK);
             // Disconnect
+            p.disconnect();
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+            fail("UnknownHostException - please make sure the host variable is set correctly");
+        } catch (SSLHandshakeException e) {
+            e.printStackTrace();
+            fail("SSLHandshale failed - are you sure the certificate is valid?");
+        } catch (IOException e) {
+            e.printStackTrace();
+            fail("IOException - are you sure the server is running?");
+        }
+    }
+
+    public void testPutGetDeleteMany() {
+        try {
+            // Est. connection
+            Connection c = new TLSConnection(host, port);
+            // Protocol
+            Protocol p = new ProtobufProtocol();
+            // Connect
+            p.connect(c);
+            // Prepare five sets of keys- values and authenticators
+            Map<String, byte[]> keyvalue = new HashMap<>();
+            List<String> keys = new LinkedList<>();
+            Map<String, String> keyauth = new HashMap<>();
+            for (int i = 0; i < 5; i++) {
+                byte[] value = new byte[32];
+                new Random().nextBytes(value);
+                String auth = ProtobufProtocol.bytesToHex(value);
+                String key = authToKey(auth);
+                keyvalue.put(key, value);
+                keys.add(key);
+                keyauth.put(key, auth);
+            }
+            // Insert all key-value-pairs
+            Map<String, Integer> insert_return = p.putMany(keyvalue);
+            // Make sure it worked
+            for (String key : keyvalue.keySet()) {
+                assertEquals((int) insert_return.get(key), Protocol.PUT_OK);
+            }
+            // Query all key-value-pairs
+            Map<String, byte[]> get_return = p.getMany(keys);
+            // Make sure it worked
+            for (String key : keyvalue.keySet()) {
+                assertTrue(Arrays.equals(keyvalue.get(key), get_return.get(key)));
+            }
+            // Delete all key-value-pairs
+            Map<String, Integer> del_return = p.delMany(keyauth);
+            // Make sure it worked
+            for (String key : keyvalue.keySet()) {
+                assertEquals((int) del_return.get(key), Protocol.DEL_OK);
+            }
+            // Close connection
             p.disconnect();
         } catch (UnknownHostException e) {
             e.printStackTrace();
