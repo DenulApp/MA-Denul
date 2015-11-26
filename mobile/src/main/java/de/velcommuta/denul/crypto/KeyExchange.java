@@ -17,8 +17,9 @@ public interface KeyExchange {
     /**
      * Update the Key Exchange with the public information of the other party
      * @param data A byte[]-representation of the kex information of the other party
+     * @return true if the data was valid, false otherwise
      */
-    void putPartnerKexData(byte[] data);
+    boolean putPartnerKexData(byte[] data);
 
     /**
      * Return the agreed-upon key after the key exchange has been performed
