@@ -16,6 +16,9 @@
     <string name="menu_social">Friends</string>
     <string name="menu_prefs">Settings</string>
 
+    <!-- Action bar menu -->
+    <string name="abarmenu_add_friend">Add Friend</string>
+
     <!-- Buttons and fields during GPS tracking -->
     <string name="start_run">Start</string>
     <string name="stop_run">Stop</string>
