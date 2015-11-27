@@ -18,6 +18,8 @@ public class ECDHKeyExchangeTest extends TestCase {
         // Get the public messages
         byte[] kex1to2 = kex1.getPublicKexData();
         byte[] kex2to1 = kex2.getPublicKexData();
+        // Ensure that the public keys differ
+        assertFalse(Arrays.equals(kex1to2, kex2to1));
         // Pass the messages to the other kex
         assertTrue(kex1.putPartnerKexData(kex2to1));
         assertTrue(kex2.putPartnerKexData(kex1to2));
