@@ -37,6 +37,12 @@
     <string name="friendlist_empty_lonely">Pretty lonely here...</string>
     <string name="friendlist_empty_explanation">Looks like you have not added any friends yet.</string>
     <string name="friendlist_empty_cta">Add a friend</string>
+
+    <!-- Add a friend -->
+    <string name="friend_add_step1_title">Add a friend</string>
+    <string name="friend_add_step1_explanation">You can add friends using a variety of different ways. Please select one below, and make sure your friend selects the same</string>
+    <string name="friend_add_step1_nearby_title">Google Nearby</string>
+    <string name="friend_add_step1_nearby_description">Choose this if you are in the same WiFi</string>
     <!-- Status messages -->
     <string name="save_success">Saved</string>
 
