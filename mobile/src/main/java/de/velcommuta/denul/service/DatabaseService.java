@@ -280,7 +280,6 @@ public class DatabaseService extends Service {
         @Override
         public Cursor getFriends() {
             assertOpen();
-            Log.d(TAG, "getFriends: Called");
             return query(FriendContract.FriendList.TABLE_NAME,
                     null,
                     null,

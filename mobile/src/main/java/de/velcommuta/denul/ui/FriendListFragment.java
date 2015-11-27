@@ -4,7 +4,11 @@ import android.app.Fragment;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
@@ -20,6 +24,8 @@ import de.velcommuta.denul.ui.view.EmptyRecyclerView;
  * Fragment containing the Friend List
  */
 public class FriendListFragment extends Fragment {
+    private static final String TAG = "FriendListFragment";
+
     private EmptyRecyclerView mRecyclerView;
     private RecyclerView.Adapter mAdapter;
     private RecyclerView.LayoutManager mLayoutManager;
@@ -46,6 +52,7 @@ public class FriendListFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setHasOptionsMenu(true);
     }
 
     @Override
@@ -68,6 +75,22 @@ public class FriendListFragment extends Fragment {
         TextView emptyview = (TextView) v.findViewById(R.id.friendlist_empty);
         mRecyclerView.setEmptyView(emptyview);
         return v;
+    }
+
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        inflater.inflate(R.menu.fragment_friends, menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.action_add_friend:
+                Log.d(TAG, "onOptionsItemSelected: Add friend clicked");
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
     }
 
     @Override
