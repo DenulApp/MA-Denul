@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- This menu file supplements the base menu (main.xml) and will be loaded in addition to it
-     if the social fragment is active -->
+     if the friends fragment is active -->
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
       xmlns:app="http://schemas.android.com/apk/res-auto"
       xmlns:tools="http://schemas.android.com/tools" tools:context=".MainActivity">
-    <item android:id="@+id/action_add_friend" android:title="@string/abarmenu_add_friend"
+    <item android:id="@+id/action_add_friend" android:title="@string/abarmenu_friends_add"
           android:orderInCategory="1" app:showAsAction="always" />
 </menu>

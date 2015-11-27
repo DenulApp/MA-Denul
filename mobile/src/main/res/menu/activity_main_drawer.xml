@@ -16,8 +16,8 @@
 
     <item android:title="@string/menu_title_2">
         <menu>
-                <item android:id="@+id/nav_social" android:icon="@drawable/ic_menu_allfriends"
-                android:title="@string/menu_social" />
+                <item android:id="@+id/nav_friends" android:icon="@drawable/ic_menu_allfriends"
+                android:title="@string/menu_friends" />
             <item android:id="@+id/nav_menu" android:icon="@android:drawable/ic_menu_preferences"
                 android:title="@string/menu_prefs" />
         </menu>

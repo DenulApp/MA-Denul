@@ -176,7 +176,7 @@ public class MainActivity extends AppCompatActivity
             // Intent intent = new Intent(this, TrackDisplayActivity.class);
             // startActivity(intent);
             loadTrackFragment();
-        } else if (id == R.id.nav_share) {
+        } else if (id == R.id.nav_friends) {
             // TODO implement
         } else if (id == R.id.nav_menu) {
             // TODO implement
