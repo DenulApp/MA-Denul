@@ -32,6 +32,8 @@ dependencies {
     compile 'com.android.support:design:23.0.1'
     // Support library v4 (for backwards compatibility)
     compile 'com.android.support:support-v4:23.0.1'
+    // Support library module for RecyclerView
+    compile 'com.android.support:recyclerview-v7:23.0.1'
     // Play services (for maps and stuff like that)
     compile 'com.google.android.gms:play-services-location:8.1.0'
     compile 'com.google.android.gms:play-services-maps:8.1.0'
