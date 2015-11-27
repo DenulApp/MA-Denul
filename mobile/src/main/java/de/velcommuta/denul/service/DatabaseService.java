@@ -280,13 +280,14 @@ public class DatabaseService extends Service {
         @Override
         public Cursor getFriends() {
             assertOpen();
+            Log.d(TAG, "getFriends: Called");
             return query(FriendContract.FriendList.TABLE_NAME,
                     null,
                     null,
                     null,
                     null,
                     null,
-                    FriendContract.FriendList._ID + " ASCENDING");
+                    FriendContract.FriendList._ID + " ASC");
         }
 
 

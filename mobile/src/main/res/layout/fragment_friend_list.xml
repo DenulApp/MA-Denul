@@ -2,10 +2,19 @@
               xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
               android:layout_height="match_parent" tools:context="de.velcommuta.denul.ui.FriendListFragment"
               android:orientation="vertical">
-    <android.support.v7.widget.RecyclerView
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="There is literally nothing to see here, move along."
+        android:id="@+id/friendlist_empty"
+        android:visibility="gone"/>
+
+    <de.velcommuta.denul.ui.view.EmptyRecyclerView
         xmlns:android="http://schemas.android.com/apk/res/android"
         android:id="@+id/friendlist_recycler"
         android:scrollbars="vertical"
         android:layout_width="match_parent"
         android:layout_height="match_parent"/>
+
 </LinearLayout>

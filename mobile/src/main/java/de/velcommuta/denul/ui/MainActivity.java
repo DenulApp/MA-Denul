@@ -177,7 +177,7 @@ public class MainActivity extends AppCompatActivity
             // startActivity(intent);
             loadTrackFragment();
         } else if (id == R.id.nav_friends) {
-            // TODO implement
+            loadFriendlistFragment();
         } else if (id == R.id.nav_menu) {
             // TODO implement
         }
@@ -216,6 +216,17 @@ public class MainActivity extends AppCompatActivity
                 .commit();
     }
 
+
+    /**
+     * Load the Friend list fragment
+     */
+    private void loadFriendlistFragment() {
+        FragmentManager fragmentManager = getFragmentManager();
+        Fragment fragment = FriendListFragment.newInstance();
+        fragmentManager.beginTransaction()
+                .replace(R.id.content_frame, fragment)
+                .commit();
+    }
 
     ///// Service Management
     /**
