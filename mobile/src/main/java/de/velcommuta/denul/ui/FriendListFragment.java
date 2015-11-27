@@ -11,6 +11,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import net.sqlcipher.Cursor;
@@ -52,6 +53,7 @@ public class FriendListFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // Tell the system that we want to add an options menu
         setHasOptionsMenu(true);
     }
 
@@ -67,13 +69,18 @@ public class FriendListFragment extends Fragment {
         ((LinearLayoutManager) mLayoutManager).setOrientation(LinearLayoutManager.VERTICAL);
         mRecyclerView.setLayoutManager(mLayoutManager);
 
+        // Get a database binder
         DatabaseServiceBinder binder = ((MainActivity) getActivity()).getDbBinder();
+        // Get a cursor with the friends from the database
         Cursor c = binder.getFriends();
+        // Initialize FriendListCursorAdapter with the cursor
         FriendListCursorAdapter ca = new FriendListCursorAdapter(getActivity(), c);
+        // Set the adapter for the RecyclerView
         mRecyclerView.setAdapter(ca);
-        // TODO Update the text and design of the "here be nothing" message
-        TextView emptyview = (TextView) v.findViewById(R.id.friendlist_empty);
+        // Set up the emptyview (view that is shown if the database contains no friends)
+        LinearLayout emptyview = (LinearLayout) v.findViewById(R.id.friendlist_empty);
         mRecyclerView.setEmptyView(emptyview);
+        // Return the inflated view
         return v;
     }
 
@@ -86,9 +93,11 @@ public class FriendListFragment extends Fragment {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.action_add_friend:
+                // The "add friend" button was clicked
                 Log.d(TAG, "onOptionsItemSelected: Add friend clicked");
                 return true;
             default:
+                // The clicked button was not our responsibility
                 return super.onOptionsItemSelected(item);
         }
     }

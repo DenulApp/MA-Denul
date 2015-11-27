@@ -33,6 +33,10 @@
     <string name="location_tracking_notify">Workout tracking active</string>
     <string name="location_tracking_details">%1$s is currently tracking your workout</string>
 
+    <!-- Friend list -->
+    <string name="friendlist_empty_lonely">Pretty lonely here...</string>
+    <string name="friendlist_empty_explanation">Looks like you have not added any friends yet.</string>
+    <string name="friendlist_empty_cta">Add a friend</string>
     <!-- Status messages -->
     <string name="save_success">Saved</string>
 
