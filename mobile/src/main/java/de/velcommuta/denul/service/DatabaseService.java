@@ -18,6 +18,7 @@ import net.sqlcipher.database.SQLiteDatabase;
 import net.sqlcipher.database.SQLiteException;
 
 import de.greenrobot.event.EventBus;
+import de.velcommuta.denul.db.FriendContract;
 import de.velcommuta.denul.db.SecureDbHelper;
 import de.velcommuta.denul.event.DatabaseAvailabilityEvent;
 
@@ -273,6 +274,19 @@ public class DatabaseService extends Service {
             assertOpen();
             Log.d(TAG, "update: Running update");
             return mSQLiteHandler.update(table, values, selection, selectionArgs);
+        }
+
+
+        @Override
+        public Cursor getFriends() {
+            assertOpen();
+            return query(FriendContract.FriendList.TABLE_NAME,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    FriendContract.FriendList._ID + " ASCENDING");
         }
 
 

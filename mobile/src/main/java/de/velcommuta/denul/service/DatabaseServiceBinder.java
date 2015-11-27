@@ -70,4 +70,10 @@ public interface DatabaseServiceBinder {
      * @return The number of updated entries
      */
     int update(String table, ContentValues values, String selection, String[] selectionArgs);
+
+    /**
+     * Query the database for all friends and return the result as a cursor
+     * @return A cursor containing the result of a SELECT on the friend database
+     */
+    Cursor getFriends();
 }
