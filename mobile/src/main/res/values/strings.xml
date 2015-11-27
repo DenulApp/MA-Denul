@@ -13,7 +13,7 @@
     <string name="menu_track_run">Track</string>
     <string name="menu_old_tracks">Exercise History</string>
     <string name="menu_title_2">Communicate</string> <!-- TODO This title sucks -->
-    <string name="menu_share">Share</string>
+    <string name="menu_social">Friends</string>
     <string name="menu_prefs">Settings</string>
 
     <!-- Buttons and fields during GPS tracking -->
