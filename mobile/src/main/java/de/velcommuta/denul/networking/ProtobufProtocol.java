@@ -18,6 +18,7 @@ import java.util.zip.Inflater;
 
 import de.velcommuta.denul.networking.protobuf.c2s.C2S;
 import de.velcommuta.denul.networking.protobuf.meta.MetaMessage;
+import de.velcommuta.denul.util.FormatHelper;
 import de.velcommuta.libvicbf.VICBF;
 
 /**
@@ -57,9 +58,9 @@ public class ProtobufProtocol implements Protocol {
             // dial itself back to our protocol version if it also knows later protocol versions
             if (serverHello.hasData()) {
                 try {
-                    Log.d(TAG, "connect: Compressed: " + bytesToHex(serverHello.getData().toByteArray()));
+                    Log.d(TAG, "connect: Compressed: " + FormatHelper.bytesToHex(serverHello.getData().toByteArray()));
                     byte[] decompressed = decompress_data(serverHello.getData().toByteArray());
-                    Log.d(TAG, "connect: Decompressed: " + bytesToHex(decompressed));
+                    Log.d(TAG, "connect: Decompressed: " + FormatHelper.bytesToHex(decompressed));
                     mVICBF = VICBF.deserialize(decompressed);
                     Log.d(TAG, "connect: Deserialized VICBF");
                 } catch (IOException e) {
@@ -535,24 +536,6 @@ public class ProtobufProtocol implements Protocol {
             return false;
         }
         md.update(auth.getBytes());
-        return ProtobufProtocol.bytesToHex(md.digest()).equals(key);
-    }
-
-
-    final protected static char[] hexArray = "0123456789ABCDEF".toCharArray();
-    /**
-     * Temporary helper function to be removed later. Used to convert byte[] to Strings for debugging
-     * @param bytes The byte[]
-     * @return A hexadecimal string representation of the byte[]
-     * Source: http://stackoverflow.com/a/9855338/1232833
-     */
-    protected static String bytesToHex(byte[] bytes) {
-        char[] hexChars = new char[bytes.length * 2];
-        for ( int j = 0; j < bytes.length; j++ ) {
-            int v = bytes[j] & 0xFF;
-            hexChars[j * 2] = hexArray[v >>> 4];
-            hexChars[j * 2 + 1] = hexArray[v & 0x0F];
-        }
-        return new String(hexChars);
+        return FormatHelper.bytesToHex(md.digest()).equals(key);
     }
 }

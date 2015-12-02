@@ -15,6 +15,8 @@ import java.util.Random;
 
 import javax.net.ssl.SSLHandshakeException;
 
+import de.velcommuta.denul.util.FormatHelper;
+
 /**
  * Test suite for the ProtobufProtocol implementation
  */
@@ -124,7 +126,7 @@ public class ProtobufProtocolTest extends TestCase {
             // Get a random key and value
             byte[] value = new byte[32];
             new Random().nextBytes(value);
-            String auth = ProtobufProtocol.bytesToHex(value);
+            String auth = FormatHelper.bytesToHex(value);
             String key = authToKey(auth);
             // Put it on the server
             assertEquals(p.put(key, value), Protocol.PUT_OK);
@@ -167,7 +169,7 @@ public class ProtobufProtocolTest extends TestCase {
             for (int i = 0; i < 5; i++) {
                 byte[] value = new byte[32];
                 new Random().nextBytes(value);
-                String auth = ProtobufProtocol.bytesToHex(value);
+                String auth = FormatHelper.bytesToHex(value);
                 String key = authToKey(auth);
                 keyvalue.put(key, value);
                 keys.add(key);
@@ -220,7 +222,7 @@ public class ProtobufProtocolTest extends TestCase {
             // Get a random key and value
             byte[] value = new byte[31];
             new Random().nextBytes(value);
-            String key = ProtobufProtocol.bytesToHex(value);
+            String key = FormatHelper.bytesToHex(value);
             // Put it on the server
             assertEquals(p.put(key, value), Protocol.PUT_FAIL_KEY_FMT);
             // Retrieve the value
@@ -271,6 +273,6 @@ public class ProtobufProtocolTest extends TestCase {
             return null;
         }
         md.update(auth.getBytes());
-        return ProtobufProtocol.bytesToHex(md.digest());
+        return FormatHelper.bytesToHex(md.digest());
     }
 }
