@@ -3,17 +3,16 @@ package de.velcommuta.denul.ui;
 import android.app.Fragment;
 import android.app.FragmentManager;
 import android.app.FragmentTransaction;
-import android.net.Uri;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.widget.Toast;
 
 import de.velcommuta.denul.R;
 
 /**
  * Activity containing the flow for adding a new friend
  */
-public class FriendAddActivity extends AppCompatActivity implements FriendAddTechSelectionFragment.TechSelectionListener {
+public class FriendAddActivity extends AppCompatActivity implements FriendAddTechSelectionFragment.TechSelectionListener,
+        FriendAddNearbyFragment.KexProvider{
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,7 +39,7 @@ public class FriendAddActivity extends AppCompatActivity implements FriendAddTec
      */
     private void slideInNearbyFragment() {
         // Get new fragment instance
-        FriendAddTechSelectionFragment fr = FriendAddTechSelectionFragment.newInstance();
+        FriendAddNearbyFragment fr = FriendAddNearbyFragment.newInstance();
         // Perform replacement
         slideForwardReplace(fr);
     }
@@ -70,5 +69,15 @@ public class FriendAddActivity extends AppCompatActivity implements FriendAddTec
         if (tech == FriendAddTechSelectionFragment.TECH_NEARBY) {
             slideInNearbyFragment();
         }
+    }
+
+    @Override
+    public void putKexData(byte[] kex) {
+
+    }
+
+    @Override
+    public byte[] getPublicKexData() {
+        return null;
     }
 }

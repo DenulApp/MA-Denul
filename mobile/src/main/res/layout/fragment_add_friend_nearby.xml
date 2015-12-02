@@ -1,0 +1,30 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
+    android:layout_height="match_parent" tools:context=".ui.FriendAddNearbyFragment"
+    android:orientation="vertical"
+              android:padding="5dp">
+
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="@string/friend_add_step2_nearby_title"
+        android:id="@+id/addfriend_step2_nearby_title"
+        android:layout_gravity="center_horizontal"/>
+
+    <ListView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/addfriend_step2_nearby_devicelist"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:id="@+id/addfriend_step2_nearby_emptyview"
+        android:layout_gravity="center_horizontal"
+        android:text="@string/friend_add_step2_nearby_emptyview"
+        android:visibility="gone"/>
+
+</LinearLayout>

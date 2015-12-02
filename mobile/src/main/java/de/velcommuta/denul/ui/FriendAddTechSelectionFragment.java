@@ -2,14 +2,11 @@ package de.velcommuta.denul.ui;
 
 import android.app.Activity;
 import android.app.Fragment;
-import android.net.Uri;
 import android.os.Bundle;
-import android.os.Parcel;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
-import android.widget.Toast;
 
 import java.util.List;
 
@@ -91,7 +88,7 @@ public class FriendAddTechSelectionFragment extends Fragment implements View.OnC
             mListener = (TechSelectionListener) activity;
         } catch (ClassCastException e) {
             throw new ClassCastException(activity.toString()
-                    + " must implement OnFragmentInteractionListener");
+                    + " must implement TechSelectionListener");
         }
     }
 
