@@ -21,8 +21,11 @@ public class KeySetTest extends TestCase {
         new Random().nextBytes(key2);
         new Random().nextBytes(ctr1);
         new Random().nextBytes(ctr2);
-        assertNotNull(new KeySet(key1, key2, ctr1, ctr2, true));
-        assertNotNull(new KeySet(key1, key2, ctr1, ctr2, false));
+        KeySet ks1 = new KeySet(key1, key2, ctr1, ctr2, true);
+        KeySet ks2 = new KeySet(key2, key1, ctr2, ctr1, false);
+        assertNotNull(ks1);
+        assertNotNull(ks2);
+        assertEquals(ks1.fingerprint(), ks2.fingerprint());
     }
 
 

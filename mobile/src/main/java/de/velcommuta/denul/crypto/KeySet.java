@@ -1,5 +1,10 @@
 package de.velcommuta.denul.crypto;
 
+import org.spongycastle.crypto.Digest;
+import org.spongycastle.crypto.digests.SHA256Digest;
+
+import de.velcommuta.denul.util.FormatHelper;
+
 /**
  * A data structure containing two symmetric keys and two counters
  */
@@ -64,5 +69,30 @@ public class KeySet {
      */
     public byte[] getOutboundCtr() {
         return mOutboundCtr;
+    }
+
+
+    /**
+     * Compute a fingerprint over the keys and counters contained in this KeySet and return it.
+     * The fingerprint should be identical on both ends of the connection where the keys have been
+     * generated.
+     * @return The string representation of the fingerprint
+     */
+    public String fingerprint() {
+        Digest hash = new SHA256Digest();
+        if (mInitiated) {
+            hash.update(mInboundKey, 0, mInboundKey.length);
+            hash.update(mOutboundKey, 0, mOutboundKey.length);
+            hash.update(mInboundCtr, 0, mInboundCtr.length);
+            hash.update(mOutboundCtr, 0, mOutboundCtr.length);
+        } else {
+            hash.update(mOutboundKey, 0, mOutboundKey.length);
+            hash.update(mInboundKey, 0, mInboundKey.length);
+            hash.update(mOutboundCtr, 0, mOutboundCtr.length);
+            hash.update(mInboundCtr, 0, mInboundCtr.length);
+        }
+        byte[] output = new byte[hash.getDigestSize()];
+        hash.doFinal(output, 0);
+        return FormatHelper.bytesToHex(output);
     }
 }

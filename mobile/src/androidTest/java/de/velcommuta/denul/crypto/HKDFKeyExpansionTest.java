@@ -40,5 +40,6 @@ public class HKDFKeyExpansionTest extends TestCase {
         assertTrue(Arrays.equals(ks2.getInboundKey(), ks1.getOutboundKey()));
         assertTrue(Arrays.equals(ks1.getInboundCtr(), ks2.getOutboundCtr()));
         assertTrue(Arrays.equals(ks2.getInboundCtr(), ks1.getOutboundCtr()));
+        assertEquals(ks1.fingerprint(), ks2.fingerprint());
     }
 }
