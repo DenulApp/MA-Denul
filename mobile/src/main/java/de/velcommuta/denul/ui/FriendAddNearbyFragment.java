@@ -12,6 +12,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.Toast;
@@ -40,10 +41,10 @@ import de.velcommuta.denul.ui.adapter.NearbyConnectionListAdapter;
 public class FriendAddNearbyFragment extends Fragment implements
         GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener,
-        View.OnClickListener,
         Connections.ConnectionRequestListener,
         Connections.MessageListener,
-        Connections.EndpointDiscoveryListener {
+        Connections.EndpointDiscoveryListener,
+        AdapterView.OnItemClickListener {
 
     private static final String TAG = "FriendAddNearby";
     private GoogleApiClient mGoogleApiClient;
@@ -96,6 +97,7 @@ public class FriendAddNearbyFragment extends Fragment implements
         // Set up ArrayAdapter
         mListAdapter = new NearbyConnectionListAdapter(getActivity(), adapterList);
         mDeviceList.setAdapter(mListAdapter);
+        mDeviceList.setOnItemClickListener(this);
         // Initialize Google API client
         mGoogleApiClient = new GoogleApiClient.Builder(getActivity())
                 .addConnectionCallbacks(this)
@@ -128,12 +130,6 @@ public class FriendAddNearbyFragment extends Fragment implements
             stopDiscovery();
             mGoogleApiClient.disconnect();
         }
-    }
-
-
-    @Override
-    public void onClick(View view) {
-        // TODO Implement if necessary
     }
 
     @Override
@@ -283,7 +279,7 @@ public class FriendAddNearbyFragment extends Fragment implements
         // the Nearby Connections API will construct a default name based on device model
         // such as 'LGE Nexus 5'.
         String myName = null;
-        byte[] myPayload = null;
+        byte[] myPayload = null;  // TODO Maybe use this payload to transmit user information? Nick, avatar, used server, server cert FP, ...
         Nearby.Connections.sendConnectionRequest(mGoogleApiClient, myName, endpointId, myPayload,
                 new Connections.ConnectionResponseCallback() {
                     @Override
@@ -292,9 +288,6 @@ public class FriendAddNearbyFragment extends Fragment implements
                         Log.d(TAG, "onConnectionResponse:" + endpointId + ":" + status);
                         if (status.isSuccess()) {
                             Log.d(TAG, "onConnectionResponse: " + endpointName + " SUCCESS");
-                            Toast.makeText(getActivity(), "Connected to " + endpointName,
-                                    Toast.LENGTH_SHORT).show();
-
                             mOtherEndpointId = endpointId;
                         } else {
                             Log.d(TAG, "onConnectionResponse: " + endpointName + " FAILURE");
@@ -333,7 +326,7 @@ public class FriendAddNearbyFragment extends Fragment implements
                 .setPositiveButton("Connect", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        byte[] payload = null;
+                        byte[] payload = null;  // TODO Maybe use this payload to transmit user information? Nick, avatar, used server, server cert FP, ...
                         Nearby.Connections.acceptConnectionRequest(mGoogleApiClient, endpointId,
                                 payload, FriendAddNearbyFragment.this)
                                 .setResultCallback(new ResultCallback<Status>() {
@@ -398,6 +391,13 @@ public class FriendAddNearbyFragment extends Fragment implements
     @Override
     public void onConnectionFailed(ConnectionResult connectionResult) {
         Log.d(TAG, "onConnectionFailed: Connection failed");
+    }
+
+
+    @Override
+    public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
+        NearbyConnection conn = (NearbyConnection) adapterView.getItemAtPosition(position);
+        connectTo(conn.getID(), conn.getName());
     }
 
 
