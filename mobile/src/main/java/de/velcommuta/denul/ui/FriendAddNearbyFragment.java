@@ -56,6 +56,8 @@ public class FriendAddNearbyFragment extends Fragment implements
     private NearbyConnectionListAdapter mListAdapter;
     private Hashtable<String, NearbyConnection> mIdMap;
 
+    private boolean isInitiator;
+
     // Timeouts for google nearby. 0L => Discover / advertise until explicitly stopped
     private static final long TIMEOUT_ADVERTISE = 0L;
     private static final long TIMEOUT_DISCOVER = 0L;
@@ -133,12 +135,12 @@ public class FriendAddNearbyFragment extends Fragment implements
     }
 
     @Override
-    public void onAttach(Context ctx) {
-        super.onAttach(ctx);
+    public void onAttach(Activity act) {
+        super.onAttach(act);
         try {
-            mListener = (KexProvider) ctx;
+            mListener = (KexProvider) act;
         } catch (ClassCastException e) {
-            throw new ClassCastException(ctx.toString()
+            throw new ClassCastException(act.toString()
                     + " must implement KexProvider");
         }
     }
@@ -289,6 +291,8 @@ public class FriendAddNearbyFragment extends Fragment implements
                         if (status.isSuccess()) {
                             Log.d(TAG, "onConnectionResponse: " + endpointName + " SUCCESS");
                             mOtherEndpointId = endpointId;
+                            isInitiator = true;
+                            sendKex();
                         } else {
                             Log.d(TAG, "onConnectionResponse: " + endpointName + " FAILURE");
                         }
@@ -326,7 +330,7 @@ public class FriendAddNearbyFragment extends Fragment implements
                 .setPositiveButton("Connect", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        byte[] payload = null;  // TODO Maybe use this payload to transmit user information? Nick, avatar, used server, server cert FP, ...
+                        byte[] payload = new byte[] {0x00};  // TODO Maybe use this payload to transmit user information? Nick, avatar, used server, server cert FP, ...
                         Nearby.Connections.acceptConnectionRequest(mGoogleApiClient, endpointId,
                                 payload, FriendAddNearbyFragment.this)
                                 .setResultCallback(new ResultCallback<Status>() {
@@ -334,8 +338,8 @@ public class FriendAddNearbyFragment extends Fragment implements
                                     public void onResult(Status status) {
                                         if (status.isSuccess()) {
                                             Log.d(TAG, "acceptConnectionRequest: SUCCESS");
-
                                             mOtherEndpointId = endpointId;
+                                            isInitiator = false;
                                         } else {
                                             Log.d(TAG, "acceptConnectionRequest: FAILURE");
                                         }
@@ -376,13 +380,6 @@ public class FriendAddNearbyFragment extends Fragment implements
 
 
     @Override
-    public void onMessageReceived(String endpointId, byte[] payload, boolean isReliable) {
-        // A message has been received from a remote endpoint.
-        Log.d(TAG, "onMessageReceived:" + endpointId + ":" + new String(payload));
-    }
-
-
-    @Override
     public void onDisconnected(String endpointID) {
         Log.d(TAG, "onDisconnected: " + endpointID + " disconnected");
     }
@@ -391,6 +388,25 @@ public class FriendAddNearbyFragment extends Fragment implements
     @Override
     public void onConnectionFailed(ConnectionResult connectionResult) {
         Log.d(TAG, "onConnectionFailed: Connection failed");
+    }
+
+
+    @Override
+    public void onMessageReceived(String endpointId, byte[] payload, boolean isReliable) {
+        // A message has been received from a remote endpoint.
+        Log.d(TAG, "onMessageReceived: Received message");
+        mListener.putKexData(payload);
+        if (!isInitiator) {
+            sendKex();
+        }
+    }
+
+
+    /**
+     * Send key exchange data to the partner
+     */
+    private void sendKex() {
+        sendMessage(mListener.getPublicKexData());
     }
 
 
@@ -416,5 +432,10 @@ public class FriendAddNearbyFragment extends Fragment implements
          * @return public key exchange data, as byte[]
          */
         byte[] getPublicKexData();
+
+        /**
+         * Called to notify the hosting activity that the key exchange is done
+         */
+        void kexDone();
     }
 }

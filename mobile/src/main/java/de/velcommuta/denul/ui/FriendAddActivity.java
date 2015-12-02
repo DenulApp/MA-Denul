@@ -5,19 +5,32 @@ import android.app.FragmentManager;
 import android.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 
 import de.velcommuta.denul.R;
+import de.velcommuta.denul.crypto.ECDHKeyExchange;
+import de.velcommuta.denul.crypto.KeyExchange;
 
 /**
  * Activity containing the flow for adding a new friend
  */
-public class FriendAddActivity extends AppCompatActivity implements FriendAddTechSelectionFragment.TechSelectionListener,
+public class FriendAddActivity extends AppCompatActivity implements
+        FriendAddTechSelectionFragment.TechSelectionListener,
         FriendAddNearbyFragment.KexProvider{
+
+    private static final String TAG = "FriendAddActivity";
+
+    private KeyExchange mKex;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_friend_add);
+        // Prepare Key Exchange object
+        Log.d(TAG, "onCreate: Creating Kex");
+        mKex = new ECDHKeyExchange();
+        Log.d(TAG, "onCreate: Creating Kex done");
+        // Load tech selection fragment
         loadTechSelectFragment();
     }
 
@@ -73,11 +86,24 @@ public class FriendAddActivity extends AppCompatActivity implements FriendAddTec
 
     @Override
     public void putKexData(byte[] kex) {
-
+        if (mKex != null) {
+            Log.d(TAG, "putKexData: Putting Kex data");
+            mKex.putPartnerKexData(kex);
+        }
     }
 
     @Override
     public byte[] getPublicKexData() {
-        return null;
+        if (mKex != null) {
+            Log.d(TAG, "getPublicKexData: Returning public Key Exchange data");
+            return mKex.getPublicKexData();
+        } else {
+            return null;
+        }
+    }
+
+    @Override
+    public void kexDone() {
+        byte[] key = mKex.getAgreedKey();
     }
 }
