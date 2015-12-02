@@ -12,7 +12,6 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.Toast;
@@ -28,11 +27,12 @@ import com.google.android.gms.nearby.connection.Connections;
 import com.google.android.gms.nearby.connection.ConnectionsStatusCodes;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 
 import de.velcommuta.denul.R;
+import de.velcommuta.denul.ui.adapter.NearbyConnection;
+import de.velcommuta.denul.ui.adapter.NearbyConnectionListAdapter;
 
 /**
  * Fragment to show the Google Nearby workflow
@@ -52,9 +52,8 @@ public class FriendAddNearbyFragment extends Fragment implements
     private LinearLayout mNearbyLayout;
     private AlertDialog mConnectionRequestDialog;
     private ListView mDeviceList;
-    private ArrayAdapter mListAdapter;
-    private ArrayList<String> mDevices;
-    private Hashtable<String, String> mNameIdMap;
+    private NearbyConnectionListAdapter mListAdapter;
+    private Hashtable<String, NearbyConnection> mIdMap;
 
     // Timeouts for google nearby. 0L => Discover / advertise until explicitly stopped
     private static final long TIMEOUT_ADVERTISE = 0L;
@@ -88,13 +87,14 @@ public class FriendAddNearbyFragment extends Fragment implements
         // Inflate the layout for this fragment
         View v = inflater.inflate(R.layout.fragment_add_friend_nearby, container, false);
         // Initialize the device list data structure
-        mDevices = new ArrayList<>();
+        ArrayList<NearbyConnection> adapterList = new ArrayList<>();
+        mIdMap = new Hashtable<>();
         // Grab reference to Device List
         mDeviceList = (ListView) v.findViewById(R.id.addfriend_step2_nearby_devicelist);
         // Set up message to display while no entries are in the list
         mDeviceList.setEmptyView(v.findViewById(R.id.addfriend_step2_nearby_emptyview));
         // Set up ArrayAdapter
-        mListAdapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_list_item_1, mDevices);
+        mListAdapter = new NearbyConnectionListAdapter(getActivity(), adapterList);
         mDeviceList.setAdapter(mListAdapter);
         // Initialize Google API client
         mGoogleApiClient = new GoogleApiClient.Builder(getActivity())
@@ -368,16 +368,17 @@ public class FriendAddNearbyFragment extends Fragment implements
 
         // This device is discovering endpoints and has located an advertiser. Add it to the list
         // of found devices
-        mListAdapter.add(endpointId);
-
-
+        NearbyConnection conn = new NearbyConnection(endpointName, endpointId);
+        mListAdapter.add(conn);
+        mIdMap.put(endpointId, conn);
     }
 
 
     @Override
     public void onEndpointLost(String endpointId) {
         Log.d(TAG, "onEndpointLost:" + endpointId);
-        mListAdapter.remove(endpointId);
+        mListAdapter.remove(mIdMap.get(endpointId));
+        mIdMap.remove(endpointId);
     }
 
 

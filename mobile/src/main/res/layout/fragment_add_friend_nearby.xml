@@ -14,7 +14,7 @@
         android:layout_gravity="center_horizontal"/>
 
     <ListView
-        android:layout_width="wrap_content"
+        android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:id="@+id/addfriend_step2_nearby_devicelist"/>
 
