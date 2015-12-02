@@ -12,7 +12,8 @@
     <string name="menu_home">Home</string>
     <string name="menu_track_run">Track</string>
     <string name="menu_old_tracks">Exercise History</string>
-    <string name="menu_title_2">Communicate</string> <!-- TODO This title sucks -->
+    <string name="menu_title_2">Communicate</string>
+    <!-- TODO This title sucks -->
     <string name="menu_friends">Friends</string>
     <string name="menu_prefs">Settings</string>
 
@@ -40,7 +41,7 @@
 
     <!-- Add a friend -->
     <string name="friend_add_step1_title">Add a friend</string>
-    <string name="friend_add_step1_explanation">You can add friends using a variety of different ways. Please select one below, and make sure your friend selects the same</string>
+    <string name="friend_add_step1_explanation">How do you want to add your new friend?</string>
     <string name="friend_add_step1_nearby_title">Google Nearby</string>
     <string name="friend_add_step1_nearby_description">Choose this if you are in the same WiFi</string>
     <!-- Status messages -->

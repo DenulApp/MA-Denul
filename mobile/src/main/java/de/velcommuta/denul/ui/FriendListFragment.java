@@ -1,6 +1,7 @@
 package de.velcommuta.denul.ui;
 
 import android.app.Fragment;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -95,6 +96,8 @@ public class FriendListFragment extends Fragment {
             case R.id.action_add_friend:
                 // The "add friend" button was clicked
                 Log.d(TAG, "onOptionsItemSelected: Add friend clicked");
+                Intent intent = new Intent(getActivity(), FriendAddActivity.class);
+                startActivity(intent);
                 return true;
             default:
                 // The clicked button was not our responsibility
