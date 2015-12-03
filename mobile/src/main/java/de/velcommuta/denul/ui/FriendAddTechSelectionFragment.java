@@ -14,7 +14,7 @@ import de.velcommuta.denul.R;
 
 
 /**
- * Fragment to display the step count
+ * Fragment to display the technology chooser for the Add Friend activity
  */
 public class FriendAddTechSelectionFragment extends Fragment implements View.OnClickListener {
     private static final String TAG = "FriendAddTech";
@@ -99,7 +99,7 @@ public class FriendAddTechSelectionFragment extends Fragment implements View.OnC
      */
     public interface TechSelectionListener {
         /**
-         * Communicate a message to the hosting activity
+         * Communicate the chosen technology to the hosting activity
          * @param tech Selected technology, as one of the TECH_* constants
          */
         void techSelection(int tech);
