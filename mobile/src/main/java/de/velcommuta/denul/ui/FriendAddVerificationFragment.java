@@ -36,6 +36,9 @@ public class FriendAddVerificationFragment extends Fragment implements View.OnCl
     private ImageView mQrCodeView;
     private Button mScanButton;
     private String mFingerprint;
+    private ImageView mStatusIndicator1;
+    private ImageView mStatusIndicator2;
+    private ImageView mStatusIndicator3;
 
     /**
      * Use this factory method to create a new instance of
@@ -63,6 +66,9 @@ public class FriendAddVerificationFragment extends Fragment implements View.OnCl
         View v = inflater.inflate(R.layout.fragment_add_friend_verify, container, false);
         // Grab references to buttons, views
         mQrCodeView = (ImageView) v.findViewById(R.id.addfriend_step3_verify_qrcode);
+        mStatusIndicator1 = (ImageView) v.findViewById(R.id.addfriend_step3_verify_b1);
+        mStatusIndicator2 = (ImageView) v.findViewById(R.id.addfriend_step3_verify_b2);
+        mStatusIndicator3 = (ImageView) v.findViewById(R.id.addfriend_step3_verify_b3);
         mScanButton = (Button) v.findViewById(R.id.addfriend_step3_verify_scanbutton);
         // Set up onClickListener
         mScanButton.setOnClickListener(this);
@@ -109,7 +115,8 @@ public class FriendAddVerificationFragment extends Fragment implements View.OnCl
             BitMatrix bitMatrix = writer.encode(mFingerprint, BarcodeFormat.QR_CODE, 512, 512);
             // Convert the bit matrix to a bitmap representation
             int width = bitMatrix.getWidth();
-            int height = bitMatrix.getHeight();
+            // We cut off the bottom eigth of the bitMatrix this way, as it only contains a white border
+            int height = bitMatrix.getHeight() - bitMatrix.getHeight() / 8;
             Bitmap bmp = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
             for (int x = 0; x < width; x++) {
                 for (int y = 0; y < height; y++) {
@@ -127,13 +134,22 @@ public class FriendAddVerificationFragment extends Fragment implements View.OnCl
     /**
      * Verify a scanned fingerprint
      * @param fingerprint The scanned fingerprint
-     * TODO Do something useful with it
      */
     private void verifyFingerprint(String fingerprint) {
         if (fingerprint.equals(mFingerprint)) {
-            Toast.makeText(getActivity(), "Equal", Toast.LENGTH_SHORT).show();
+            // Tint all the circles green to indicate that the verification is okay
+            mStatusIndicator1.getDrawable().setTint(getResources().getColor(android.R.color.holo_green_light));
+            mStatusIndicator2.getDrawable().setTint(getResources().getColor(android.R.color.holo_green_light));
+            mStatusIndicator3.getDrawable().setTint(getResources().getColor(android.R.color.holo_green_light));
         } else {
-            Toast.makeText(getActivity(), "Not Equal", Toast.LENGTH_SHORT).show();
+            // Replace circles with warning signs and tint them red to indicate that something is very wrong
+            mStatusIndicator1.setImageDrawable(getResources().getDrawable(R.drawable.ic_warning));
+            mStatusIndicator2.setImageDrawable(getResources().getDrawable(R.drawable.ic_warning));
+            mStatusIndicator3.setImageDrawable(getResources().getDrawable(R.drawable.ic_warning));
+            mStatusIndicator1.getDrawable().setTint(getResources().getColor(android.R.color.holo_red_dark));
+            mStatusIndicator2.getDrawable().setTint(getResources().getColor(android.R.color.holo_red_dark));
+            mStatusIndicator3.getDrawable().setTint(getResources().getColor(android.R.color.holo_red_dark));
+            // TODO Notify user, delete keys, do whatever is best
         }
     }
 

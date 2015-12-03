@@ -27,6 +27,38 @@
         android:layout_gravity="center_horizontal"
         />
 
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal">
+
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/addfriend_step3_verify_b1"
+            android:src="@drawable/ic_circle"
+            android:layout_gravity="center_horizontal"
+            android:tint="@android:color/holo_orange_light"/>
+
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/addfriend_step3_verify_b2"
+            android:src="@drawable/ic_circle"
+            android:layout_gravity="center_horizontal"
+            android:tint="@android:color/holo_orange_light"/>
+
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/addfriend_step3_verify_b3"
+            android:src="@drawable/ic_circle"
+            android:layout_gravity="center_horizontal"
+            android:tint="@android:color/darker_gray"/>
+
+    </LinearLayout>
+
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
