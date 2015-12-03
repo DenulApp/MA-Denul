@@ -52,6 +52,9 @@ dependencies {
     compile 'joda-time:joda-time:2.8.2'
     // Netcipher for Tor support
     // compile 'info.guardianproject.netcipher:netcipher:1.2'
+    // QR Code generation and scanning
+    compile 'com.journeyapps:zxing-android-embedded:3.0.3@aar'
+    compile 'com.google.zxing:core:3.0.1'
 
     // SpongyCastle for non-retarded crypto-APIs
     compile 'com.madgag.spongycastle:core:1.52.0.0'

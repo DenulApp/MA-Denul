@@ -51,6 +51,8 @@
     <string name="friend_add_step2_nearby_state_exchanging">Exchanging keys</string>
     <string name="friend_add_step2_nearby_state_calculating">Calculating keys</string>
     <string name="friend_add_step2_nearby_state_done">Done</string>
+    <string name="friend_add_step3_verify_title">Verify your new Friend</string>
+    <string name="friend_add_step3_verify_desc">To make sure everything went well, please scan the code displayed on your friends device, and let your friend scan yours.</string>
 
     <!-- Status messages -->
     <string name="save_success">Saved</string>

@@ -18,7 +18,8 @@ import de.velcommuta.denul.crypto.KeySet;
  */
 public class FriendAddActivity extends AppCompatActivity implements
         FriendAddTechSelectionFragment.TechSelectionListener,
-        FriendAddNearbyFragment.KexProvider{
+        FriendAddNearbyFragment.KexProvider,
+        FriendAddVerificationFragment.VerificationListener {
 
     private static final String TAG = "FriendAddActivity";
 
@@ -59,6 +60,18 @@ public class FriendAddActivity extends AppCompatActivity implements
         // Perform replacement
         slideForwardReplace(fr);
     }
+
+
+    /**
+     * Replace the currently active fragment with the verification fragment
+     */
+    private void slideInVerificationFragment() {
+        // Get new fragment instance
+        FriendAddVerificationFragment fr = FriendAddVerificationFragment.newInstance();
+        // Perform replacement
+        slideForwardReplace(fr);
+    }
+
 
     /**
      * Replace a fragment by sliding the old one out to the left, and the new one in from the right.
@@ -110,5 +123,18 @@ public class FriendAddActivity extends AppCompatActivity implements
         byte[] key = mKex.getAgreedKey();
         mKeyset = new HKDFKeyExpansion(key).expand(isInitiating);
         Log.d(TAG, "kexDone: Generated keys");
+        slideInVerificationFragment();
+    }
+
+
+    @Override
+    public String getFingerprint() {
+        return mKeyset.fingerprint();
+    }
+
+
+    @Override
+    public void continueClicked(boolean verified) {
+        // TODO
     }
 }
