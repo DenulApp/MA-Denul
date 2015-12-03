@@ -13,7 +13,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
-import android.widget.Toast;
 
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.WriterException;
@@ -32,13 +31,20 @@ import de.velcommuta.denul.crypto.KeySet;
 public class FriendAddVerificationFragment extends Fragment implements View.OnClickListener {
     private static final String TAG = "FriendAddVerif";
 
+    public static final int VERIFY_NOT_DONE = 0;
+    public static final int VERIFY_OK = 1;
+    public static final int VERIFY_FAIL = 2;
+
     private VerificationListener mListener;
     private ImageView mQrCodeView;
     private Button mScanButton;
+    private Button mFinishButton;
     private String mFingerprint;
     private ImageView mStatusIndicator1;
     private ImageView mStatusIndicator2;
     private ImageView mStatusIndicator3;
+
+    private int mStatus = VERIFY_NOT_DONE;
 
     /**
      * Use this factory method to create a new instance of
@@ -70,8 +76,10 @@ public class FriendAddVerificationFragment extends Fragment implements View.OnCl
         mStatusIndicator2 = (ImageView) v.findViewById(R.id.addfriend_step3_verify_b2);
         mStatusIndicator3 = (ImageView) v.findViewById(R.id.addfriend_step3_verify_b3);
         mScanButton = (Button) v.findViewById(R.id.addfriend_step3_verify_scanbutton);
+        mFinishButton = (Button) v.findViewById(R.id.addfriend_step3_verify_continue);
         // Set up onClickListener
         mScanButton.setOnClickListener(this);
+        mFinishButton.setOnClickListener(this);
         // Load the fingerprint, generate QRCode
         loadFingerprintQrCode();
         return v;
@@ -141,6 +149,7 @@ public class FriendAddVerificationFragment extends Fragment implements View.OnCl
             mStatusIndicator1.getDrawable().setTint(getResources().getColor(android.R.color.holo_green_light));
             mStatusIndicator2.getDrawable().setTint(getResources().getColor(android.R.color.holo_green_light));
             mStatusIndicator3.getDrawable().setTint(getResources().getColor(android.R.color.holo_green_light));
+            mStatus = VERIFY_OK;
         } else {
             // Replace circles with warning signs and tint them red to indicate that something is very wrong
             mStatusIndicator1.setImageDrawable(getResources().getDrawable(R.drawable.ic_warning));
@@ -149,6 +158,7 @@ public class FriendAddVerificationFragment extends Fragment implements View.OnCl
             mStatusIndicator1.getDrawable().setTint(getResources().getColor(android.R.color.holo_red_dark));
             mStatusIndicator2.getDrawable().setTint(getResources().getColor(android.R.color.holo_red_dark));
             mStatusIndicator3.getDrawable().setTint(getResources().getColor(android.R.color.holo_red_dark));
+            mStatus = VERIFY_FAIL;
             // TODO Notify user, delete keys, do whatever is best
         }
     }
@@ -162,6 +172,9 @@ public class FriendAddVerificationFragment extends Fragment implements View.OnCl
             integrator.setBeepEnabled(false);
             integrator.setDesiredBarcodeFormats(IntentIntegrator.QR_CODE_TYPES);
             integrator.initiateScan();
+        } else if (view == mFinishButton) {
+            //  User clicked the "Finish" button. Let the hosting activity decide what to do.
+            mListener.continueClicked(mStatus);
         }
     }
 
@@ -195,8 +208,8 @@ public class FriendAddVerificationFragment extends Fragment implements View.OnCl
 
         /**
          * Indicate to the hosting activity that the user has clicked the "continue" button
-         * @param verified True if the fingerprint has been successfully verified, false otherwise
+         * @param verificationStatus One of the VERIFY_* constants, indicating the verification status
          */
-        void continueClicked(boolean verified);
+        void continueClicked(int verificationStatus);
     }
 }

@@ -27,6 +27,14 @@
         android:layout_gravity="center_horizontal"
         />
 
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:text="@string/friend_add_step3_verify_securitylevel_header"
+        android:id="@+id/textView3"
+        android:layout_gravity="center_horizontal"/>
+
     <LinearLayout
         android:orientation="horizontal"
         android:layout_width="wrap_content"
@@ -59,10 +67,33 @@
 
     </LinearLayout>
 
-    <Button
-        android:layout_width="wrap_content"
+    <RelativeLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Scan"
-        android:id="@+id/addfriend_step3_verify_scanbutton"
-        android:layout_gravity="center_horizontal"/>
+        android:columnCount="2"
+        android:rowCount="1">
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Scan"
+            android:id="@+id/addfriend_step3_verify_scanbutton"
+            android:layout_gravity="right"
+            android:layout_column="0"
+            android:layout_columnWeight="1"
+            android:layout_alignParentTop="true"
+            android:layout_centerHorizontal="true"/>
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/friend_add_step3_verify_finish"
+            android:id="@+id/addfriend_step3_verify_continue"
+            android:layout_gravity="right"
+            android:layout_column="1"
+            android:layout_columnWeight="1"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentEnd="true"/>
+    </RelativeLayout>
 </LinearLayout>

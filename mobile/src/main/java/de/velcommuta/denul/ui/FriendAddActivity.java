@@ -134,7 +134,15 @@ public class FriendAddActivity extends AppCompatActivity implements
 
 
     @Override
-    public void continueClicked(boolean verified) {
-        // TODO
+    public void continueClicked(int verificationStatus) {
+        if (verificationStatus == FriendAddVerificationFragment.VERIFY_FAIL) {
+            // The verification failed, the fingerprints did not match
+            // TODO Display error with option to redo everything or abort
+        } else if (verificationStatus == FriendAddVerificationFragment.VERIFY_NOT_DONE) {
+            // No verification attempt has taken place
+            // TODO Display warning with option to continue without verification
+        } else {
+            // Verification was successful
+        }
     }
 }
