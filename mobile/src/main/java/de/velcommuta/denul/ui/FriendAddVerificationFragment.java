@@ -61,9 +61,12 @@ public class FriendAddVerificationFragment extends Fragment implements View.OnCl
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         View v = inflater.inflate(R.layout.fragment_add_friend_verify, container, false);
+        // Grab references to buttons, views
         mQrCodeView = (ImageView) v.findViewById(R.id.addfriend_step3_verify_qrcode);
         mScanButton = (Button) v.findViewById(R.id.addfriend_step3_verify_scanbutton);
+        // Set up onClickListener
         mScanButton.setOnClickListener(this);
+        // Load the fingerprint, generate QRCode
         loadFingerprintQrCode();
         return v;
     }
@@ -92,13 +95,19 @@ public class FriendAddVerificationFragment extends Fragment implements View.OnCl
      * QRCode generation code adapted from http://stackoverflow.com/a/25283174/1232833
      */
     private void loadFingerprintQrCode() {
+        // Get the fingerprint from the hosting activity
         mFingerprint = mListener.getFingerprint();
+        // Get a new QRCodeWriter to generate our QRCode
         QRCodeWriter writer = new QRCodeWriter();
+        // Detect the activity's background color to match the background color of the QR code to.
+        // Color detection adapted from http://stackoverflow.com/a/3668872/1232833
         TypedArray array = getActivity().getTheme().obtainStyledAttributes(new int[] {android.R.attr.colorBackground});
         int backgroundColor = array.getColor(0, 0xFF00FF);
         array.recycle();
         try {
+            // Get a BitMatrix representing the QRCode
             BitMatrix bitMatrix = writer.encode(mFingerprint, BarcodeFormat.QR_CODE, 512, 512);
+            // Convert the bit matrix to a bitmap representation
             int width = bitMatrix.getWidth();
             int height = bitMatrix.getHeight();
             Bitmap bmp = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
@@ -107,6 +116,7 @@ public class FriendAddVerificationFragment extends Fragment implements View.OnCl
                     bmp.setPixel(x, y, bitMatrix.get(x, y) ? Color.BLACK : backgroundColor);
                 }
             }
+            // Display the bitmap
             mQrCodeView.setImageBitmap(bmp);
         } catch (WriterException e) {
             e.printStackTrace();
@@ -117,6 +127,7 @@ public class FriendAddVerificationFragment extends Fragment implements View.OnCl
     /**
      * Verify a scanned fingerprint
      * @param fingerprint The scanned fingerprint
+     * TODO Do something useful with it
      */
     private void verifyFingerprint(String fingerprint) {
         if (fingerprint.equals(mFingerprint)) {
@@ -129,6 +140,8 @@ public class FriendAddVerificationFragment extends Fragment implements View.OnCl
     @Override
     public void onClick(View view) {
         if (view == mScanButton) {
+            // Scan button clicked.
+            // Scanning code adapted from the zxing-android-embedded sample
             IntentIntegrator integrator = IntentIntegrator.forFragment(this);
             integrator.setBeepEnabled(false);
             integrator.setDesiredBarcodeFormats(IntentIntegrator.QR_CODE_TYPES);
@@ -138,15 +151,18 @@ public class FriendAddVerificationFragment extends Fragment implements View.OnCl
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        // Convert to IntentResult
         IntentResult result = IntentIntegrator.parseActivityResult(requestCode, resultCode, data);
+        // Check if the parsing has succeeded
         if (result != null) {
+            // Check if the result contains a scanned value
             if (result.getContents() == null) {
+                // Value is null => Scan was cancelled
                 Log.w(TAG, "onActivityResult: Barcode scan was cancelled");
             } else {
+                // Value is not null, pass it to the verification function
                 verifyFingerprint(result.getContents());
             }
-        } else {
-            Toast.makeText(getActivity(), "Scan cancelled", Toast.LENGTH_SHORT).show();
         }
     }
 
