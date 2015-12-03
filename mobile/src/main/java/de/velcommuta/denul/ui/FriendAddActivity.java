@@ -9,7 +9,9 @@ import android.util.Log;
 
 import de.velcommuta.denul.R;
 import de.velcommuta.denul.crypto.ECDHKeyExchange;
+import de.velcommuta.denul.crypto.HKDFKeyExpansion;
 import de.velcommuta.denul.crypto.KeyExchange;
+import de.velcommuta.denul.crypto.KeySet;
 
 /**
  * Activity containing the flow for adding a new friend
@@ -21,6 +23,7 @@ public class FriendAddActivity extends AppCompatActivity implements
     private static final String TAG = "FriendAddActivity";
 
     private KeyExchange mKex;
+    private KeySet mKeyset;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -103,7 +106,9 @@ public class FriendAddActivity extends AppCompatActivity implements
     }
 
     @Override
-    public void kexDone() {
+    public void kexDone(boolean isInitiating) {
         byte[] key = mKex.getAgreedKey();
+        mKeyset = new HKDFKeyExpansion(key).expand(isInitiating);
+        Log.d(TAG, "kexDone: Generated keys");
     }
 }

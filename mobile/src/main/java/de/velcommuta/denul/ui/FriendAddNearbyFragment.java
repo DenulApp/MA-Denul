@@ -13,9 +13,9 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
-import android.widget.LinearLayout;
 import android.widget.ListView;
-import android.widget.Toast;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -36,7 +36,9 @@ import de.velcommuta.denul.ui.adapter.NearbyConnection;
 import de.velcommuta.denul.ui.adapter.NearbyConnectionListAdapter;
 
 /**
- * Fragment to show the Google Nearby workflow
+ * Fragment to show the Google Nearby workflow.
+ * TODO At the moment, this is a pretty basic protocol. I will have to go back and update it once
+ * TODO User profiles, avatars etc are a thing. It also needs better error handling
  */
 public class FriendAddNearbyFragment extends Fragment implements
         GoogleApiClient.ConnectionCallbacks,
@@ -50,9 +52,9 @@ public class FriendAddNearbyFragment extends Fragment implements
     private GoogleApiClient mGoogleApiClient;
 
     private KexProvider mListener;
-    private LinearLayout mNearbyLayout;
-    private AlertDialog mConnectionRequestDialog;
     private ListView mDeviceList;
+    private ProgressBar mProgressBar;
+    private TextView mProgressText;
     private NearbyConnectionListAdapter mListAdapter;
     private Hashtable<String, NearbyConnection> mIdMap;
 
@@ -96,6 +98,9 @@ public class FriendAddNearbyFragment extends Fragment implements
         mDeviceList = (ListView) v.findViewById(R.id.addfriend_step2_nearby_devicelist);
         // Set up message to display while no entries are in the list
         mDeviceList.setEmptyView(v.findViewById(R.id.addfriend_step2_nearby_emptyview));
+        // Get reference to Progress Bar
+        mProgressBar = (ProgressBar) v.findViewById(R.id.addfriend_step2_nearby_progressbar);
+        mProgressText = (TextView) v.findViewById(R.id.addfriend_step2_nearby_progressnote);
         // Set up ArrayAdapter
         mListAdapter = new NearbyConnectionListAdapter(getActivity(), adapterList);
         mDeviceList.setAdapter(mListAdapter);
@@ -130,6 +135,7 @@ public class FriendAddNearbyFragment extends Fragment implements
             mListAdapter.clear();
             stopAdvertising();
             stopDiscovery();
+            Nearby.Connections.stopAllEndpoints(mGoogleApiClient);
             mGoogleApiClient.disconnect();
         }
     }
@@ -280,6 +286,7 @@ public class FriendAddNearbyFragment extends Fragment implements
         // Send a connection request to a remote endpoint. By passing 'null' for the name,
         // the Nearby Connections API will construct a default name based on device model
         // such as 'LGE Nexus 5'.
+        setModeSettingUp();
         String myName = null;
         byte[] myPayload = null;  // TODO Maybe use this payload to transmit user information? Nick, avatar, used server, server cert FP, ...
         Nearby.Connections.sendConnectionRequest(mGoogleApiClient, myName, endpointId, myPayload,
@@ -292,9 +299,11 @@ public class FriendAddNearbyFragment extends Fragment implements
                             Log.d(TAG, "onConnectionResponse: " + endpointName + " SUCCESS");
                             mOtherEndpointId = endpointId;
                             isInitiator = true;
+                            setModeConnected();
                             sendKex();
                         } else {
                             Log.d(TAG, "onConnectionResponse: " + endpointName + " FAILURE");
+                            setModeScanning();
                         }
                     }
                 }, this);
@@ -323,14 +332,14 @@ public class FriendAddNearbyFragment extends Fragment implements
 
         // This device is advertising and has received a connection request. Show a dialog asking
         // the user if they would like to connect and accept or reject the request accordingly.
-        mConnectionRequestDialog = new AlertDialog.Builder(getActivity())
+        AlertDialog ConnectionRequestDialog = new AlertDialog.Builder(getActivity())
                 .setTitle("Connection Request")
                 .setMessage("Do you want to connect to " + endpointName + "?")
                 .setCancelable(false)
                 .setPositiveButton("Connect", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        byte[] payload = new byte[] {0x00};  // TODO Maybe use this payload to transmit user information? Nick, avatar, used server, server cert FP, ...
+                        byte[] payload = new byte[]{0x00};  // TODO Maybe use this payload to transmit user information? Nick, avatar, used server, server cert FP, ...
                         Nearby.Connections.acceptConnectionRequest(mGoogleApiClient, endpointId,
                                 payload, FriendAddNearbyFragment.this)
                                 .setResultCallback(new ResultCallback<Status>() {
@@ -340,8 +349,11 @@ public class FriendAddNearbyFragment extends Fragment implements
                                             Log.d(TAG, "acceptConnectionRequest: SUCCESS");
                                             mOtherEndpointId = endpointId;
                                             isInitiator = false;
+                                            setModeSettingUp();
+                                            setModeConnected();
                                         } else {
                                             Log.d(TAG, "acceptConnectionRequest: FAILURE");
+                                            setModeScanning();
                                         }
                                     }
                                 });
@@ -354,7 +366,7 @@ public class FriendAddNearbyFragment extends Fragment implements
                     }
                 }).create();
 
-        mConnectionRequestDialog.show();
+        ConnectionRequestDialog.show();
     }
 
 
@@ -395,10 +407,65 @@ public class FriendAddNearbyFragment extends Fragment implements
     public void onMessageReceived(String endpointId, byte[] payload, boolean isReliable) {
         // A message has been received from a remote endpoint.
         Log.d(TAG, "onMessageReceived: Received message");
-        mListener.putKexData(payload);
         if (!isInitiator) {
             sendKex();
         }
+        setModeCalculatingKeys();
+        mListener.putKexData(payload);
+        mListener.kexDone(isInitiator);
+        setModeDone();
+    }
+
+
+    /**
+     * Set the UI into the mode used during scanning
+     */
+    private void setModeScanning() {
+        mDeviceList.setVisibility(View.VISIBLE);
+        mProgressText.setVisibility(View.GONE);
+        mProgressBar.setVisibility(View.GONE);
+    }
+
+
+    /**
+     * Set up the UI into the mode used during the key exchange
+     */
+    private void setModeSettingUp() {
+        // Hide client list
+        mDeviceList.setVisibility(View.GONE);
+        // Make ProgressBar visible
+        mProgressBar.setVisibility(View.VISIBLE);
+        mProgressBar.setMax(3);
+        mProgressBar.setProgress(0);
+        mProgressText.setVisibility(View.VISIBLE);
+        mProgressText.setText(R.string.friend_add_step2_nearby_state_connecting);
+    }
+
+
+    /**
+     * Set up the UI into the "connected" state
+     */
+    private void setModeConnected() {
+        mProgressBar.setProgress(1);
+        mProgressText.setText(R.string.friend_add_step2_nearby_state_exchanging);
+    }
+
+
+    /**
+     * Set up the UI into the "Key exchange done, calculating keys" mode
+     */
+    private void setModeCalculatingKeys() {
+        mProgressBar.setProgress(2);
+        mProgressText.setText(R.string.friend_add_step2_nearby_state_calculating);
+    }
+
+
+    /**
+     * Set up the UI into the "everything" mode
+     */
+    private void setModeDone() {
+        mProgressBar.setProgress(3);
+        mProgressText.setText(R.string.friend_add_step2_nearby_state_done);
     }
 
 
@@ -435,7 +502,8 @@ public class FriendAddNearbyFragment extends Fragment implements
 
         /**
          * Called to notify the hosting activity that the key exchange is done
+         * @param isInitiating Has this device initiated the connection?
          */
-        void kexDone();
+        void kexDone(boolean isInitiating);
     }
 }

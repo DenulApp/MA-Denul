@@ -47,6 +47,10 @@
 
     <string name="friend_add_step2_nearby_title">Select your Friend\'s Device</string>
     <string name="friend_add_step2_nearby_emptyview">Looking for devices…</string>
+    <string name="friend_add_step2_nearby_state_connecting">Establishing connection</string>
+    <string name="friend_add_step2_nearby_state_exchanging">Exchanging keys</string>
+    <string name="friend_add_step2_nearby_state_calculating">Calculating keys</string>
+    <string name="friend_add_step2_nearby_state_done">Done</string>
 
     <!-- Status messages -->
     <string name="save_success">Saved</string>
