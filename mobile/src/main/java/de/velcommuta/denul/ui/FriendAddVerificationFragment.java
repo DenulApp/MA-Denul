@@ -159,7 +159,7 @@ public class FriendAddVerificationFragment extends Fragment implements View.OnCl
             mStatusIndicator2.getDrawable().setTint(getResources().getColor(android.R.color.holo_red_dark));
             mStatusIndicator3.getDrawable().setTint(getResources().getColor(android.R.color.holo_red_dark));
             mStatus = VERIFY_FAIL;
-            // TODO Notify user, delete keys, do whatever is best
+            // TODO Notify user
         }
     }
 

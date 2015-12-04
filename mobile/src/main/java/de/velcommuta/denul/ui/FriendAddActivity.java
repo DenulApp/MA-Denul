@@ -3,6 +3,10 @@ package de.velcommuta.denul.ui;
 import android.app.Fragment;
 import android.app.FragmentManager;
 import android.app.FragmentTransaction;
+import android.content.ComponentName;
+import android.content.Intent;
+import android.content.ServiceConnection;
+import android.os.IBinder;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -12,6 +16,9 @@ import de.velcommuta.denul.crypto.ECDHKeyExchange;
 import de.velcommuta.denul.crypto.HKDFKeyExpansion;
 import de.velcommuta.denul.crypto.KeyExchange;
 import de.velcommuta.denul.crypto.KeySet;
+import de.velcommuta.denul.service.DatabaseService;
+import de.velcommuta.denul.service.DatabaseServiceBinder;
+import de.velcommuta.denul.ui.adapter.Friend;
 
 /**
  * Activity containing the flow for adding a new friend
@@ -19,12 +26,15 @@ import de.velcommuta.denul.crypto.KeySet;
 public class FriendAddActivity extends AppCompatActivity implements
         FriendAddTechSelectionFragment.TechSelectionListener,
         FriendAddNearbyFragment.KexProvider,
-        FriendAddVerificationFragment.VerificationListener {
+        FriendAddVerificationFragment.VerificationListener,
+        ServiceConnection {
 
     private static final String TAG = "FriendAddActivity";
 
     private KeyExchange mKex;
     private KeySet mKeyset;
+
+    private DatabaseServiceBinder mDbBinder;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,6 +46,15 @@ public class FriendAddActivity extends AppCompatActivity implements
         Log.d(TAG, "onCreate: Creating Kex done");
         // Load tech selection fragment
         loadTechSelectFragment();
+        bindDbService();
+    }
+
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // Unbind from database service
+        unbindService(this);
     }
 
 
@@ -143,6 +162,54 @@ public class FriendAddActivity extends AppCompatActivity implements
             // TODO Display warning with option to continue without verification
         } else {
             // Verification was successful
+            if (mDbBinder != null && mDbBinder.isDatabaseOpen()) {
+                Friend contact = new Friend();
+                contact.setVerified(verificationStatus);
+                contact.setName(mKeyset.fingerprint());  // TODO Replace with proper nickname
+                mDbBinder.addFriend(contact, mKeyset);
+                Log.d(TAG, "continueClicked: Successfully inserted contact into database");
+                finish();
+            } else {
+                Log.e(TAG, "continueClicked: Database unavailable");
+            }
         }
+    }
+
+
+    /**
+     * Get a binder to the database service
+     * @return true if the request was sent successfully, false otherwise
+     */
+    private boolean bindDbService() {
+        if (!DatabaseService.isRunning(this)) {
+            Log.w(TAG, "bindDbService: Trying to bind to a non-running database service. Aborting");
+            return false;
+        }
+        Intent intent = new Intent(this, DatabaseService.class);
+        if (!bindService(intent, this, 0)) {
+            Log.e(TAG, "bindDbService: An error occured during binding :(");
+            return false;
+        } else {
+            Log.d(TAG, "bindDbService: Database service binding request sent");
+            return true;
+        }
+    }
+
+
+    @Override
+    public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+        Log.d(TAG, "onServiceConnected: New service connection received");
+        mDbBinder = (DatabaseServiceBinder) iBinder;
+        // TODO Debugging code, move to passphrase activity once it is added
+        if (!mDbBinder.isDatabaseOpen()) {
+            mDbBinder.openDatabase("VerySecureHardcodedPasswordOlolol123");
+        }
+    }
+
+
+    @Override
+    public void onServiceDisconnected(ComponentName componentName) {
+        Log.i(TAG, "onServiceDisconnected: Lost DB binder");
+        mDbBinder = null;
     }
 }
