@@ -10,11 +10,11 @@ import de.velcommuta.denul.db.FriendContract;
 public class Friend {
     private String mName;
     private int mVerified;
+    private int mID;
 
 
     /**
      * Set the Name of this Friend
-     *
      * @param name Name
      */
     public void setName(String name) {
@@ -24,7 +24,6 @@ public class Friend {
 
     /**
      * Get the Name of this friend
-     *
      * @return The name as String
      */
     public String getName() {
@@ -34,7 +33,6 @@ public class Friend {
 
     /**
      * Set the verification status of this friend
-     *
      * @param verified The verification status
      */
     public void setVerified(int verified) {
@@ -44,11 +42,27 @@ public class Friend {
 
     /**
      * Get the verification status of this friend
-     *
      * @return The verification status
      */
     public int getVerified() {
         return mVerified;
+    }
+
+    /**
+     * Get the database ID of the friend
+     * @return The ID of the friend in the database
+     */
+    public int getID() {
+        return mID;
+    }
+
+
+    /**
+     * Set the database ID of the friend
+     * @param id The database id
+     */
+    public void setID(int id) {
+        mID = id;
     }
 
 
@@ -57,11 +71,13 @@ public class Friend {
      *
      * @param c The cursor
      * @return A friend object with these values
+     * TODO Move this into the getFriends function of the database to avoid using DB-specific knowledge
      */
     public static Friend fromCursor(Cursor c) {
         Friend f = new Friend();
         f.setName(c.getString(c.getColumnIndexOrThrow(FriendContract.FriendList.COLUMN_NAME_FRIEND)));
         f.setVerified(c.getInt(c.getColumnIndexOrThrow(FriendContract.FriendList.COLUMN_NAME_VERIFIED)));
+        f.setID(c.getInt(c.getColumnIndexOrThrow(FriendContract.FriendList._ID)));
         return f;
     }
 }

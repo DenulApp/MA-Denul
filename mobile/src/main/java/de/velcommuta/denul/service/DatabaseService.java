@@ -18,9 +18,11 @@ import net.sqlcipher.database.SQLiteDatabase;
 import net.sqlcipher.database.SQLiteException;
 
 import de.greenrobot.event.EventBus;
+import de.velcommuta.denul.crypto.KeySet;
 import de.velcommuta.denul.db.FriendContract;
 import de.velcommuta.denul.db.SecureDbHelper;
 import de.velcommuta.denul.event.DatabaseAvailabilityEvent;
+import de.velcommuta.denul.ui.adapter.Friend;
 
 /**
  * Database service to hold a handle on the protected database and close it after a certain time of
@@ -287,6 +289,46 @@ public class DatabaseService extends Service {
                     null,
                     null,
                     FriendContract.FriendList._ID + " ASC");
+        }
+
+
+        @Override
+        public void addFriend(Friend friend, KeySet keys) {
+            // Make sure the database is open
+            assertOpen();
+            // Check if a friend with the name already exists
+            String query = FriendContract.FriendList.COLUMN_NAME_FRIEND + " LIKE ?";
+            String[] queryArgs = {friend.getName()};
+            String[] columns = {FriendContract.FriendList._ID};
+            Cursor c = query(FriendContract.FriendList.TABLE_NAME, columns, query, queryArgs, null, null, null);
+            if (c.getCount() > 0) throw new SQLiteException("Name already taken");
+            // Begin a transaction
+            beginTransaction();
+            // Prepare ContentValues
+            ContentValues friend_entry = new ContentValues();
+            friend_entry.put(FriendContract.FriendList.COLUMN_NAME_FRIEND, friend.getName());
+            friend_entry.put(FriendContract.FriendList.COLUMN_NAME_VERIFIED, friend.getVerified());
+            // Run insert
+            long rv = insert(FriendContract.FriendList.TABLE_NAME, null, friend_entry);
+            // Make sure insert worked
+            if (rv == -1) throw new IllegalArgumentException("Insert of friend failed");
+            // Query for the ID of the inserted entry
+            c = query(FriendContract.FriendList.TABLE_NAME, columns, query, queryArgs, null, null, null);
+            c.moveToFirst();
+            int id = c.getInt(c.getColumnIndexOrThrow(FriendContract.FriendList._ID));
+            // Prepare ContentValues for the key entry
+            ContentValues keys_entry = new ContentValues();
+            keys_entry.put(FriendContract.FriendKeys.COLUMN_NAME_FRIEND_ID, id);
+            keys_entry.put(FriendContract.FriendKeys.COLUMN_NAME_KEY_IN, keys.getInboundKey());
+            keys_entry.put(FriendContract.FriendKeys.COLUMN_NAME_KEY_OUT, keys.getOutboundKey());
+            keys_entry.put(FriendContract.FriendKeys.COLUMN_NAME_CTR_IN, keys.getInboundCtr());
+            keys_entry.put(FriendContract.FriendKeys.COLUMN_NAME_CTR_OUT, keys.getOutboundCtr());
+            // Run the insert
+            rv = insert(FriendContract.FriendKeys.TABLE_NAME, null, keys_entry);
+            // Make sure everything worked
+            if (rv == -1) throw new IllegalArgumentException("Insert of keys failed");
+            // Commit transaction
+            commit();
         }
 
 

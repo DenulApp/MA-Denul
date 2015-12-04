@@ -4,6 +4,9 @@ import android.content.ContentValues;
 
 import net.sqlcipher.Cursor;
 
+import de.velcommuta.denul.crypto.KeySet;
+import de.velcommuta.denul.ui.adapter.Friend;
+
 /**
  * Interface for the DatabaseService class, for use with an IBinder implementation
  */
@@ -76,4 +79,11 @@ public interface DatabaseServiceBinder {
      * @return A cursor containing the result of a SELECT on the friend database
      */
     Cursor getFriends();
+
+    /**
+     * Add a friend to the database
+     * @param friend The {@link Friend} object describing the new friend
+     * @param keys The {@link KeySet} containing the keys for communication with that friend
+     */
+    void addFriend(Friend friend, KeySet keys);
 }
