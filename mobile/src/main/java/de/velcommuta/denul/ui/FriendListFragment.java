@@ -13,13 +13,13 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
-import android.widget.TextView;
 
-import net.sqlcipher.Cursor;
+import java.util.List;
 
 import de.velcommuta.denul.R;
 import de.velcommuta.denul.service.DatabaseServiceBinder;
-import de.velcommuta.denul.ui.adapter.FriendListCursorAdapter;
+import de.velcommuta.denul.ui.adapter.Friend;
+import de.velcommuta.denul.ui.adapter.FriendListAdapter;
 import de.velcommuta.denul.ui.view.EmptyRecyclerView;
 
 /**
@@ -70,14 +70,6 @@ public class FriendListFragment extends Fragment {
         ((LinearLayoutManager) mLayoutManager).setOrientation(LinearLayoutManager.VERTICAL);
         mRecyclerView.setLayoutManager(mLayoutManager);
 
-        // Get a database binder
-        DatabaseServiceBinder binder = ((MainActivity) getActivity()).getDbBinder();
-        // Get a cursor with the friends from the database
-        Cursor c = binder.getFriends();
-        // Initialize FriendListCursorAdapter with the cursor
-        FriendListCursorAdapter ca = new FriendListCursorAdapter(getActivity(), c);
-        // Set the adapter for the RecyclerView
-        mRecyclerView.setAdapter(ca);
         // Set up the emptyview (view that is shown if the database contains no friends)
         LinearLayout emptyview = (LinearLayout) v.findViewById(R.id.friendlist_empty);
         mRecyclerView.setEmptyView(emptyview);
@@ -108,6 +100,14 @@ public class FriendListFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
+        // Get a database binder
+        DatabaseServiceBinder binder = ((MainActivity) getActivity()).getDbBinder();
+        // Load the list of friends from the database
+        List<Friend> list = binder.getFriends();
+        // Initialize FriendListCursorAdapter with the cursor
+        FriendListAdapter ca = new FriendListAdapter(getActivity(), list);
+        // Set the adapter for the RecyclerView
+        mRecyclerView.setAdapter(ca);
     }
 
 

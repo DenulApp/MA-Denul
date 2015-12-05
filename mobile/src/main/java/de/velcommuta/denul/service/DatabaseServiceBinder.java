@@ -4,6 +4,8 @@ import android.content.ContentValues;
 
 import net.sqlcipher.Cursor;
 
+import java.util.List;
+
 import de.velcommuta.denul.crypto.KeySet;
 import de.velcommuta.denul.ui.adapter.Friend;
 
@@ -78,7 +80,7 @@ public interface DatabaseServiceBinder {
      * Query the database for all friends and return the result as a cursor
      * @return A cursor containing the result of a SELECT on the friend database
      */
-    Cursor getFriends();
+    List<Friend> getFriends();
 
     /**
      * Add a friend to the database

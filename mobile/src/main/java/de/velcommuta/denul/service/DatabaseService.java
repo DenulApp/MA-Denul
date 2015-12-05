@@ -17,6 +17,9 @@ import net.sqlcipher.Cursor;
 import net.sqlcipher.database.SQLiteDatabase;
 import net.sqlcipher.database.SQLiteException;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import de.greenrobot.event.EventBus;
 import de.velcommuta.denul.crypto.KeySet;
 import de.velcommuta.denul.db.FriendContract;
@@ -280,15 +283,24 @@ public class DatabaseService extends Service {
 
 
         @Override
-        public Cursor getFriends() {
+        public List<Friend> getFriends() {
             assertOpen();
-            return query(FriendContract.FriendList.TABLE_NAME,
+            List<Friend> res = new ArrayList<>();
+            Cursor c = query(FriendContract.FriendList.TABLE_NAME,
                     null,
                     null,
                     null,
                     null,
                     null,
                     FriendContract.FriendList._ID + " ASC");
+            while (c.moveToNext()) {
+                Friend f = new Friend(c.getString(c.getColumnIndexOrThrow(FriendContract.FriendList.COLUMN_NAME_FRIEND)),
+                                      c.getInt(   c.getColumnIndexOrThrow(FriendContract.FriendList.COLUMN_NAME_VERIFIED)),
+                                      c.getInt(   c.getColumnIndexOrThrow(FriendContract.FriendList._ID)));
+                res.add(f);
+            }
+            c.close();
+            return res;
         }
 
 

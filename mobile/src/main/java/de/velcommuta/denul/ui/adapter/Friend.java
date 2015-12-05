@@ -8,10 +8,32 @@ import de.velcommuta.denul.db.FriendContract;
  * Data container for the FriendListCursorAdapter
  */
 public class Friend {
+    public static final int UNVERIFIED = 0;
+    public static final int VERIFIED_OK = 1;
+    public static final int VERIFIED_FAIL = 2;
+
     private String mName;
     private int mVerified;
     private int mID;
 
+
+    /**
+     * Empty constructor
+     */
+    public Friend() {}
+
+
+    /**
+     * Constructor to initialize the Friend to specific values
+     * @param name The name
+     * @param verified Verification status
+     * @param ID The database ID
+     */
+    public Friend(String name, int verified, int ID) {
+        mName = name;
+        mVerified = verified;
+        mID = ID;
+    }
 
     /**
      * Set the Name of this Friend
@@ -63,21 +85,5 @@ public class Friend {
      */
     public void setID(int id) {
         mID = id;
-    }
-
-
-    /**
-     * Return a Friend object from the current values of the cursor
-     *
-     * @param c The cursor
-     * @return A friend object with these values
-     * TODO Move this into the getFriends function of the database to avoid using DB-specific knowledge
-     */
-    public static Friend fromCursor(Cursor c) {
-        Friend f = new Friend();
-        f.setName(c.getString(c.getColumnIndexOrThrow(FriendContract.FriendList.COLUMN_NAME_FRIEND)));
-        f.setVerified(c.getInt(c.getColumnIndexOrThrow(FriendContract.FriendList.COLUMN_NAME_VERIFIED)));
-        f.setID(c.getInt(c.getColumnIndexOrThrow(FriendContract.FriendList._ID)));
-        return f;
     }
 }
