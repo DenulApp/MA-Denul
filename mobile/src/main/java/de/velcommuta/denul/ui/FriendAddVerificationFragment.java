@@ -146,6 +146,9 @@ public class FriendAddVerificationFragment extends Fragment implements View.OnCl
     private void verifyFingerprint(String fingerprint) {
         if (fingerprint.equals(mFingerprint)) {
             // Tint all the circles green to indicate that the verification is okay
+            mStatusIndicator1.setImageDrawable(getResources().getDrawable(R.drawable.ic_circle));
+            mStatusIndicator2.setImageDrawable(getResources().getDrawable(R.drawable.ic_circle));
+            mStatusIndicator3.setImageDrawable(getResources().getDrawable(R.drawable.ic_circle));
             mStatusIndicator1.getDrawable().setTint(getResources().getColor(android.R.color.holo_green_light));
             mStatusIndicator2.getDrawable().setTint(getResources().getColor(android.R.color.holo_green_light));
             mStatusIndicator3.getDrawable().setTint(getResources().getColor(android.R.color.holo_green_light));
@@ -159,7 +162,6 @@ public class FriendAddVerificationFragment extends Fragment implements View.OnCl
             mStatusIndicator2.getDrawable().setTint(getResources().getColor(android.R.color.holo_red_dark));
             mStatusIndicator3.getDrawable().setTint(getResources().getColor(android.R.color.holo_red_dark));
             mStatus = VERIFY_FAIL;
-            // TODO Notify user
         }
     }
 

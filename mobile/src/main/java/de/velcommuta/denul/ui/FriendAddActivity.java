@@ -44,10 +44,6 @@ public class FriendAddActivity extends AppCompatActivity implements
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_friend_add);
-        // Prepare Key Exchange object
-        Log.d(TAG, "onCreate: Creating Kex");
-        mKex = new ECDHKeyExchange();
-        Log.d(TAG, "onCreate: Creating Kex done");
         // Load tech selection fragment
         loadTechSelectFragment();
         bindDbService();
@@ -66,6 +62,9 @@ public class FriendAddActivity extends AppCompatActivity implements
      * Load the tech selection fragment
      */
     private void loadTechSelectFragment() {
+        Log.d(TAG, "loadTechSelectionFragment: Creating Kex");
+        mKex = new ECDHKeyExchange();
+        Log.d(TAG, "loadTechSelectionFragment: Creating Kex done");
         Fragment fragment = FriendAddTechSelectionFragment.newInstance();
         FragmentManager fragmentManager = getFragmentManager();
         fragmentManager.beginTransaction()
@@ -163,7 +162,7 @@ public class FriendAddActivity extends AppCompatActivity implements
         mFriend.setVerified(verificationStatus);
         if (verificationStatus == FriendAddVerificationFragment.VERIFY_FAIL) {
             // The verification failed, the fingerprints did not match
-            // TODO Display error with option to scan again, redo everything, or abort
+            informFailedVerifyOptions();
         } else if (verificationStatus == FriendAddVerificationFragment.VERIFY_NOT_DONE) {
             // No verification attempt has taken place, ask the user if she is sure
             askConfirmUnverifiedSafe();
@@ -214,6 +213,35 @@ public class FriendAddActivity extends AppCompatActivity implements
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         // User has decided to perform the validation, do nothing
+                    }
+                }).create();
+        ConnectionRequestDialog.show();
+    }
+
+
+    /**
+     * Helper function to display a message telling the user that they cannot save a new contact if
+     * the verification has explicitly failed, and offering ways to fix the situation
+     */
+    private void informFailedVerifyOptions() {
+        // Prepare an AlertDialog to inform the user
+        AlertDialog ConnectionRequestDialog = new AlertDialog.Builder(this)
+                .setTitle("Verification failed")
+                .setMessage("Verification of your friend failed. You can either try verifying them again, or start over.") // TODO Placeholder text
+                .setCancelable(false)
+                .setPositiveButton("Try again", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        // User wants to try again. Do nothing => Show the verification dialog again
+                    }
+                })
+                .setNegativeButton("Start over", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        mKeyset = null;
+                        mFriend = null;
+                        mKex = null;
+                        loadTechSelectFragment();
                     }
                 }).create();
         ConnectionRequestDialog.show();
