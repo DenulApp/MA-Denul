@@ -53,6 +53,7 @@ public class FriendAddNearbyFragment extends Fragment implements
 
     private KexProvider mListener;
     private ListView mDeviceList;
+    private TextView mEmptyView;
     private ProgressBar mProgressBar;
     private TextView mProgressText;
     private NearbyConnectionListAdapter mListAdapter;
@@ -97,7 +98,8 @@ public class FriendAddNearbyFragment extends Fragment implements
         // Grab reference to Device List
         mDeviceList = (ListView) v.findViewById(R.id.addfriend_step2_nearby_devicelist);
         // Set up message to display while no entries are in the list
-        mDeviceList.setEmptyView(v.findViewById(R.id.addfriend_step2_nearby_emptyview));
+        mEmptyView = (TextView) v.findViewById(R.id.addfriend_step2_nearby_emptyview);
+        mDeviceList.setEmptyView(mEmptyView);
         // Get reference to Progress Bar
         mProgressBar = (ProgressBar) v.findViewById(R.id.addfriend_step2_nearby_progressbar);
         mProgressText = (TextView) v.findViewById(R.id.addfriend_step2_nearby_progressnote);
@@ -125,6 +127,11 @@ public class FriendAddNearbyFragment extends Fragment implements
     public void onResume() {
         super.onResume();
         mGoogleApiClient.connect();
+        if (!isConnectedToNetwork()) {
+            mEmptyView.setText(R.string.friend_add_step2_nearby_emptyview_nowifi);
+        } else {
+            mEmptyView.setText(R.string.friend_add_step2_nearby_emptyview);
+        }
     }
 
 

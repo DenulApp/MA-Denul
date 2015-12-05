@@ -47,6 +47,7 @@
 
     <string name="friend_add_step2_nearby_title">Select your Friend\'s Device</string>
     <string name="friend_add_step2_nearby_emptyview">Looking for devices…</string>
+    <string name="friend_add_step2_nearby_emptyview_nowifi">Please connect to a wireless network</string>
     <string name="friend_add_step2_nearby_state_connecting">Establishing connection</string>
     <!-- TODO Change the following two strings to give a less technical explanation of whats going on -->
     <string name="friend_add_step2_nearby_state_exchanging">Exchanging keys</string>

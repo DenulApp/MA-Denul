@@ -284,4 +284,16 @@ public class FriendAddActivity extends AppCompatActivity implements
         Log.i(TAG, "onServiceDisconnected: Lost DB binder");
         mDbBinder = null;
     }
+
+    @Override
+    public void onBackPressed() {
+        Log.d(TAG, "onBackPressed: Count: " + getFragmentManager().getBackStackEntryCount());
+        if (getFragmentManager().getBackStackEntryCount() > 0) {
+            getFragmentManager().popBackStack();
+        } else {
+            super.onBackPressed();
+        }
+        // Explicitly null the key exchange object
+        if (mKex != null) mKex = new ECDHKeyExchange();
+    }
 }
