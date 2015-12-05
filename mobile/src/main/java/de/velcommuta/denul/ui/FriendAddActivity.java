@@ -1,11 +1,14 @@
 package de.velcommuta.denul.ui;
 
+import android.app.AlertDialog;
 import android.app.Fragment;
 import android.app.FragmentManager;
 import android.app.FragmentTransaction;
 import android.content.ComponentName;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.database.sqlite.SQLiteException;
 import android.os.IBinder;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -33,6 +36,7 @@ public class FriendAddActivity extends AppCompatActivity implements
 
     private KeyExchange mKex;
     private KeySet mKeyset;
+    private Friend mFriend;
 
     private DatabaseServiceBinder mDbBinder;
 
@@ -154,25 +158,65 @@ public class FriendAddActivity extends AppCompatActivity implements
 
     @Override
     public void continueClicked(int verificationStatus) {
+        mFriend = new Friend();
+        mFriend.setName(mKeyset.fingerprint());  // TODO Update
+        mFriend.setVerified(verificationStatus);
         if (verificationStatus == FriendAddVerificationFragment.VERIFY_FAIL) {
             // The verification failed, the fingerprints did not match
-            // TODO Display error with option to redo everything or abort
+            // TODO Display error with option to scan again, redo everything, or abort
         } else if (verificationStatus == FriendAddVerificationFragment.VERIFY_NOT_DONE) {
-            // No verification attempt has taken place
-            // TODO Display warning with option to continue without verification
+            // No verification attempt has taken place, ask the user if she is sure
+            askConfirmUnverifiedSafe();
         } else {
             // Verification was successful
-            if (mDbBinder != null && mDbBinder.isDatabaseOpen()) {
-                Friend contact = new Friend();
-                contact.setVerified(verificationStatus);
-                contact.setName(mKeyset.fingerprint());  // TODO Replace with proper nickname
-                mDbBinder.addFriend(contact, mKeyset);
-                Log.d(TAG, "continueClicked: Successfully inserted contact into database");
+            saveContactToDatabase();
+        }
+    }
+
+
+    /**
+     * Save the contact to the database with the current values
+     */
+    private void saveContactToDatabase() {
+        if (mDbBinder != null && mDbBinder.isDatabaseOpen() && mFriend != null && mKeyset != null) {
+            try {
+                // Insert into database
+                mDbBinder.addFriend(mFriend, mKeyset);
+                // Log
+                Log.d(TAG, "saveContactToDatabase: Saved.");
+                // Stop activity, return to friendlist
                 finish();
-            } else {
-                Log.e(TAG, "continueClicked: Database unavailable");
+            } catch (SQLiteException e) {
+                // TODO Name taken
             }
         }
+    }
+
+
+    /**
+     * Helper function to display a message asking the user if she really wants to save a new
+     * contact without having verified the fingerprints
+     */
+    private void askConfirmUnverifiedSafe() {
+        // Prepare an AlertDialog to inform the user
+        AlertDialog ConnectionRequestDialog = new AlertDialog.Builder(this)
+                .setTitle("Save without verification")
+                .setMessage("Do you really want to save this friend without verification?") // TODO Placeholder text
+                .setCancelable(false)
+                .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        // User wants to save anyway => Do it
+                        saveContactToDatabase();
+                    }
+                })
+                .setNegativeButton("No", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        // User has decided to perform the validation, do nothing
+                    }
+                }).create();
+        ConnectionRequestDialog.show();
     }
 
 
