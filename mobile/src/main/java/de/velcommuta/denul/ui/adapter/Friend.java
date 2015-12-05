@@ -1,9 +1,5 @@
 package de.velcommuta.denul.ui.adapter;
 
-import net.sqlcipher.Cursor;
-
-import de.velcommuta.denul.db.FriendContract;
-
 /**
  * Data container for the FriendListCursorAdapter
  */

@@ -1,8 +1,11 @@
 package de.velcommuta.denul.ui;
 
 import android.app.Fragment;
+import android.content.ComponentName;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
@@ -17,6 +20,7 @@ import android.widget.LinearLayout;
 import java.util.List;
 
 import de.velcommuta.denul.R;
+import de.velcommuta.denul.service.DatabaseService;
 import de.velcommuta.denul.service.DatabaseServiceBinder;
 import de.velcommuta.denul.ui.adapter.Friend;
 import de.velcommuta.denul.ui.adapter.FriendListAdapter;
@@ -25,12 +29,13 @@ import de.velcommuta.denul.ui.view.EmptyRecyclerView;
 /**
  * Fragment containing the Friend List
  */
-public class FriendListFragment extends Fragment {
+public class FriendListFragment extends Fragment implements ServiceConnection {
     private static final String TAG = "FriendListFragment";
 
     private EmptyRecyclerView mRecyclerView;
     private RecyclerView.Adapter mAdapter;
     private RecyclerView.LayoutManager mLayoutManager;
+    private DatabaseServiceBinder mDbBinder;
 
     /**
      * Required empty constructor
@@ -100,19 +105,71 @@ public class FriendListFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        // Get a database binder
-        DatabaseServiceBinder binder = ((MainActivity) getActivity()).getDbBinder();
-        // Load the list of friends from the database
-        List<Friend> list = binder.getFriends();
-        // Initialize FriendListCursorAdapter with the cursor
-        FriendListAdapter ca = new FriendListAdapter(getActivity(), list);
-        // Set the adapter for the RecyclerView
-        mRecyclerView.setAdapter(ca);
+        // Get a database binder (once it is connected, the UI will be filled)
+        bindDbService();
+    }
+
+    public void onPause() {
+        super.onPause();
+        // Disconnect from the database service
+        getActivity().unbindService(this);
     }
 
 
     @Override
     public void onDetach() {
         super.onDetach();
+    }
+
+    /**
+     * Get a binder to the database service
+     * @return true if the request was sent successfully, false otherwise
+     */
+    private boolean bindDbService() {
+        if (!DatabaseService.isRunning(getActivity())) {
+            Log.w(TAG, "bindDbService: Trying to bind to a non-running database service. Aborting");
+            return false;
+        }
+        Intent intent = new Intent(getActivity(), DatabaseService.class);
+        if (!getActivity().bindService(intent, this, 0)) {
+            Log.e(TAG, "bindDbService: An error occured during binding :(");
+            return false;
+        } else {
+            Log.d(TAG, "bindDbService: Database service binding request sent");
+            return true;
+        }
+    }
+
+
+    @Override
+    public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+        Log.d(TAG, "onServiceConnected: New service connection received");
+        mDbBinder = (DatabaseServiceBinder) iBinder;
+        // TODO Debugging code, move to passphrase activity once it is added
+        if (!mDbBinder.isDatabaseOpen()) {
+            mDbBinder.openDatabase("VerySecureHardcodedPasswordOlolol123");
+        }
+        // Populate the list of friends
+        populateFriendList();
+    }
+
+
+    @Override
+    public void onServiceDisconnected(ComponentName componentName) {
+        Log.i(TAG, "onServiceDisconnected: Lost DB binder");
+        mDbBinder = null;
+    }
+
+
+    /**
+     * Fill the friendlist in the UI from the database
+     */
+    private void populateFriendList() {
+        // Load the list of friends from the database
+        List<Friend> list = mDbBinder.getFriends();
+        // Initialize FriendListCursorAdapter with the cursor
+        FriendListAdapter ca = new FriendListAdapter(getActivity(), list);
+        // Set the adapter for the RecyclerView
+        mRecyclerView.setAdapter(ca);
     }
 }
