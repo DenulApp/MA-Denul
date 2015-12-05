@@ -88,7 +88,7 @@
         <Button
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/friend_add_step3_verify_finish"
+            android:text="@string/friend_add_step3_verify_skip"
             android:id="@+id/addfriend_step3_verify_continue"
             android:layout_gravity="right"
             android:layout_column="1"

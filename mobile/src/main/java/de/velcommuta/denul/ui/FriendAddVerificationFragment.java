@@ -153,6 +153,7 @@ public class FriendAddVerificationFragment extends Fragment implements View.OnCl
             mStatusIndicator2.getDrawable().setTint(getResources().getColor(android.R.color.holo_green_light));
             mStatusIndicator3.getDrawable().setTint(getResources().getColor(android.R.color.holo_green_light));
             mStatus = VERIFY_OK;
+            mFinishButton.setText(R.string.friend_add_step3_verify_finish);
         } else {
             // Replace circles with warning signs and tint them red to indicate that something is very wrong
             mStatusIndicator1.setImageDrawable(getResources().getDrawable(R.drawable.ic_warning));
@@ -162,6 +163,7 @@ public class FriendAddVerificationFragment extends Fragment implements View.OnCl
             mStatusIndicator2.getDrawable().setTint(getResources().getColor(android.R.color.holo_red_dark));
             mStatusIndicator3.getDrawable().setTint(getResources().getColor(android.R.color.holo_red_dark));
             mStatus = VERIFY_FAIL;
+            mFinishButton.setText(R.string.friend_add_step3_verify_skip);
         }
     }
 
