@@ -1,5 +1,6 @@
 package de.velcommuta.denul.ui.adapter;
 
+import android.app.Fragment;
 import android.content.Context;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
@@ -14,13 +15,33 @@ import de.velcommuta.denul.R;
 
 /**
  * RecyclerView adapter for the friendlist
+ *
+ * The OnClick and OnLongClick implementation is adapted from
+ * http://stackoverflow.com/a/27945635/1232833
  */
 public class FriendListAdapter extends RecyclerView.Adapter<FriendListAdapter.ViewHolder> {
     private List<Friend> mFriends;
     protected Context mContext;
+    private Fragment mFragment;
+
+    public interface OnItemClickListener {
+        /**
+         * Called when an item is clicked
+         * @param position Position of the item in the list
+         */
+        void onItemClicked(int position);
+    }
+
+    public interface OnItemLongClickListener {
+        /**
+         * Called when an item is long-clicked
+         * @param position position of the item in the list
+         */
+        void onItemLongClicked(int position);
+    }
 
     public class ViewHolder extends RecyclerView.ViewHolder {
-        private View mHeldView;
+        protected View mHeldView;
         private TextView mNameView;
         private ImageView mVerificationView;
 
@@ -56,10 +77,12 @@ public class FriendListAdapter extends RecyclerView.Adapter<FriendListAdapter.Vi
     /**
      * Constructor, being passed the dataset to be displayed
      * @param friends A List of {@link Friend} objects to display
+     * @param frag The fragment embedding this List
      * @param ctx A Context
      */
-    public FriendListAdapter(Context ctx, List<Friend> friends) {
+    public FriendListAdapter(Context ctx, Fragment frag, List<Friend> friends) {
         mFriends = friends;
+        mFragment = frag;
         mContext = ctx;
     }
 
@@ -74,8 +97,21 @@ public class FriendListAdapter extends RecyclerView.Adapter<FriendListAdapter.Vi
 
 
     @Override
-    public void onBindViewHolder(ViewHolder holder, int position) {
+    public void onBindViewHolder(ViewHolder holder, final int position) {
         holder.display(mFriends.get(position));
+        holder.mHeldView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                ((OnItemClickListener) mFragment).onItemClicked(position);
+            }
+        });
+        holder.mHeldView.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                ((OnItemLongClickListener) mFragment).onItemLongClicked(position);
+                return true;
+            }
+        });
     }
 
 

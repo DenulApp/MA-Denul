@@ -16,6 +16,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
+import android.widget.Toast;
 
 import java.util.List;
 
@@ -29,7 +30,9 @@ import de.velcommuta.denul.ui.view.EmptyRecyclerView;
 /**
  * Fragment containing the Friend List
  */
-public class FriendListFragment extends Fragment implements ServiceConnection {
+public class FriendListFragment extends Fragment implements ServiceConnection,
+                                                            FriendListAdapter.OnItemClickListener,
+                                                            FriendListAdapter.OnItemLongClickListener {
     private static final String TAG = "FriendListFragment";
 
     private EmptyRecyclerView mRecyclerView;
@@ -168,8 +171,20 @@ public class FriendListFragment extends Fragment implements ServiceConnection {
         // Load the list of friends from the database
         List<Friend> list = mDbBinder.getFriends();
         // Initialize FriendListCursorAdapter with the cursor
-        FriendListAdapter ca = new FriendListAdapter(getActivity(), list);
+        FriendListAdapter ca = new FriendListAdapter(getActivity(), this, list);
         // Set the adapter for the RecyclerView
         mRecyclerView.setAdapter(ca);
+    }
+
+
+    @Override
+    public void onItemClicked(int position) {
+        Toast.makeText(getActivity(), "Position " + position + " clicked", Toast.LENGTH_SHORT).show();
+    }
+
+
+    @Override
+    public void onItemLongClicked(int position) {
+        Toast.makeText(getActivity(), "Position " + position + " long-clicked", Toast.LENGTH_SHORT).show();
     }
 }
