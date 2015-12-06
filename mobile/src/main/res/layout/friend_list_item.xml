@@ -10,17 +10,18 @@
 
     <ImageView
         android:layout_width="wrap_content"
-        android:layout_height="fill_parent"
+        android:layout_height="wrap_content"
         android:id="@+id/friend_list_item_avatar"
         android:src="@drawable/ic_person_24dp"
-        android:scaleType="center"
-        android:adjustViewBounds="true" />
+        android:scaleType="fitXY"
+        android:adjustViewBounds="true"
+        android:layout_gravity="center"/>
 
     <TextView
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:textAppearance="?android:attr/textAppearanceMedium"
-        android:text="Medium Text"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="Large Text"
         android:id="@+id/friend_list_item_text"
         android:layout_marginTop="3dp"
         android:layout_marginLeft="5dp"

@@ -17,6 +17,7 @@
             android:id="@+id/friendlist_empty_image"
             android:layout_gravity="center_horizontal"
             android:src="@drawable/ic_person_24dp"
+            android:tint="#e0e0e0"
             android:layout_weight="0.20"/>
 
         <TextView
