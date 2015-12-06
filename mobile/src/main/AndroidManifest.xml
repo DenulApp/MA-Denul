@@ -68,6 +68,8 @@
 
         <activity android:name=".ui.FriendAddActivity">
         </activity>
+        <activity android:name=".ui.FriendViewActivity">
+        </activity>
     </application>
 
 </manifest>

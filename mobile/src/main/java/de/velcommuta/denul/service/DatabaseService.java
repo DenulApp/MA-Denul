@@ -333,8 +333,8 @@ public class DatabaseService extends Service {
                     null);
             c.moveToFirst();
             Friend rv = new Friend(c.getString(c.getColumnIndexOrThrow(FriendContract.FriendList.COLUMN_NAME_FRIEND)),
-                              c.getInt(   c.getColumnIndexOrThrow(FriendContract.FriendList.COLUMN_NAME_VERIFIED)),
-                              c.getInt(   c.getColumnIndexOrThrow(FriendContract.FriendList._ID)));
+                                   c.getInt(   c.getColumnIndexOrThrow(FriendContract.FriendList.COLUMN_NAME_VERIFIED)),
+                                   c.getInt(   c.getColumnIndexOrThrow(FriendContract.FriendList._ID)));
             c.close();
             return rv;
         }
@@ -352,10 +352,10 @@ public class DatabaseService extends Service {
                     null);
             c.moveToFirst();
             KeySet rv = new KeySet(c.getBlob(c.getColumnIndexOrThrow(FriendContract.FriendKeys.COLUMN_NAME_KEY_IN)),
-                              c.getBlob(c.getColumnIndexOrThrow(FriendContract.FriendKeys.COLUMN_NAME_KEY_OUT)),
-                              c.getBlob(c.getColumnIndexOrThrow(FriendContract.FriendKeys.COLUMN_NAME_CTR_IN)),
-                              c.getBlob(c.getColumnIndexOrThrow(FriendContract.FriendKeys.COLUMN_NAME_CTR_OUT)),
-                              c.getInt (c.getColumnIndexOrThrow(FriendContract.FriendKeys.COLUMN_NAME_INITIATED)) == 1);
+                                   c.getBlob(c.getColumnIndexOrThrow(FriendContract.FriendKeys.COLUMN_NAME_KEY_OUT)),
+                                   c.getBlob(c.getColumnIndexOrThrow(FriendContract.FriendKeys.COLUMN_NAME_CTR_IN)),
+                                   c.getBlob(c.getColumnIndexOrThrow(FriendContract.FriendKeys.COLUMN_NAME_CTR_OUT)),
+                                   c.getInt (c.getColumnIndexOrThrow(FriendContract.FriendKeys.COLUMN_NAME_INITIATED)) == 1);
             c.close();
             return rv;
         }

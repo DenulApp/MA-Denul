@@ -181,7 +181,9 @@ public class FriendListFragment extends Fragment implements ServiceConnection,
 
     @Override
     public void onItemClicked(int position) {
-        Toast.makeText(getActivity(), "Not implemented yet", Toast.LENGTH_SHORT).show();
+        Intent i = new Intent(getActivity(), FriendViewActivity.class);
+        i.putExtra("friend-id", mAdapter.getFriendAt(position).getID());
+        startActivity(i);
     }
 
     @Override
