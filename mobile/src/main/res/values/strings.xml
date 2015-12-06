@@ -59,6 +59,9 @@
     <string name="friend_add_step3_verify_securitylevel_header">Security Level:</string>
     <string name="friend_add_step3_verify_finish">Finish</string>
     <string name="friend_add_step3_verify_skip">Skip</string>
+    
+    <!-- Friend list context menu -->
+    <string name="friend_ctx_remove">Remove</string>
 
     <!-- Status messages -->
     <string name="save_success">Saved</string>

@@ -31,12 +31,11 @@ import de.velcommuta.denul.ui.view.EmptyRecyclerView;
  * Fragment containing the Friend List
  */
 public class FriendListFragment extends Fragment implements ServiceConnection,
-                                                            FriendListAdapter.OnItemClickListener,
-                                                            FriendListAdapter.OnItemLongClickListener {
+                                                            FriendListAdapter.OnItemClickListener {
     private static final String TAG = "FriendListFragment";
 
     private EmptyRecyclerView mRecyclerView;
-    private RecyclerView.Adapter mAdapter;
+    private FriendListAdapter mAdapter;
     private RecyclerView.LayoutManager mLayoutManager;
     private DatabaseServiceBinder mDbBinder;
 
@@ -81,6 +80,8 @@ public class FriendListFragment extends Fragment implements ServiceConnection,
         // Set up the emptyview (view that is shown if the database contains no friends)
         LinearLayout emptyview = (LinearLayout) v.findViewById(R.id.friendlist_empty);
         mRecyclerView.setEmptyView(emptyview);
+        // Register RecyclerView for the context menu
+        registerForContextMenu(mRecyclerView);
         // Return the inflated view
         return v;
     }
@@ -171,20 +172,25 @@ public class FriendListFragment extends Fragment implements ServiceConnection,
         // Load the list of friends from the database
         List<Friend> list = mDbBinder.getFriends();
         // Initialize FriendListCursorAdapter with the cursor
-        FriendListAdapter ca = new FriendListAdapter(getActivity(), this, list);
+        mAdapter = new FriendListAdapter(getActivity(), this, list);
         // Set the adapter for the RecyclerView
-        mRecyclerView.setAdapter(ca);
+        mRecyclerView.setAdapter(mAdapter);
     }
 
 
     @Override
     public void onItemClicked(int position) {
-        Toast.makeText(getActivity(), "Position " + position + " clicked", Toast.LENGTH_SHORT).show();
+        Toast.makeText(getActivity(), "Not implemented yet", Toast.LENGTH_SHORT).show();
     }
 
-
     @Override
-    public void onItemLongClicked(int position) {
-        Toast.makeText(getActivity(), "Position " + position + " long-clicked", Toast.LENGTH_SHORT).show();
+    public boolean onContextItemSelected(MenuItem item) {
+        int position = mAdapter.getPosition();
+        switch (item.getItemId()) {
+            case R.id.friend_remove:
+                // TODO Do something
+                break;
+        }
+        return super.onContextItemSelected(item);
     }
 }

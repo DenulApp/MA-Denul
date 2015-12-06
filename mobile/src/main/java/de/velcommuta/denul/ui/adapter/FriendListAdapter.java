@@ -3,7 +3,10 @@ package de.velcommuta.denul.ui.adapter;
 import android.app.Fragment;
 import android.content.Context;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
+import android.view.ContextMenu;
 import android.view.LayoutInflater;
+import android.view.MenuInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -18,11 +21,14 @@ import de.velcommuta.denul.R;
  *
  * The OnClick and OnLongClick implementation is adapted from
  * http://stackoverflow.com/a/27945635/1232833
+ * Context menu implementation adapted from
+ * http://stackoverflow.com/a/27886458/1232833
  */
 public class FriendListAdapter extends RecyclerView.Adapter<FriendListAdapter.ViewHolder> {
     private List<Friend> mFriends;
     protected Context mContext;
     private Fragment mFragment;
+    private int mPosition;
 
     public interface OnItemClickListener {
         /**
@@ -32,15 +38,7 @@ public class FriendListAdapter extends RecyclerView.Adapter<FriendListAdapter.Vi
         void onItemClicked(int position);
     }
 
-    public interface OnItemLongClickListener {
-        /**
-         * Called when an item is long-clicked
-         * @param position position of the item in the list
-         */
-        void onItemLongClicked(int position);
-    }
-
-    public class ViewHolder extends RecyclerView.ViewHolder {
+    public class ViewHolder extends RecyclerView.ViewHolder implements View.OnCreateContextMenuListener{
         protected View mHeldView;
         private TextView mNameView;
         private ImageView mVerificationView;
@@ -54,6 +52,7 @@ public class FriendListAdapter extends RecyclerView.Adapter<FriendListAdapter.Vi
             mHeldView = itemView;
             mNameView = (TextView) itemView.findViewById(R.id.friend_list_item_text);
             mVerificationView = (ImageView) itemView.findViewById(R.id.friend_list_item_verification);
+            mHeldView.setOnCreateContextMenuListener(this);
         }
 
 
@@ -70,6 +69,15 @@ public class FriendListAdapter extends RecyclerView.Adapter<FriendListAdapter.Vi
             } else {
                 mVerificationView.getDrawable().setTint(mContext.getResources().getColor(android.R.color.holo_red_dark));
             }
+        }
+
+
+        @Override
+        public void onCreateContextMenu(ContextMenu contextMenu, View view, ContextMenu.ContextMenuInfo contextMenuInfo) {
+            Log.d("ViewHolder", "onCreateContextMenu");
+            MenuInflater inflater = new MenuInflater(mContext);
+            inflater.inflate(R.menu.context_friendlist, contextMenu);
+            // MenuInfo is null
         }
     }
 
@@ -97,7 +105,7 @@ public class FriendListAdapter extends RecyclerView.Adapter<FriendListAdapter.Vi
 
 
     @Override
-    public void onBindViewHolder(ViewHolder holder, final int position) {
+    public void onBindViewHolder(final ViewHolder holder, final int position) {
         holder.display(mFriends.get(position));
         holder.mHeldView.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -108,15 +116,40 @@ public class FriendListAdapter extends RecyclerView.Adapter<FriendListAdapter.Vi
         holder.mHeldView.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
-                ((OnItemLongClickListener) mFragment).onItemLongClicked(position);
-                return true;
+                setPosition(holder.getAdapterPosition());
+                return false;
             }
         });
     }
 
 
     @Override
+    public void onViewRecycled(ViewHolder holder) {
+        holder.mHeldView.setOnLongClickListener(null);
+        super.onViewRecycled(holder);
+    }
+
+
+    @Override
     public int getItemCount() {
         return mFriends.size();
+    }
+
+
+    /**
+     * Get the current position (helper for the Context menu implementation)
+     * @return Current position
+     */
+    public int getPosition() {
+        return mPosition;
+    }
+
+
+    /**
+     * Set the current position (helper for the Context menu implementation)
+     * @param pos Position
+     */
+    private void setPosition(int pos) {
+        mPosition = pos;
     }
 }
