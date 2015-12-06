@@ -12,6 +12,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
 
 import com.google.zxing.BarcodeFormat;
@@ -36,6 +37,7 @@ public class FriendAddVerificationFragment extends Fragment implements View.OnCl
     public static final int VERIFY_FAIL = 2;
 
     private VerificationListener mListener;
+    private EditText mName;
     private ImageView mQrCodeView;
     private Button mScanButton;
     private Button mFinishButton;
@@ -71,6 +73,7 @@ public class FriendAddVerificationFragment extends Fragment implements View.OnCl
         // Inflate the layout for this fragment
         View v = inflater.inflate(R.layout.fragment_add_friend_verify, container, false);
         // Grab references to buttons, views
+        mName = (EditText) v.findViewById(R.id.addfriend_step3_verify_name);
         mQrCodeView = (ImageView) v.findViewById(R.id.addfriend_step3_verify_qrcode);
         mStatusIndicator1 = (ImageView) v.findViewById(R.id.addfriend_step3_verify_b1);
         mStatusIndicator2 = (ImageView) v.findViewById(R.id.addfriend_step3_verify_b2);
@@ -178,7 +181,7 @@ public class FriendAddVerificationFragment extends Fragment implements View.OnCl
             integrator.initiateScan();
         } else if (view == mFinishButton) {
             //  User clicked the "Finish" button. Let the hosting activity decide what to do.
-            mListener.continueClicked(mStatus);
+            mListener.continueClicked(mStatus, mName.getText().toString());
         }
     }
 
@@ -213,7 +216,8 @@ public class FriendAddVerificationFragment extends Fragment implements View.OnCl
         /**
          * Indicate to the hosting activity that the user has clicked the "continue" button
          * @param verificationStatus One of the VERIFY_* constants, indicating the verification status
+         * @param name The name the user entered for the new contacct
          */
-        void continueClicked(int verificationStatus);
+        void continueClicked(int verificationStatus, String name);
     }
 }

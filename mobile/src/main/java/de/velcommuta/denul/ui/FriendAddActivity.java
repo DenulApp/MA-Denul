@@ -8,7 +8,6 @@ import android.content.ComponentName;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.database.sqlite.SQLiteException;
 import android.os.IBinder;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -22,6 +21,8 @@ import de.velcommuta.denul.crypto.KeySet;
 import de.velcommuta.denul.service.DatabaseService;
 import de.velcommuta.denul.service.DatabaseServiceBinder;
 import de.velcommuta.denul.ui.adapter.Friend;
+
+import net.sqlcipher.database.SQLiteException;
 
 /**
  * Activity containing the flow for adding a new friend
@@ -108,7 +109,6 @@ public class FriendAddActivity extends AppCompatActivity implements
         // Perform the replacement
         ft.replace(R.id.friend_add_container, fragment);
         // Add to back stack
-        // TODO Implement proper backstack behaviour, it's broken at the moment
         ft.addToBackStack(null);
         // Commit transaction
         ft.commit();
@@ -156,9 +156,14 @@ public class FriendAddActivity extends AppCompatActivity implements
 
 
     @Override
-    public void continueClicked(int verificationStatus) {
+    public void continueClicked(int verificationStatus, String name) {
+        if (name == null || name.equals("") || name.equals("Name")) {
+            // The name is not set
+            informNameUnset();
+            return;
+        }
         mFriend = new Friend();
-        mFriend.setName(mKeyset.fingerprint());  // TODO Update
+        mFriend.setName(name);
         mFriend.setVerified(verificationStatus);
         if (verificationStatus == FriendAddVerificationFragment.VERIFY_FAIL) {
             // The verification failed, the fingerprints did not match
@@ -186,9 +191,43 @@ public class FriendAddActivity extends AppCompatActivity implements
                 // Stop activity, return to friendlist
                 finish();
             } catch (SQLiteException e) {
-                // TODO Name taken
+                AlertDialog ConnectionRequestDialog = new AlertDialog.Builder(this)
+                        .setTitle("Name taken")
+                        .setMessage("The name you have entered is already in use.")
+                        .setCancelable(false)
+                        .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                // Silence
+                                // Crickets
+                                // Tumbleweed
+                            }
+                        }).create();
+                ConnectionRequestDialog.show();
             }
         }
+    }
+
+
+    /**
+     * Helper function to display a message asking the user if she really wants to save a new
+     * contact without having verified the fingerprints
+     */
+    private void informNameUnset() {
+        // Prepare an AlertDialog to inform the user
+        AlertDialog ConnectionRequestDialog = new AlertDialog.Builder(this)
+                .setTitle("Please name your contact")
+                .setMessage("You have not entered a name for this contact.")
+                .setCancelable(false)
+                .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        // Silence
+                        // Crickets
+                        // Tumbleweed
+                    }
+                }).create();
+        ConnectionRequestDialog.show();
     }
 
 

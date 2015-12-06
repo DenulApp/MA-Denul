@@ -53,8 +53,9 @@
     <string name="friend_add_step2_nearby_state_exchanging">Exchanging keys</string>
     <string name="friend_add_step2_nearby_state_calculating">Calculating keys</string>
     <string name="friend_add_step2_nearby_state_done">Done</string>
-    <string name="friend_add_step3_verify_title">Verify your new Friend</string>
-    <string name="friend_add_step3_verify_desc">To make sure everything went well, please scan the code displayed on your friends device, and let your friend scan yours.</string>
+    <string name="friend_add_step3_verify_title">Your new Friend</string>
+    <string name="friend_add_step3_verify_name_desc">Enter a name for your new friend:</string>
+    <string name="friend_add_step3_verify_scan_desc">To make sure everything went well, please scan the code displayed on your friends device, and let your friend scan yours.</string>
     <string name="friend_add_step3_verify_securitylevel_header">Security Level:</string>
     <string name="friend_add_step3_verify_finish">Finish</string>
     <string name="friend_add_step3_verify_skip">Skip</string>
