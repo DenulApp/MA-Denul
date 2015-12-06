@@ -82,6 +82,7 @@ public class SecureDbHelper extends SQLiteOpenHelper {
             FriendContract.FriendKeys.COLUMN_NAME_CTR_IN + TYPE_BLOB + OPT_NOT_NULL + COMMA_SEP +
             FriendContract.FriendKeys.COLUMN_NAME_KEY_OUT + TYPE_BLOB + OPT_NOT_NULL + COMMA_SEP +
             FriendContract.FriendKeys.COLUMN_NAME_CTR_OUT + TYPE_BLOB + OPT_NOT_NULL + COMMA_SEP +
+            FriendContract.FriendKeys.COLUMN_NAME_INITIATED + TYPE_INT + OPT_NOT_NULL + COMMA_SEP +
             FKEY_DECL + FriendContract.FriendKeys.COLUMN_NAME_FRIEND_ID + FKEY_REFS +
                 FriendContract.FriendList.TABLE_NAME + "(" + FriendContract.FriendList._ID + ")" +
                 FKEY_ONDELETE_CASCADE +
@@ -110,7 +111,7 @@ public class SecureDbHelper extends SQLiteOpenHelper {
 
     public static final String DATABASE_NAME = "location.db"; // TODO Update
 
-    public static final int DATABASE_VERSION = 8;
+    public static final int DATABASE_VERSION = 9;
 
 
     /**
@@ -144,6 +145,11 @@ public class SecureDbHelper extends SQLiteOpenHelper {
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         if (oldVersion == 7 && newVersion == 8) {
+            db.execSQL(SQL_CREATE_ENTRIES_FRIENDLIST);
+            db.execSQL(SQL_CREATE_ENTRIES_FRIENDKEYS);
+        } else if (oldVersion == 8 && newVersion == 9) {
+            db.execSQL(SQL_DROP_FRIENDLIST);
+            db.execSQL(SQL_DROP_FRIENDKEYS);
             db.execSQL(SQL_CREATE_ENTRIES_FRIENDLIST);
             db.execSQL(SQL_CREATE_ENTRIES_FRIENDKEYS);
         } else {

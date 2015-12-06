@@ -41,5 +41,7 @@ public class FriendContract {
         public static final String COLUMN_NAME_KEY_IN = "key_in";
         // Counter to use when decrypting FROM this person
         public static final String COLUMN_NAME_CTR_IN = "ctr_in";
+        // Did this device initiate the key exchange?
+        public static final String COLUMN_NAME_INITIATED = "initiated";
     }
 }

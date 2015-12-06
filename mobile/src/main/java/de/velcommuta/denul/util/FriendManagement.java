@@ -34,4 +34,26 @@ public class FriendManagement {
         // TODO Delete from server?
         binder.deleteFriend(friend);
     }
+
+
+    /**
+     * Retrieve a Friend from the database, based on the database ID
+     * @param id The ID of the friend
+     * @param binder The {@link DatabaseServiceBinder} to use
+     * @return The Friend
+     */
+    public static Friend getFriendById(int id, DatabaseServiceBinder binder) {
+        return binder.getFriendById(id);
+    }
+
+
+    /**
+     * Retrieve the {@link KeySet} for a {@link Friend} from the Database
+     * @param friend The Friend for which the KeySet should be retrieved
+     * @param binder The {@link DatabaseServiceBinder} to use
+     * @return The {@link KeySet}
+     */
+    public static KeySet getKeySetForFriend(Friend friend, DatabaseServiceBinder binder) {
+        return binder.getKeySetForFriend(friend);
+    }
 }

@@ -292,7 +292,10 @@ public class DatabaseService extends Service {
         private int delete(String table, String whereClause, String[] whereArgs) {
             assertOpen();
             Log.d(TAG, "delete: Running delete");
-            return mSQLiteHandler.delete(table, whereClause, whereArgs);
+            beginTransaction();
+            int rv = mSQLiteHandler.delete(table, whereClause, whereArgs);
+            commit();
+            return rv;
         }
 
 
@@ -317,6 +320,46 @@ public class DatabaseService extends Service {
             return res;
         }
 
+        @Override
+        public Friend getFriendById(int id) {
+            assertOpen();
+            String[] whereArgs = {"" + id};
+            Cursor c = query(FriendContract.FriendList.TABLE_NAME,
+                    null,
+                    FriendContract.FriendList._ID + " LIKE ?",
+                    whereArgs,
+                    null,
+                    null,
+                    null);
+            c.moveToFirst();
+            Friend rv = new Friend(c.getString(c.getColumnIndexOrThrow(FriendContract.FriendList.COLUMN_NAME_FRIEND)),
+                              c.getInt(   c.getColumnIndexOrThrow(FriendContract.FriendList.COLUMN_NAME_VERIFIED)),
+                              c.getInt(   c.getColumnIndexOrThrow(FriendContract.FriendList._ID)));
+            c.close();
+            return rv;
+        }
+
+        @Override
+        public KeySet getKeySetForFriend(Friend friend) {
+            assertOpen();
+            String[] whereArgs = {"" + friend.getID()};
+            Cursor c = query(FriendContract.FriendKeys.TABLE_NAME,
+                    null,
+                    FriendContract.FriendKeys.COLUMN_NAME_FRIEND_ID + " LIKE ?",
+                    whereArgs,
+                    null,
+                    null,
+                    null);
+            c.moveToFirst();
+            KeySet rv = new KeySet(c.getBlob(c.getColumnIndexOrThrow(FriendContract.FriendKeys.COLUMN_NAME_KEY_IN)),
+                              c.getBlob(c.getColumnIndexOrThrow(FriendContract.FriendKeys.COLUMN_NAME_KEY_OUT)),
+                              c.getBlob(c.getColumnIndexOrThrow(FriendContract.FriendKeys.COLUMN_NAME_CTR_IN)),
+                              c.getBlob(c.getColumnIndexOrThrow(FriendContract.FriendKeys.COLUMN_NAME_CTR_OUT)),
+                              c.getInt (c.getColumnIndexOrThrow(FriendContract.FriendKeys.COLUMN_NAME_INITIATED)) == 1);
+            c.close();
+            return rv;
+        }
+
 
         @Override
         public void addFriend(Friend friend, KeySet keys) {
@@ -328,6 +371,7 @@ public class DatabaseService extends Service {
             String[] columns = {FriendContract.FriendList._ID};
             Cursor c = query(FriendContract.FriendList.TABLE_NAME, columns, query, queryArgs, null, null, null);
             if (c.getCount() > 0) throw new SQLiteException("Name already taken");
+            c.close();
             // Begin a transaction
             beginTransaction();
             // Prepare ContentValues
@@ -342,6 +386,7 @@ public class DatabaseService extends Service {
             c = query(FriendContract.FriendList.TABLE_NAME, columns, query, queryArgs, null, null, null);
             c.moveToFirst();
             int id = c.getInt(c.getColumnIndexOrThrow(FriendContract.FriendList._ID));
+            c.close();
             // Prepare ContentValues for the key entry
             ContentValues keys_entry = new ContentValues();
             keys_entry.put(FriendContract.FriendKeys.COLUMN_NAME_FRIEND_ID, id);
@@ -349,6 +394,7 @@ public class DatabaseService extends Service {
             keys_entry.put(FriendContract.FriendKeys.COLUMN_NAME_KEY_OUT, keys.getOutboundKey());
             keys_entry.put(FriendContract.FriendKeys.COLUMN_NAME_CTR_IN, keys.getInboundCtr());
             keys_entry.put(FriendContract.FriendKeys.COLUMN_NAME_CTR_OUT, keys.getOutboundCtr());
+            keys_entry.put(FriendContract.FriendKeys.COLUMN_NAME_INITIATED, keys.hasInitiated() ? 1 : 0);
             // Run the insert
             rv = insert(FriendContract.FriendKeys.TABLE_NAME, null, keys_entry);
             // Make sure everything worked

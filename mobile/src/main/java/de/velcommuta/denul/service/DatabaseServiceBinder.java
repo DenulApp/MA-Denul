@@ -83,6 +83,20 @@ public interface DatabaseServiceBinder {
     List<Friend> getFriends();
 
     /**
+     * Get a specific friend from the database, based on the ID
+     * @param id ID of the friend
+     * @return The Friend
+     */
+    Friend getFriendById(int id);
+
+    /**
+     * Get the {@link KeySet} for a {@link Friend} from the database
+     * @param friend The Friend to get the KeySet for
+     * @return The KeySet
+     */
+    KeySet getKeySetForFriend(Friend friend);
+
+    /**
      * Add a friend to the database
      * @param friend The {@link Friend} object describing the new friend
      * @param keys The {@link KeySet} containing the keys for communication with that friend
