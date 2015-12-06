@@ -416,6 +416,24 @@ public class DatabaseService extends Service {
             }
         }
 
+        @Override
+        public void updateFriend(Friend friend) {
+            assertOpen();
+            if (friend == null) throw new SQLiteException("Friend cannot be null");
+            // Prepare ContentValues with new values
+            ContentValues friend_entry = new ContentValues();
+            friend_entry.put(FriendContract.FriendList.COLUMN_NAME_FRIEND, friend.getName());
+            friend_entry.put(FriendContract.FriendList.COLUMN_NAME_VERIFIED, friend.getVerified());
+            String[] whereArgs = {"" + friend.getID()};
+            // Perform the update
+            beginTransaction();
+            update(FriendContract.FriendList.TABLE_NAME,
+                   friend_entry,
+                   FriendContract.FriendList._ID + " LIKE ?",
+                   whereArgs);
+            commit();
+        }
+
 
         ///// Utility functions
         /**

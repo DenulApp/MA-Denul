@@ -108,4 +108,10 @@ public interface DatabaseServiceBinder {
      * @param friend The Friend to remove
      */
     void deleteFriend(Friend friend);
+
+    /**
+     * Update an existing friend in the database
+     * @param friend The {@link Friend} object containing the new values
+     */
+    void updateFriend(Friend friend);
 }

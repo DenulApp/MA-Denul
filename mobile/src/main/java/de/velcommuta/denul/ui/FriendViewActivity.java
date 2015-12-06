@@ -1,6 +1,8 @@
 package de.velcommuta.denul.ui;
 
+import android.app.AlertDialog;
 import android.content.ComponentName;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.res.TypedArray;
@@ -21,6 +23,8 @@ import android.widget.Toast;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.WriterException;
 import com.google.zxing.common.BitMatrix;
+import com.google.zxing.integration.android.IntentIntegrator;
+import com.google.zxing.integration.android.IntentResult;
 import com.google.zxing.qrcode.QRCodeWriter;
 
 import de.velcommuta.denul.R;
@@ -95,6 +99,7 @@ public class FriendViewActivity extends AppCompatActivity implements ServiceConn
             case Friend.VERIFIED_FAIL:
                 mFriendVerification.setImageDrawable(getResources().getDrawable(R.drawable.ic_warning));
                 mFriendVerification.getDrawable().setTint(getResources().getColor(android.R.color.holo_red_dark));
+                // TODO Give a more obvious error message, too
                 break;
         }
         // Get a new QRCodeWriter to generate our QRCode
@@ -171,15 +176,75 @@ public class FriendViewActivity extends AppCompatActivity implements ServiceConn
                 finish();
                 return true;
             case R.id.action_delete:
-                Toast.makeText(FriendViewActivity.this, "Delete", Toast.LENGTH_SHORT).show();
+                askDeleteConfirm();
                 return true;
             case R.id.action_rename:
                 Toast.makeText(FriendViewActivity.this, "Rename", Toast.LENGTH_SHORT).show();
                 return true;
             case R.id.action_scan:
-                Toast.makeText(FriendViewActivity.this, "Scan", Toast.LENGTH_SHORT).show();
+                IntentIntegrator integrator = new IntentIntegrator(this);
+                integrator.setBeepEnabled(false);
+                integrator.setDesiredBarcodeFormats(IntentIntegrator.QR_CODE_TYPES);
+                integrator.initiateScan();
                 return true;
         }
         return false;
+    }
+
+
+    /**
+     * Ask the user to confirm the deletion request, and perform the deletion if it was confirmed
+     */
+    private void askDeleteConfirm() {
+        // Prepare a builder
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        // Set the values, build and show the dialog
+        builder.setMessage("Delete this contact?")
+                .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        FriendManagement.deleteFriend(mFriend, mDbBinder);
+                        Toast.makeText(FriendViewActivity.this, "Contact deleted", Toast.LENGTH_SHORT).show();
+                        finish();
+                    }
+                })
+                .setNegativeButton("No", null)
+                .create().show();
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        // Convert to IntentResult
+        IntentResult result = IntentIntegrator.parseActivityResult(requestCode, resultCode, data);
+        // Check if the parsing has succeeded
+        if (result != null) {
+            // Check if the result contains a scanned value
+            if (result.getContents() == null) {
+                // Value is null => Scan was cancelled
+                Log.w(TAG, "onActivityResult: Barcode scan was cancelled");
+            } else {
+                // Value is not null, pass it to the verification function
+                verifyFingerprint(result.getContents());
+            }
+        }
+    }
+
+
+    /**
+     * Verify if a scanned fingerprint matches the expected fingerprint
+     * @param fingerprint The scanned fingerprint
+     */
+    private void verifyFingerprint(String fingerprint) {
+        if (fingerprint.equals(mKeyset.fingerprint())) {
+            mFriend.setVerified(Friend.VERIFIED_OK);
+            Toast.makeText(FriendViewActivity.this, "Friend Verified", Toast.LENGTH_SHORT).show();
+        } else {
+            mFriend.setVerified(Friend.VERIFIED_FAIL);
+            Toast.makeText(FriendViewActivity.this, "Verification failed", Toast.LENGTH_SHORT).show();
+        }
+        // Perform update in the database
+        FriendManagement.updateFriend(mFriend, mDbBinder);
+        // Reload friend
+        loadFriendInformation();
     }
 }

@@ -56,4 +56,14 @@ public class FriendManagement {
     public static KeySet getKeySetForFriend(Friend friend, DatabaseServiceBinder binder) {
         return binder.getKeySetForFriend(friend);
     }
+
+
+    /**
+     * Update the database entry for an existing friend
+     * @param friend The {@link Friend} object with the updated values
+     * @param binder The {@link DatabaseServiceBinder} to use
+     */
+    public static void updateFriend(Friend friend, DatabaseServiceBinder binder) {
+        binder.updateFriend(friend);
+    }
 }
