@@ -114,4 +114,11 @@ public interface DatabaseServiceBinder {
      * @param friend The {@link Friend} object containing the new values
      */
     void updateFriend(Friend friend);
+
+    /**
+     * Check if a certain name is available
+     * @param name The name to check for
+     * @return True if the name is not yet taken, false otherwise
+     */
+    boolean isNameAvailable(String name);
 }

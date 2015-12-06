@@ -16,6 +16,7 @@ import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -179,7 +180,7 @@ public class FriendViewActivity extends AppCompatActivity implements ServiceConn
                 askDeleteConfirm();
                 return true;
             case R.id.action_rename:
-                Toast.makeText(FriendViewActivity.this, "Rename", Toast.LENGTH_SHORT).show();
+                performRename();
                 return true;
             case R.id.action_scan:
                 IntentIntegrator integrator = new IntentIntegrator(this);
@@ -246,5 +247,44 @@ public class FriendViewActivity extends AppCompatActivity implements ServiceConn
         FriendManagement.updateFriend(mFriend, mDbBinder);
         // Reload friend
         loadFriendInformation();
+    }
+
+
+    /**
+     * Rename the Friend and write the updated friend to the database
+     */
+    private void performRename() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        final EditText newName = new EditText(this);
+        newName.setText(mFriend.getName());
+        builder.setView(newName);
+        builder.setTitle("Enter a new Name:");
+        builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i) {
+                String selectedName = newName.getText().toString().trim();
+                if (selectedName.equals("")) {
+                    Toast.makeText(FriendViewActivity.this, "Name cannot be empty", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                // if the name has not changed, do nothing
+                if (selectedName.equals(mFriend.getName())) return;
+                // check if the name is available
+                if (FriendManagement.isNameAvailable(selectedName, mDbBinder)) {
+                    // Name is available. Update Friend object
+                    mFriend.setName(selectedName);
+                    // Update database
+                    FriendManagement.updateFriend(mFriend, mDbBinder);
+                    // Reload
+                    loadFriendInformation();
+                } else {
+                    Toast.makeText(FriendViewActivity.this, "Name already taken", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+        // Set cancel buttel
+        builder.setNegativeButton("Cancel", null);
+        // Create and show the dialog
+        builder.create().show();
     }
 }

@@ -428,10 +428,26 @@ public class DatabaseService extends Service {
             // Perform the update
             beginTransaction();
             update(FriendContract.FriendList.TABLE_NAME,
-                   friend_entry,
-                   FriendContract.FriendList._ID + " LIKE ?",
-                   whereArgs);
+                    friend_entry,
+                    FriendContract.FriendList._ID + " LIKE ?",
+                    whereArgs);
             commit();
+        }
+
+        @Override
+        public boolean isNameAvailable(String name) {
+            assertOpen();
+            String[] selectArgs = {name};
+            Cursor c = query(FriendContract.FriendList.TABLE_NAME,
+                             null,
+                             FriendContract.FriendList.COLUMN_NAME_FRIEND + " LIKE ?",
+                             selectArgs,
+                             null,
+                             null,
+                             null);
+            boolean rv = c.getCount() == 0;
+            c.close();
+            return rv;
         }
 
 

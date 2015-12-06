@@ -66,4 +66,15 @@ public class FriendManagement {
     public static void updateFriend(Friend friend, DatabaseServiceBinder binder) {
         binder.updateFriend(friend);
     }
+
+
+    /**
+     * Check if a certain name is still available in the database
+     * @param name The name to check for
+     * @param binder The {@link DatabaseServiceBinder} to use
+     * @return True if the name is available, false otherwise
+     */
+    public static boolean isNameAvailable(String name, DatabaseServiceBinder binder) {
+        return binder.isNameAvailable(name);
+    }
 }
