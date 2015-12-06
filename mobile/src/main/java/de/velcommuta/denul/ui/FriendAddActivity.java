@@ -165,10 +165,10 @@ public class FriendAddActivity extends AppCompatActivity implements
         mFriend = new Friend();
         mFriend.setName(name);
         mFriend.setVerified(verificationStatus);
-        if (verificationStatus == FriendAddVerificationFragment.VERIFY_FAIL) {
+        if (verificationStatus == Friend.VERIFIED_FAIL) {
             // The verification failed, the fingerprints did not match
             informFailedVerifyOptions();
-        } else if (verificationStatus == FriendAddVerificationFragment.VERIFY_NOT_DONE) {
+        } else if (verificationStatus == Friend.UNVERIFIED) {
             // No verification attempt has taken place, ask the user if she is sure
             askConfirmUnverifiedSafe();
         } else {

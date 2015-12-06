@@ -24,6 +24,7 @@ import com.google.zxing.qrcode.QRCodeWriter;
 
 import de.velcommuta.denul.R;
 import de.velcommuta.denul.crypto.KeySet;
+import de.velcommuta.denul.ui.adapter.Friend;
 
 
 /**
@@ -31,10 +32,6 @@ import de.velcommuta.denul.crypto.KeySet;
  */
 public class FriendAddVerificationFragment extends Fragment implements View.OnClickListener {
     private static final String TAG = "FriendAddVerif";
-
-    public static final int VERIFY_NOT_DONE = 0;
-    public static final int VERIFY_OK = 1;
-    public static final int VERIFY_FAIL = 2;
 
     private VerificationListener mListener;
     private EditText mName;
@@ -46,7 +43,7 @@ public class FriendAddVerificationFragment extends Fragment implements View.OnCl
     private ImageView mStatusIndicator2;
     private ImageView mStatusIndicator3;
 
-    private int mStatus = VERIFY_NOT_DONE;
+    private int mStatus = Friend.UNVERIFIED;
 
     /**
      * Use this factory method to create a new instance of
@@ -155,7 +152,7 @@ public class FriendAddVerificationFragment extends Fragment implements View.OnCl
             mStatusIndicator1.getDrawable().setTint(getResources().getColor(android.R.color.holo_green_light));
             mStatusIndicator2.getDrawable().setTint(getResources().getColor(android.R.color.holo_green_light));
             mStatusIndicator3.getDrawable().setTint(getResources().getColor(android.R.color.holo_green_light));
-            mStatus = VERIFY_OK;
+            mStatus = Friend.VERIFIED_OK;
             mFinishButton.setText(R.string.friend_add_step3_verify_finish);
         } else {
             // Replace circles with warning signs and tint them red to indicate that something is very wrong
@@ -165,7 +162,7 @@ public class FriendAddVerificationFragment extends Fragment implements View.OnCl
             mStatusIndicator1.getDrawable().setTint(getResources().getColor(android.R.color.holo_red_dark));
             mStatusIndicator2.getDrawable().setTint(getResources().getColor(android.R.color.holo_red_dark));
             mStatusIndicator3.getDrawable().setTint(getResources().getColor(android.R.color.holo_red_dark));
-            mStatus = VERIFY_FAIL;
+            mStatus = Friend.VERIFIED_FAIL;
             mFinishButton.setText(R.string.friend_add_step3_verify_skip);
         }
     }
@@ -215,7 +212,8 @@ public class FriendAddVerificationFragment extends Fragment implements View.OnCl
 
         /**
          * Indicate to the hosting activity that the user has clicked the "continue" button
-         * @param verificationStatus One of the VERIFY_* constants, indicating the verification status
+         * @param verificationStatus One of the verification status constants defined by
+         *                           {@link Friend}, indicating the verification status
          * @param name The name the user entered for the new contacct
          */
         void continueClicked(int verificationStatus, String name);
