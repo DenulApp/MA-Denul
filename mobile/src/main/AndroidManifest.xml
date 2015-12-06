@@ -66,9 +66,9 @@
             android:exported="false">
         </service>
 
-        <activity android:name=".ui.FriendAddActivity">
+        <activity android:name=".ui.FriendAddActivity" android:theme="@style/AppTheme.NoActionBar">
         </activity>
-        <activity android:name=".ui.FriendViewActivity">
+        <activity android:name=".ui.FriendViewActivity" android:theme="@style/AppTheme.NoActionBar">
         </activity>
     </application>
 

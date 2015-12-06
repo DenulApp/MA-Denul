@@ -63,6 +63,11 @@
     <!-- Friend list context menu -->
     <string name="friend_ctx_remove">Remove</string>
 
+    <!-- Friend show activity -->
+    <string name="friend_show_delete">Delete</string>
+    <string name="friend_show_rename">Rename</string>
+    <string name="friend_show_scan">Scan</string>
+
     <!-- Status messages -->
     <string name="save_success">Saved</string>
 

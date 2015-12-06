@@ -2,16 +2,23 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
               android:orientation="vertical"
               android:layout_width="match_parent"
-              android:layout_height="match_parent"
-                android:padding="5dp">
+              android:layout_height="match_parent">
+    <android.support.v7.widget.Toolbar
+        android:id="@+id/my_toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="?attr/colorPrimary"
+        android:elevation="4dp"
+        android:theme="@style/AppTheme.AppBarOverlay"
+        popupTheme="@style/AppTheme.AppBarOverlay"/>
 
     <ImageView
         android:layout_width="100dp"
         android:layout_height="100dp"
         android:id="@+id/friend_show_qr"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentStart="true"
-        android:src="@drawable/ic_person_24dp"/>
+        android:src="@drawable/ic_person_24dp"
+        android:layout_below="@+id/my_toolbar"
+        android:layout_alignParentStart="true"/>
 
     <TextView
         android:layout_width="wrap_content"
@@ -19,7 +26,7 @@
         android:textAppearance="?android:attr/textAppearanceLarge"
         android:text="Large Text"
         android:id="@+id/friend_show_name"
-        android:layout_alignParentTop="true"
+        android:layout_below="@+id/my_toolbar"
         android:layout_toEndOf="@+id/friend_show_qr"/>
 
     <ImageView

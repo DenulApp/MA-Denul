@@ -8,10 +8,15 @@ import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.WriterException;
@@ -44,6 +49,12 @@ public class FriendViewActivity extends AppCompatActivity implements ServiceConn
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_friend_show);
+        Toolbar myToolbar = (Toolbar) findViewById(R.id.my_toolbar);
+        setSupportActionBar(myToolbar);
+
+        ActionBar ab = getSupportActionBar();
+        ab.setDisplayHomeAsUpEnabled(true);
+
         requestDatabaseBinder();
         Bundle b = getIntent().getExtras();
         if (b != null) {
@@ -58,7 +69,12 @@ public class FriendViewActivity extends AppCompatActivity implements ServiceConn
     }
 
 
-
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.activity_friend_view, menu);
+        return true;
+    }
 
     /**
      * Load the information about the friend from the database and display it
@@ -108,6 +124,7 @@ public class FriendViewActivity extends AppCompatActivity implements ServiceConn
         }
     }
 
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
@@ -146,5 +163,23 @@ public class FriendViewActivity extends AppCompatActivity implements ServiceConn
     public void onServiceDisconnected(ComponentName componentName) {
         Log.d(TAG, "onServiceDisconnected: Lost DB service");
         mDbBinder = null;
+    }
+
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case android.R.id.home:
+                finish();
+                return true;
+            case R.id.action_delete:
+                Toast.makeText(FriendViewActivity.this, "Delete", Toast.LENGTH_SHORT).show();
+                return true;
+            case R.id.action_rename:
+                Toast.makeText(FriendViewActivity.this, "Rename", Toast.LENGTH_SHORT).show();
+                return true;
+            case R.id.action_scan:
+                Toast.makeText(FriendViewActivity.this, "Scan", Toast.LENGTH_SHORT).show();
+                return true;
+        }
+        return false;
     }
 }
