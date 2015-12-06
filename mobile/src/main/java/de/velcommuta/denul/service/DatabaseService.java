@@ -282,6 +282,20 @@ public class DatabaseService extends Service {
         }
 
 
+        /**
+         * Run a delete on the database
+         * @param table The table to delete from
+         * @param whereClause The WHERE clause
+         * @param whereArgs Arguments for the WHERE clause to replace "?" wildcards
+         * @return The number of deleted rows
+         */
+        private int delete(String table, String whereClause, String[] whereArgs) {
+            assertOpen();
+            Log.d(TAG, "delete: Running delete");
+            return mSQLiteHandler.delete(table, whereClause, whereArgs);
+        }
+
+
         @Override
         public List<Friend> getFriends() {
             assertOpen();
@@ -341,6 +355,19 @@ public class DatabaseService extends Service {
             if (rv == -1) throw new IllegalArgumentException("Insert of keys failed");
             // Commit transaction
             commit();
+        }
+
+        @Override
+        public void deleteFriend(Friend friend) {
+            assertOpen();
+            if (friend == null) throw new SQLiteException("Friend cannot be null");
+            String[] whereArgs = { "" + friend.getID(), friend.getName() };
+            int deleted = delete(FriendContract.FriendList.TABLE_NAME,
+                                 FriendContract.FriendList._ID +  " LIKE ? AND " + FriendContract.FriendList.COLUMN_NAME_FRIEND + " LIKE ?",
+                                 whereArgs);
+            if (deleted != 1) {
+                throw new SQLiteException("Wanted to delete 1 row, but deleted " + deleted);
+            }
         }
 
 

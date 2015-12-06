@@ -137,6 +137,16 @@ public class FriendListAdapter extends RecyclerView.Adapter<FriendListAdapter.Vi
 
 
     /**
+     * Get the Friend at the specified position in the List
+     * @param position The position
+     * @return The friend at that position
+     */
+    public Friend getFriendAt(int position) {
+        return mFriends.get(position);
+    }
+
+
+    /**
      * Get the current position (helper for the Context menu implementation)
      * @return Current position
      */

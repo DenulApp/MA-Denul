@@ -88,4 +88,10 @@ public interface DatabaseServiceBinder {
      * @param keys The {@link KeySet} containing the keys for communication with that friend
      */
     void addFriend(Friend friend, KeySet keys);
+
+    /**
+     * Remove a {@link Friend} and the related {@link KeySet} from the database.
+     * @param friend The Friend to remove
+     */
+    void deleteFriend(Friend friend);
 }
