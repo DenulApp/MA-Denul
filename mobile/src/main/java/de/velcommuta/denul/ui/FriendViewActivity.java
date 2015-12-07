@@ -34,7 +34,7 @@ import de.velcommuta.denul.crypto.KeySet;
 import de.velcommuta.denul.service.DatabaseService;
 import de.velcommuta.denul.service.DatabaseServiceBinder;
 import de.velcommuta.denul.ui.adapter.Friend;
-import de.velcommuta.denul.util.FriendManagement;
+import de.velcommuta.denul.util.FriendManager;
 
 /**
  * Activity to show details about a specific user
@@ -88,8 +88,8 @@ public class FriendViewActivity extends AppCompatActivity implements ServiceConn
      * Load the information about the friend from the database and display it
      */
     private void loadFriendInformation() {
-        mFriend = FriendManagement.getFriendById(mFriendId, mDbBinder);
-        mKeyset = FriendManagement.getKeySetForFriend(mFriend, mDbBinder);
+        mFriend = FriendManager.getFriendById(mFriendId, mDbBinder);
+        mKeyset = FriendManager.getKeySetForFriend(mFriend, mDbBinder);
         mFriendName.setText(mFriend.getName());
         switch (mFriend.getVerified()) {
             case Friend.VERIFIED_OK:
@@ -211,7 +211,7 @@ public class FriendViewActivity extends AppCompatActivity implements ServiceConn
                 .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialogInterface, int i) {
-                        FriendManagement.deleteFriend(mFriend, mDbBinder);
+                        FriendManager.deleteFriend(mFriend, mDbBinder);
                         Toast.makeText(FriendViewActivity.this, "Contact deleted", Toast.LENGTH_SHORT).show();
                         finish();
                     }
@@ -251,7 +251,7 @@ public class FriendViewActivity extends AppCompatActivity implements ServiceConn
             Toast.makeText(FriendViewActivity.this, "Verification failed", Toast.LENGTH_SHORT).show();
         }
         // Perform update in the database
-        FriendManagement.updateFriend(mFriend, mDbBinder);
+        FriendManager.updateFriend(mFriend, mDbBinder);
         // Reload friend
         loadFriendInformation();
     }
@@ -277,11 +277,11 @@ public class FriendViewActivity extends AppCompatActivity implements ServiceConn
                 // if the name has not changed, do nothing
                 if (selectedName.equals(mFriend.getName())) return;
                 // check if the name is available
-                if (FriendManagement.isNameAvailable(selectedName, mDbBinder)) {
+                if (FriendManager.isNameAvailable(selectedName, mDbBinder)) {
                     // Name is available. Update Friend object
                     mFriend.setName(selectedName);
                     // Update database
-                    FriendManagement.updateFriend(mFriend, mDbBinder);
+                    FriendManager.updateFriend(mFriend, mDbBinder);
                     // Reload
                     loadFriendInformation();
                 } else {

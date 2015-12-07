@@ -9,8 +9,8 @@ import de.velcommuta.denul.ui.adapter.Friend;
  * through to the database binder, but in the interest of having a unified API, they were included
  * anyway.
  */
-public class FriendManagement {
-    private static final String TAG = "FriendManagement";
+public class FriendManager {
+    private static final String TAG = "FriendManager";
 
 
     /**

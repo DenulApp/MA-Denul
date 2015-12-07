@@ -26,7 +26,7 @@ import de.velcommuta.denul.service.DatabaseServiceBinder;
 import de.velcommuta.denul.ui.adapter.Friend;
 import de.velcommuta.denul.ui.adapter.FriendListAdapter;
 import de.velcommuta.denul.ui.view.EmptyRecyclerView;
-import de.velcommuta.denul.util.FriendManagement;
+import de.velcommuta.denul.util.FriendManager;
 
 /**
  * Fragment containing the Friend List
@@ -191,7 +191,7 @@ public class FriendListFragment extends Fragment implements ServiceConnection,
         int position = mAdapter.getPosition();
         switch (item.getItemId()) {
             case R.id.friend_remove:
-                FriendManagement.deleteFriend(mAdapter.getFriendAt(position), mDbBinder);
+                FriendManager.deleteFriend(mAdapter.getFriendAt(position), mDbBinder);
                 Toast.makeText(getActivity(), "Friend deleted", Toast.LENGTH_SHORT).show();
                 populateFriendList();
                 return true;
