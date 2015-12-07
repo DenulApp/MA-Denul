@@ -50,10 +50,9 @@ import de.velcommuta.denul.R;
 import de.velcommuta.denul.db.LocationLoggingContract;
 import de.velcommuta.denul.event.DatabaseResultEvent;
 import de.velcommuta.denul.event.GPSLocationEvent;
-import de.velcommuta.denul.event.GPSTrackEvent;
+import de.velcommuta.denul.data.GPSTrack;
 import de.velcommuta.denul.service.DatabaseServiceBinder;
 import de.velcommuta.denul.service.GPSTrackingService;
-import de.velcommuta.denul.service.PedometerService;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -282,7 +281,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
                 int mode = getSelectedModeOfTransportation();
                 if (mode != -1) {
                     GPSLocationEvent gpsloc = EventBus.getDefault().getStickyEvent(GPSLocationEvent.class);
-                    GPSTrackEvent ev = new GPSTrackEvent(
+                    GPSTrack ev = new GPSTrack(
                             gpsloc.getPosition(),
                             mSessionName.getText().toString(),
                             mode);
@@ -881,10 +880,12 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
 
     /**
      * EventBus function to perform Database interactions in an AsyncThread (in the background)
+     * TODO Refactor to regular asyncTask and stop using eventbus here?
+     * TODO Move database insert code into DatabaseService
      * @param ev Event containing the track and other information that should be saved to the database
      */
     @SuppressWarnings("unused")
-    public void onEventAsync(GPSTrackEvent ev) {
+    public void onEventAsync(GPSTrack ev) {
         // Get a handler on the database
         DatabaseServiceBinder db = ((MainActivity)getActivity()).getDbBinder();
         if (db == null) {
@@ -893,6 +894,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         }
 
         // Ensure that the event is sane
+        // TODO Ensure that this IF is sane, because it isn't
         if (ev.getPosition().size() != ev.getPosition().size()) {
             EventBus.getDefault().post(new DatabaseResultEvent("Position list has different size than timestsamp list - aborting"));
             return;
