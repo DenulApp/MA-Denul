@@ -1,0 +1,47 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
+              android:layout_height="match_parent" tools:context="de.velcommuta.denul.ui.FriendListFragment"
+              android:orientation="vertical">
+
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/friendlist_empty"
+        android:layout_margin="5dp"
+        android:weightSum="1">
+
+        <ImageView
+            android:layout_width="118dp"
+            android:layout_height="wrap_content"
+            android:id="@+id/friendlist_empty_image"
+            android:layout_gravity="center_horizontal"
+            android:src="@drawable/ic_person_24dp"
+            android:tint="#e0e0e0"
+            android:layout_weight="0.20"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:text="@string/friendlist_empty_lonely"
+            android:id="@+id/friendlist_empty_lonely"
+            android:layout_gravity="center_horizontal"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/friendlist_empty_explanation"
+            android:visibility="visible"
+            android:layout_gravity="center_horizontal"
+            android:text="@string/friendlist_empty_explanation"/>
+    </LinearLayout>
+
+    <de.velcommuta.denul.ui.view.EmptyRecyclerView
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        android:id="@+id/friendlist_recycler"
+        android:scrollbars="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"/>
+
+</LinearLayout>

@@ -17,9 +17,15 @@ import net.sqlcipher.Cursor;
 import net.sqlcipher.database.SQLiteDatabase;
 import net.sqlcipher.database.SQLiteException;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import de.greenrobot.event.EventBus;
+import de.velcommuta.denul.crypto.KeySet;
+import de.velcommuta.denul.db.FriendContract;
 import de.velcommuta.denul.db.SecureDbHelper;
 import de.velcommuta.denul.event.DatabaseAvailabilityEvent;
+import de.velcommuta.denul.ui.adapter.Friend;
 
 /**
  * Database service to hold a handle on the protected database and close it after a certain time of
@@ -273,6 +279,175 @@ public class DatabaseService extends Service {
             assertOpen();
             Log.d(TAG, "update: Running update");
             return mSQLiteHandler.update(table, values, selection, selectionArgs);
+        }
+
+
+        /**
+         * Run a delete on the database
+         * @param table The table to delete from
+         * @param whereClause The WHERE clause
+         * @param whereArgs Arguments for the WHERE clause to replace "?" wildcards
+         * @return The number of deleted rows
+         */
+        private int delete(String table, String whereClause, String[] whereArgs) {
+            assertOpen();
+            Log.d(TAG, "delete: Running delete");
+            beginTransaction();
+            int rv = mSQLiteHandler.delete(table, whereClause, whereArgs);
+            commit();
+            return rv;
+        }
+
+
+        @Override
+        public List<Friend> getFriends() {
+            assertOpen();
+            List<Friend> res = new ArrayList<>();
+            Cursor c = query(FriendContract.FriendList.TABLE_NAME,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    FriendContract.FriendList._ID + " ASC");
+            while (c.moveToNext()) {
+                Friend f = new Friend(c.getString(c.getColumnIndexOrThrow(FriendContract.FriendList.COLUMN_NAME_FRIEND)),
+                                      c.getInt(   c.getColumnIndexOrThrow(FriendContract.FriendList.COLUMN_NAME_VERIFIED)),
+                                      c.getInt(   c.getColumnIndexOrThrow(FriendContract.FriendList._ID)));
+                res.add(f);
+            }
+            c.close();
+            return res;
+        }
+
+        @Override
+        public Friend getFriendById(int id) {
+            assertOpen();
+            String[] whereArgs = {"" + id};
+            Cursor c = query(FriendContract.FriendList.TABLE_NAME,
+                    null,
+                    FriendContract.FriendList._ID + " LIKE ?",
+                    whereArgs,
+                    null,
+                    null,
+                    null);
+            c.moveToFirst();
+            Friend rv = new Friend(c.getString(c.getColumnIndexOrThrow(FriendContract.FriendList.COLUMN_NAME_FRIEND)),
+                                   c.getInt(   c.getColumnIndexOrThrow(FriendContract.FriendList.COLUMN_NAME_VERIFIED)),
+                                   c.getInt(   c.getColumnIndexOrThrow(FriendContract.FriendList._ID)));
+            c.close();
+            return rv;
+        }
+
+        @Override
+        public KeySet getKeySetForFriend(Friend friend) {
+            assertOpen();
+            String[] whereArgs = {"" + friend.getID()};
+            Cursor c = query(FriendContract.FriendKeys.TABLE_NAME,
+                    null,
+                    FriendContract.FriendKeys.COLUMN_NAME_FRIEND_ID + " LIKE ?",
+                    whereArgs,
+                    null,
+                    null,
+                    null);
+            c.moveToFirst();
+            KeySet rv = new KeySet(c.getBlob(c.getColumnIndexOrThrow(FriendContract.FriendKeys.COLUMN_NAME_KEY_IN)),
+                                   c.getBlob(c.getColumnIndexOrThrow(FriendContract.FriendKeys.COLUMN_NAME_KEY_OUT)),
+                                   c.getBlob(c.getColumnIndexOrThrow(FriendContract.FriendKeys.COLUMN_NAME_CTR_IN)),
+                                   c.getBlob(c.getColumnIndexOrThrow(FriendContract.FriendKeys.COLUMN_NAME_CTR_OUT)),
+                                   c.getInt (c.getColumnIndexOrThrow(FriendContract.FriendKeys.COLUMN_NAME_INITIATED)) == 1);
+            c.close();
+            return rv;
+        }
+
+
+        @Override
+        public void addFriend(Friend friend, KeySet keys) {
+            // Make sure the database is open
+            assertOpen();
+            // Check if a friend with the name already exists
+            String query = FriendContract.FriendList.COLUMN_NAME_FRIEND + " LIKE ?";
+            String[] queryArgs = {friend.getName()};
+            String[] columns = {FriendContract.FriendList._ID};
+            Cursor c = query(FriendContract.FriendList.TABLE_NAME, columns, query, queryArgs, null, null, null);
+            if (c.getCount() > 0) throw new SQLiteException("Name already taken");
+            c.close();
+            // Begin a transaction
+            beginTransaction();
+            // Prepare ContentValues
+            ContentValues friend_entry = new ContentValues();
+            friend_entry.put(FriendContract.FriendList.COLUMN_NAME_FRIEND, friend.getName());
+            friend_entry.put(FriendContract.FriendList.COLUMN_NAME_VERIFIED, friend.getVerified());
+            // Run insert
+            long rv = insert(FriendContract.FriendList.TABLE_NAME, null, friend_entry);
+            // Make sure insert worked
+            if (rv == -1) throw new IllegalArgumentException("Insert of friend failed");
+            // Query for the ID of the inserted entry
+            c = query(FriendContract.FriendList.TABLE_NAME, columns, query, queryArgs, null, null, null);
+            c.moveToFirst();
+            int id = c.getInt(c.getColumnIndexOrThrow(FriendContract.FriendList._ID));
+            c.close();
+            // Prepare ContentValues for the key entry
+            ContentValues keys_entry = new ContentValues();
+            keys_entry.put(FriendContract.FriendKeys.COLUMN_NAME_FRIEND_ID, id);
+            keys_entry.put(FriendContract.FriendKeys.COLUMN_NAME_KEY_IN, keys.getInboundKey());
+            keys_entry.put(FriendContract.FriendKeys.COLUMN_NAME_KEY_OUT, keys.getOutboundKey());
+            keys_entry.put(FriendContract.FriendKeys.COLUMN_NAME_CTR_IN, keys.getInboundCtr());
+            keys_entry.put(FriendContract.FriendKeys.COLUMN_NAME_CTR_OUT, keys.getOutboundCtr());
+            keys_entry.put(FriendContract.FriendKeys.COLUMN_NAME_INITIATED, keys.hasInitiated() ? 1 : 0);
+            // Run the insert
+            rv = insert(FriendContract.FriendKeys.TABLE_NAME, null, keys_entry);
+            // Make sure everything worked
+            if (rv == -1) throw new IllegalArgumentException("Insert of keys failed");
+            // Commit transaction
+            commit();
+        }
+
+        @Override
+        public void deleteFriend(Friend friend) {
+            assertOpen();
+            if (friend == null) throw new SQLiteException("Friend cannot be null");
+            String[] whereArgs = { "" + friend.getID(), friend.getName() };
+            int deleted = delete(FriendContract.FriendList.TABLE_NAME,
+                                 FriendContract.FriendList._ID +  " LIKE ? AND " + FriendContract.FriendList.COLUMN_NAME_FRIEND + " LIKE ?",
+                                 whereArgs);
+            if (deleted != 1) {
+                throw new SQLiteException("Wanted to delete 1 row, but deleted " + deleted);
+            }
+        }
+
+        @Override
+        public void updateFriend(Friend friend) {
+            assertOpen();
+            if (friend == null) throw new SQLiteException("Friend cannot be null");
+            // Prepare ContentValues with new values
+            ContentValues friend_entry = new ContentValues();
+            friend_entry.put(FriendContract.FriendList.COLUMN_NAME_FRIEND, friend.getName());
+            friend_entry.put(FriendContract.FriendList.COLUMN_NAME_VERIFIED, friend.getVerified());
+            String[] whereArgs = {"" + friend.getID()};
+            // Perform the update
+            beginTransaction();
+            update(FriendContract.FriendList.TABLE_NAME,
+                    friend_entry,
+                    FriendContract.FriendList._ID + " LIKE ?",
+                    whereArgs);
+            commit();
+        }
+
+        @Override
+        public boolean isNameAvailable(String name) {
+            assertOpen();
+            String[] selectArgs = {name};
+            Cursor c = query(FriendContract.FriendList.TABLE_NAME,
+                             null,
+                             FriendContract.FriendList.COLUMN_NAME_FRIEND + " LIKE ?",
+                             selectArgs,
+                             null,
+                             null,
+                             null);
+            boolean rv = c.getCount() == 0;
+            c.close();
+            return rv;
         }
 
 

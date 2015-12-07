@@ -14,6 +14,7 @@ public class SecureDbHelper extends SQLiteOpenHelper {
     private static final String TYPE_INT = " INTEGER";
     private static final String TYPE_FLOAT = " REAL";
     private static final String TYPE_DATETIME = " DATETIME";
+    private static final String TYPE_BLOB = " BLOB";
     private static final String FKEY_DECL = "FOREIGN KEY(";
     private static final String FKEY_REFS = ") REFERENCES ";
     private static final String FKEY_ONDELETE_CASCADE = " ON DELETE CASCADE";
@@ -66,6 +67,27 @@ public class SecureDbHelper extends SQLiteOpenHelper {
             VaultContract.SequenceNumberStore.COLUMN_SNR_VALUE + TYPE_INT + OPT_NOT_NULL +
             ");";
 
+    private static final String SQL_CREATE_ENTRIES_FRIENDLIST
+            = "CREATE TABLE " + FriendContract.FriendList.TABLE_NAME + "(" +
+            FriendContract.FriendList._ID + TYPE_INT + OPT_PRIMARY_KEY + COMMA_SEP +
+            FriendContract.FriendList.COLUMN_NAME_FRIEND + TYPE_TEXT + OPT_NOT_NULL + COMMA_SEP +
+            FriendContract.FriendList.COLUMN_NAME_VERIFIED + TYPE_INT + OPT_DEFAULT_ZERO +
+            ");";
+
+    private static final String SQL_CREATE_ENTRIES_FRIENDKEYS
+            = "CREATE TABLE " + FriendContract.FriendKeys.TABLE_NAME + "(" +
+            FriendContract.FriendKeys._ID + TYPE_INT + OPT_PRIMARY_KEY + COMMA_SEP +
+            FriendContract.FriendKeys.COLUMN_NAME_FRIEND_ID + TYPE_INT + OPT_NOT_NULL + COMMA_SEP +
+            FriendContract.FriendKeys.COLUMN_NAME_KEY_IN + TYPE_BLOB + OPT_NOT_NULL + COMMA_SEP +
+            FriendContract.FriendKeys.COLUMN_NAME_CTR_IN + TYPE_BLOB + OPT_NOT_NULL + COMMA_SEP +
+            FriendContract.FriendKeys.COLUMN_NAME_KEY_OUT + TYPE_BLOB + OPT_NOT_NULL + COMMA_SEP +
+            FriendContract.FriendKeys.COLUMN_NAME_CTR_OUT + TYPE_BLOB + OPT_NOT_NULL + COMMA_SEP +
+            FriendContract.FriendKeys.COLUMN_NAME_INITIATED + TYPE_INT + OPT_NOT_NULL + COMMA_SEP +
+            FKEY_DECL + FriendContract.FriendKeys.COLUMN_NAME_FRIEND_ID + FKEY_REFS +
+                FriendContract.FriendList.TABLE_NAME + "(" + FriendContract.FriendList._ID + ")" +
+                FKEY_ONDELETE_CASCADE +
+            ");";
+
     private static final String SQL_DROP_LOCATIONLOG =
             "DROP TABLE " + LocationLoggingContract.LocationLog.TABLE_NAME + ";";
 
@@ -81,9 +103,15 @@ public class SecureDbHelper extends SQLiteOpenHelper {
     private static final String SQL_DROP_SEQUENCE_NUMBERS =
             "DROP TABLE " + VaultContract.SequenceNumberStore.TABLE_NAME + ";";
 
+    private static final String SQL_DROP_FRIENDLIST =
+            "DROP TABLE " + FriendContract.FriendList.TABLE_NAME + ";";
+
+    private static final String SQL_DROP_FRIENDKEYS =
+            "DROP TABLE " + FriendContract.FriendKeys.TABLE_NAME + ";";
+
     public static final String DATABASE_NAME = "location.db"; // TODO Update
 
-    public static final int DATABASE_VERSION = 7;
+    public static final int DATABASE_VERSION = 9;
 
 
     /**
@@ -110,15 +138,29 @@ public class SecureDbHelper extends SQLiteOpenHelper {
         db.execSQL(SQL_CREATE_ENTRIES_KEYSTORE);
         db.execSQL(SQL_CREATE_ENTRIES_STEPCOUNTER);
         db.execSQL(SQL_CREATE_ENTRIES_SEQUENCE_NUMBERS);
+        db.execSQL(SQL_CREATE_ENTRIES_FRIENDLIST);
+        db.execSQL(SQL_CREATE_ENTRIES_FRIENDKEYS);
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        db.execSQL(SQL_DROP_LOCATIONLOG);
-        db.execSQL(SQL_DROP_LOCATIONSESSIONS);
-        db.execSQL(SQL_DROP_KEYSTORE);
-        db.execSQL(SQL_DROP_STEPCOUNTER);
-        db.execSQL(SQL_DROP_SEQUENCE_NUMBERS);
-        onCreate(db);
+        if (oldVersion == 7 && newVersion == 8) {
+            db.execSQL(SQL_CREATE_ENTRIES_FRIENDLIST);
+            db.execSQL(SQL_CREATE_ENTRIES_FRIENDKEYS);
+        } else if (oldVersion == 8 && newVersion == 9) {
+            db.execSQL(SQL_DROP_FRIENDLIST);
+            db.execSQL(SQL_DROP_FRIENDKEYS);
+            db.execSQL(SQL_CREATE_ENTRIES_FRIENDLIST);
+            db.execSQL(SQL_CREATE_ENTRIES_FRIENDKEYS);
+        } else {
+            db.execSQL(SQL_DROP_LOCATIONLOG);
+            db.execSQL(SQL_DROP_LOCATIONSESSIONS);
+            db.execSQL(SQL_DROP_KEYSTORE);
+            db.execSQL(SQL_DROP_STEPCOUNTER);
+            db.execSQL(SQL_DROP_SEQUENCE_NUMBERS);
+            db.execSQL(SQL_DROP_FRIENDLIST);
+            db.execSQL(SQL_DROP_FRIENDKEYS);
+            onCreate(db);
+        }
     }
 }

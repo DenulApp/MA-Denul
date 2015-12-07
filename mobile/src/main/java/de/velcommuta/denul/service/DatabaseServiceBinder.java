@@ -4,6 +4,11 @@ import android.content.ContentValues;
 
 import net.sqlcipher.Cursor;
 
+import java.util.List;
+
+import de.velcommuta.denul.crypto.KeySet;
+import de.velcommuta.denul.ui.adapter.Friend;
+
 /**
  * Interface for the DatabaseService class, for use with an IBinder implementation
  */
@@ -70,4 +75,50 @@ public interface DatabaseServiceBinder {
      * @return The number of updated entries
      */
     int update(String table, ContentValues values, String selection, String[] selectionArgs);
+
+    /**
+     * Query the database for all friends and return the result as a cursor
+     * @return A cursor containing the result of a SELECT on the friend database
+     */
+    List<Friend> getFriends();
+
+    /**
+     * Get a specific friend from the database, based on the ID
+     * @param id ID of the friend
+     * @return The Friend
+     */
+    Friend getFriendById(int id);
+
+    /**
+     * Get the {@link KeySet} for a {@link Friend} from the database
+     * @param friend The Friend to get the KeySet for
+     * @return The KeySet
+     */
+    KeySet getKeySetForFriend(Friend friend);
+
+    /**
+     * Add a friend to the database
+     * @param friend The {@link Friend} object describing the new friend
+     * @param keys The {@link KeySet} containing the keys for communication with that friend
+     */
+    void addFriend(Friend friend, KeySet keys);
+
+    /**
+     * Remove a {@link Friend} and the related {@link KeySet} from the database.
+     * @param friend The Friend to remove
+     */
+    void deleteFriend(Friend friend);
+
+    /**
+     * Update an existing friend in the database
+     * @param friend The {@link Friend} object containing the new values
+     */
+    void updateFriend(Friend friend);
+
+    /**
+     * Check if a certain name is available
+     * @param name The name to check for
+     * @return True if the name is not yet taken, false otherwise
+     */
+    boolean isNameAvailable(String name);
 }

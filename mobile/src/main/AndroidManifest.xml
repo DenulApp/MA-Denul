@@ -1,35 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="de.velcommuta.denul" >
+<manifest package="de.velcommuta.denul"
+          xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!--
-         The ACCESS_COARSE/FINE_LOCATION permissions are not required to use
-         Google Maps Android API v2, but you must specify either coarse or fine
-         location permissions for the 'MyLocation' functionality. 
-    -->
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Required for GPS tracking of runs / cycling -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <!-- Required for autostarting the step counter service -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <!-- Required for communication with server -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Required for Google Nearby (friends discovery) -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
 
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/AppTheme" >
+        android:theme="@style/AppTheme">
         <activity
             android:name=".ui.MainActivity"
             android:label="@string/app_name"
-            android:theme="@style/AppTheme.NoActionBar" >
+            android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
+                <action android:name="android.intent.action.MAIN"/>
 
-                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
-        <receiver android:name="de.velcommuta.denul.service.OnBootReceiver">
+
+        <receiver android:name=".service.OnBootReceiver">
             <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
             </intent-filter>
         </receiver>
         <!--
@@ -42,23 +43,33 @@
         -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="@string/google_maps_key" />
+            android:value="@string/google_maps_key"/>
+
+        <!-- Required for Nearby Connections API -->
+        <meta-data
+            android:name="com.google.android.gms.nearby.connection.SERVICE_ID"
+            android:value="@string/nearby_service_identifier"/>
 
         <service
             android:name=".service.GPSTrackingService"
             android:enabled="true"
-            android:exported="false" >
+            android:exported="false">
         </service>
         <service
             android:name=".service.PedometerService"
             android:enabled="true"
-            android:exported="false" >
+            android:exported="false">
         </service>
         <service
             android:name=".service.DatabaseService"
             android:enabled="true"
-            android:exported="false" >
+            android:exported="false">
         </service>
+
+        <activity android:name=".ui.FriendAddActivity" android:theme="@style/AppTheme.NoActionBar">
+        </activity>
+        <activity android:name=".ui.FriendViewActivity" android:theme="@style/AppTheme.NoActionBar">
+        </activity>
     </application>
 
 </manifest>

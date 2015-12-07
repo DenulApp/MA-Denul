@@ -1,5 +1,6 @@
 <resources>
     <string name="app_name">Denul</string>
+    <string name="nearby_service_identifier">de.velcommuta.denul.service</string>
 
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
@@ -11,9 +12,13 @@
     <string name="menu_home">Home</string>
     <string name="menu_track_run">Track</string>
     <string name="menu_old_tracks">Exercise History</string>
-    <string name="menu_title_2">Communicate</string> <!-- TODO This title sucks -->
-    <string name="menu_share">Share</string>
+    <string name="menu_title_2">Communicate</string>
+    <!-- TODO This title sucks -->
+    <string name="menu_friends">Friends</string>
     <string name="menu_prefs">Settings</string>
+
+    <!-- Action bar menu -->
+    <string name="abarmenu_friends_add">Add Friend</string>
 
     <!-- Buttons and fields during GPS tracking -->
     <string name="start_run">Start</string>
@@ -28,6 +33,42 @@
     <string name="default_distance">-</string>
     <string name="location_tracking_notify">Workout tracking active</string>
     <string name="location_tracking_details">%1$s is currently tracking your workout</string>
+
+    <!-- Friend list -->
+    <string name="friendlist_empty_lonely">Pretty lonely here…</string>
+    <string name="friendlist_empty_explanation">Looks like you have not added any friends yet.</string>
+    <string name="friendlist_empty_cta">Add a friend</string>
+
+    <!-- Add a friend -->
+    <string name="friend_add_step1_title">Add a friend</string>
+    <string name="friend_add_step1_explanation">How do you want to add your new friend?</string>
+    <string name="friend_add_step1_nearby_title">Google Nearby</string>
+    <string name="friend_add_step1_nearby_description">Choose this if you are in the same WiFi</string>
+
+    <string name="friend_add_step2_nearby_title">Select your Friend\'s Device</string>
+    <string name="friend_add_step2_nearby_emptyview">Looking for devices…</string>
+    <string name="friend_add_step2_nearby_emptyview_nowifi">Please connect to a wireless network</string>
+    <string name="friend_add_step2_nearby_state_connecting">Establishing connection</string>
+    <!-- TODO Change the following two strings to give a less technical explanation of whats going on -->
+    <string name="friend_add_step2_nearby_state_exchanging">Exchanging keys</string>
+    <string name="friend_add_step2_nearby_state_calculating">Calculating keys</string>
+    <string name="friend_add_step2_nearby_state_done">Done</string>
+    <string name="friend_add_step3_verify_title">Your new Friend</string>
+    <string name="friend_add_step3_verify_name_desc">Enter a name for your new friend:</string>
+    <string name="friend_add_step3_verify_scan_desc">To make sure everything went well, please scan the code displayed on your friends device, and let your friend scan yours.</string>
+    <string name="friend_add_step3_verify_securitylevel_header">Security Level:</string>
+    <string name="friend_add_step3_verify_finish">Finish</string>
+    <string name="friend_add_step3_verify_skip">Skip</string>
+    
+    <!-- Friend list context menu -->
+    <string name="friend_ctx_remove">Remove</string>
+
+    <!-- Friend show activity -->
+    <string name="friend_show_delete">Delete</string>
+    <string name="friend_show_rename">Rename</string>
+    <string name="friend_show_scan">Scan</string>
+    <!-- TODO Better message -->
+    <string name="friend_verify_warn">Warning: This contact could not be verified. Please verify this contact by scanning their QR code using the camera icon, or consider deleting it. Otherwise, the security of data you share with them cannot be guaranteed.</string>
 
     <!-- Status messages -->
     <string name="save_success">Saved</string>
