@@ -36,4 +36,17 @@
         android:src="@drawable/ic_circle"
         android:layout_alignBottom="@+id/friend_show_qr"
         android:layout_alignEnd="@+id/friend_show_qr"/>
+
+    <!-- TODO Better design -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:text="Medium Text"
+        android:id="@+id/friend_show_verification_warning"
+        android:textColor="#d50000"
+        android:textStyle="bold"
+        android:visibility="gone"
+        android:layout_below="@+id/friend_show_qr"
+        android:layout_alignParentStart="true"/>
 </RelativeLayout>

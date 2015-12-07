@@ -16,6 +16,7 @@ import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -47,6 +48,7 @@ public class FriendViewActivity extends AppCompatActivity implements ServiceConn
     private KeySet mKeyset;
 
     private TextView mFriendName;
+    private TextView mFriendVerificationWarning;
     private ImageView mFriendQr;
     private ImageView mFriendVerification;
 
@@ -71,6 +73,7 @@ public class FriendViewActivity extends AppCompatActivity implements ServiceConn
         mFriendName = (TextView) findViewById(R.id.friend_show_name);
         mFriendVerification = (ImageView) findViewById(R.id.friend_show_verification);
         mFriendQr = (ImageView) findViewById(R.id.friend_show_qr);
+        mFriendVerificationWarning = (TextView) findViewById(R.id.friend_show_verification_warning);
     }
 
 
@@ -92,14 +95,18 @@ public class FriendViewActivity extends AppCompatActivity implements ServiceConn
             case Friend.VERIFIED_OK:
                 mFriendVerification.setImageDrawable(getResources().getDrawable(R.drawable.ic_circle));
                 mFriendVerification.getDrawable().setTint(getResources().getColor(android.R.color.holo_green_light));
+                mFriendVerificationWarning.setVisibility(View.GONE);
                 break;
             case Friend.UNVERIFIED:
                 mFriendVerification.setImageDrawable(getResources().getDrawable(R.drawable.ic_circle));
                 mFriendVerification.getDrawable().setTint(getResources().getColor(android.R.color.holo_orange_light));
+                mFriendVerificationWarning.setVisibility(View.GONE);
                 break;
             case Friend.VERIFIED_FAIL:
                 mFriendVerification.setImageDrawable(getResources().getDrawable(R.drawable.ic_warning));
                 mFriendVerification.getDrawable().setTint(getResources().getColor(android.R.color.holo_red_dark));
+                mFriendVerificationWarning.setText(R.string.friend_verify_warn);
+                mFriendVerificationWarning.setVisibility(View.VISIBLE);
                 // TODO Give a more obvious error message, too
                 break;
         }

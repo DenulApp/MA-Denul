@@ -67,6 +67,8 @@
     <string name="friend_show_delete">Delete</string>
     <string name="friend_show_rename">Rename</string>
     <string name="friend_show_scan">Scan</string>
+    <!-- TODO Better message -->
+    <string name="friend_verify_warn">Warning: This contact could not be verified. Please verify this contact by scanning their QR code using the camera icon, or consider deleting it. Otherwise, the security of data you share with them cannot be guaranteed.</string>
 
     <!-- Status messages -->
     <string name="save_success">Saved</string>
