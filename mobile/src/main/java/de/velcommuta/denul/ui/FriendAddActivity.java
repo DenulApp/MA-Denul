@@ -9,9 +9,12 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.IBinder;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.MenuItem;
 
 import de.velcommuta.denul.R;
 import de.velcommuta.denul.crypto.ECDHKeyExchange;
@@ -46,6 +49,13 @@ public class FriendAddActivity extends AppCompatActivity implements
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_friend_add);
+        // Load toolbar
+        Toolbar myToolbar = (Toolbar) findViewById(R.id.my_toolbar);
+        setSupportActionBar(myToolbar);
+
+        // Enable "back" arrow
+        ActionBar ab = getSupportActionBar();
+        ab.setDisplayHomeAsUpEnabled(true);
         // Load tech selection fragment
         loadTechSelectFragment();
         bindDbService();
@@ -64,8 +74,6 @@ public class FriendAddActivity extends AppCompatActivity implements
      * Load the tech selection fragment
      */
     private void loadTechSelectFragment() {
-        Log.d(TAG, "loadTechSelectionFragment: Creating Kex");
-        mKex = new ECDHKeyExchange();
         Log.d(TAG, "loadTechSelectionFragment: Creating Kex done");
         Fragment fragment = FriendAddTechSelectionFragment.newInstance();
         FragmentManager fragmentManager = getFragmentManager();
@@ -118,6 +126,8 @@ public class FriendAddActivity extends AppCompatActivity implements
 
     @Override
     public void techSelection(int tech) {
+        Log.d(TAG, "techSelection: Creating Kex");
+        mKex = new ECDHKeyExchange();
         if (tech == FriendAddTechSelectionFragment.TECH_NEARBY) {
             slideInNearbyFragment();
         }
@@ -335,5 +345,39 @@ public class FriendAddActivity extends AppCompatActivity implements
         }
         // Explicitly null the key exchange object
         if (mKex != null) mKex = new ECDHKeyExchange();
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case android.R.id.home:
+                if (mKex != null) {
+                    askQuitConfirm();
+                } else {
+                    finish();
+                }
+                return true;
+        }
+        return false;
+    }
+
+
+    /**
+     * Ask the user to confirm that she wants to quit this activity
+     */
+    private void askQuitConfirm() {
+        // Prepare a builder
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        // Set the values, build and show the dialog
+        builder.setMessage("Are you sure you want to stop? Your progress will not be saved.")
+                .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        finish();
+                    }
+                })
+                .setNegativeButton("No", null)
+                .create().show();
+
     }
 }

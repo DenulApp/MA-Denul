@@ -79,6 +79,8 @@ public class KeySet {
     public boolean hasInitiated() {
         return mInitiated;
     }
+
+
     /**
      * Compute a fingerprint over the keys and counters contained in this KeySet and return it.
      * The fingerprint should be identical on both ends of the connection where the keys have been
