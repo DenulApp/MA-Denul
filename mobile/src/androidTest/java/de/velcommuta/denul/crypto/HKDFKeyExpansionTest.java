@@ -4,6 +4,8 @@ import junit.framework.TestCase;
 
 import java.util.Arrays;
 
+import de.velcommuta.denul.data.KeySet;
+
 /**
  * Test cases for the HKDFKeyExpansion algorithm
  */

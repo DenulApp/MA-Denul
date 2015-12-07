@@ -15,6 +15,7 @@ import android.widget.TextView;
 import java.util.List;
 
 import de.velcommuta.denul.R;
+import de.velcommuta.denul.data.Friend;
 
 /**
  * RecyclerView adapter for the friendlist

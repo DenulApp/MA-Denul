@@ -1,8 +1,8 @@
 package de.velcommuta.denul.util;
 
-import de.velcommuta.denul.crypto.KeySet;
+import de.velcommuta.denul.data.KeySet;
 import de.velcommuta.denul.service.DatabaseServiceBinder;
-import de.velcommuta.denul.ui.adapter.Friend;
+import de.velcommuta.denul.data.Friend;
 
 /**
  * Helper class to perform common friend-related operations. Some of these functions just call

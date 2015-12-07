@@ -6,8 +6,8 @@ import net.sqlcipher.Cursor;
 
 import java.util.List;
 
-import de.velcommuta.denul.crypto.KeySet;
-import de.velcommuta.denul.ui.adapter.Friend;
+import de.velcommuta.denul.data.KeySet;
+import de.velcommuta.denul.data.Friend;
 
 /**
  * Interface for the DatabaseService class, for use with an IBinder implementation

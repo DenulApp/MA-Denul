@@ -2,8 +2,9 @@ package de.velcommuta.denul.crypto;
 
 import junit.framework.TestCase;
 
-import java.util.Arrays;
 import java.util.Random;
+
+import de.velcommuta.denul.data.KeySet;
 
 /**
  * Test cases for the ECDH Key Exchange implementation

@@ -23,7 +23,7 @@ import java.util.List;
 import de.velcommuta.denul.R;
 import de.velcommuta.denul.service.DatabaseService;
 import de.velcommuta.denul.service.DatabaseServiceBinder;
-import de.velcommuta.denul.ui.adapter.Friend;
+import de.velcommuta.denul.data.Friend;
 import de.velcommuta.denul.ui.adapter.FriendListAdapter;
 import de.velcommuta.denul.ui.view.EmptyRecyclerView;
 import de.velcommuta.denul.util.FriendManager;

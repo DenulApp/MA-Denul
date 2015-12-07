@@ -21,11 +21,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import de.greenrobot.event.EventBus;
-import de.velcommuta.denul.crypto.KeySet;
+import de.velcommuta.denul.data.KeySet;
 import de.velcommuta.denul.db.FriendContract;
 import de.velcommuta.denul.db.SecureDbHelper;
 import de.velcommuta.denul.event.DatabaseAvailabilityEvent;
-import de.velcommuta.denul.ui.adapter.Friend;
+import de.velcommuta.denul.data.Friend;
 
 /**
  * Database service to hold a handle on the protected database and close it after a certain time of

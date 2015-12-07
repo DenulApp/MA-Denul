@@ -23,8 +23,8 @@ import com.google.zxing.integration.android.IntentResult;
 import com.google.zxing.qrcode.QRCodeWriter;
 
 import de.velcommuta.denul.R;
-import de.velcommuta.denul.crypto.KeySet;
-import de.velcommuta.denul.ui.adapter.Friend;
+import de.velcommuta.denul.data.KeySet;
+import de.velcommuta.denul.data.Friend;
 
 
 /**

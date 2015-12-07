@@ -1,4 +1,4 @@
-package de.velcommuta.denul.ui.adapter;
+package de.velcommuta.denul.data;
 
 /**
  * Data container for the FriendListCursorAdapter

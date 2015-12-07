@@ -1,4 +1,4 @@
-package de.velcommuta.denul.crypto;
+package de.velcommuta.denul.data;
 
 import org.spongycastle.crypto.Digest;
 import org.spongycastle.crypto.digests.SHA256Digest;
