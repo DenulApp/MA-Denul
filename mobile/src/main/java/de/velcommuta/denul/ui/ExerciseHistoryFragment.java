@@ -1,12 +1,10 @@
 package de.velcommuta.denul.ui;
 
-import android.app.Activity;
 import android.app.Fragment;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.LinearLayout;
 
 import de.velcommuta.denul.R;
 import de.velcommuta.denul.ui.view.EmptyRecyclerView;
@@ -44,7 +42,7 @@ public class ExerciseHistoryFragment extends Fragment {
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         View v = inflater.inflate(R.layout.fragment_exercise_list, container, false);
-
+        mRecycler = (EmptyRecyclerView) v.findViewById(R.id.exclist_recycler);
         return v;
     }
 
