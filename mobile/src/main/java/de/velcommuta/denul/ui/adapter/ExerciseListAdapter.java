@@ -12,6 +12,10 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import org.joda.time.DateTimeZone;
+import org.joda.time.LocalDateTime;
+import org.joda.time.format.DateTimeFormat;
+
 import java.util.List;
 
 import de.velcommuta.denul.R;
@@ -65,7 +69,8 @@ public class ExerciseListAdapter extends RecyclerView.Adapter<ExerciseListAdapte
          */
         public void display(GPSTrack track) {
             mEntryTitle.setText(track.getSessionName());
-            mEntrySubtitle.setText("Here be subtitles");
+            // Display date of entry
+            mEntrySubtitle.setText(DateTimeFormat.shortDateTime().print(new LocalDateTime(track.getTimestamp(), DateTimeZone.forID(track.getTimezone()))));
             switch (track.getModeOfTransportation()) {
                 case GPSTrack.VALUE_RUNNING:
                     mEntryIcon.setImageDrawable(mContext.getResources().getDrawable(R.drawable.ic_running));
@@ -107,7 +112,7 @@ public class ExerciseListAdapter extends RecyclerView.Adapter<ExerciseListAdapte
     @Override
     public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         View v = LayoutInflater.from(parent.getContext())
-                               .inflate(R.layout.friend_list_item, parent, false);
+                               .inflate(R.layout.exercise_list_item, parent, false);
         ViewHolder vh = new ViewHolder(v);
         return vh;
     }

@@ -6,6 +6,7 @@ import net.sqlcipher.Cursor;
 
 import java.util.List;
 
+import de.velcommuta.denul.data.GPSTrack;
 import de.velcommuta.denul.data.KeySet;
 import de.velcommuta.denul.data.Friend;
 
@@ -121,4 +122,10 @@ public interface DatabaseServiceBinder {
      * @return True if the name is not yet taken, false otherwise
      */
     boolean isNameAvailable(String name);
+
+    /**
+     * Retrieve the list of all GPS tracks from the database and return it
+     * @return A list of all GPSTracks in the database
+     */
+    List<GPSTrack> getGPSTracks();
 }

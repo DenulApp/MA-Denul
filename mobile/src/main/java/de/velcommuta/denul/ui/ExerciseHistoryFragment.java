@@ -1,22 +1,40 @@
 package de.velcommuta.denul.ui;
 
 import android.app.Fragment;
+import android.content.ComponentName;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.os.Bundle;
+import android.os.IBinder;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.LinearLayout;
+import android.widget.Toast;
+
+import java.util.List;
 
 import de.velcommuta.denul.R;
+import de.velcommuta.denul.data.GPSTrack;
+import de.velcommuta.denul.service.DatabaseService;
+import de.velcommuta.denul.service.DatabaseServiceBinder;
+import de.velcommuta.denul.ui.adapter.ExerciseListAdapter;
 import de.velcommuta.denul.ui.view.EmptyRecyclerView;
 
 
 /**
  * Fragment to display the technology chooser for the Add Friend activity
  */
-public class ExerciseHistoryFragment extends Fragment {
+public class ExerciseHistoryFragment extends Fragment implements ServiceConnection,
+                                                                 ExerciseListAdapter.OnItemClickListener {
     private static final String TAG = "ExercHist";
 
-    private EmptyRecyclerView mRecycler;
+    private EmptyRecyclerView mRecyclerView;
+    private DatabaseServiceBinder mDbBinder;
+    private ExerciseListAdapter mAdapter;
 
     /**
      * Use this factory method to create a new instance of
@@ -42,7 +60,18 @@ public class ExerciseHistoryFragment extends Fragment {
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         View v = inflater.inflate(R.layout.fragment_exercise_list, container, false);
-        mRecycler = (EmptyRecyclerView) v.findViewById(R.id.exclist_recycler);
+        mRecyclerView = (EmptyRecyclerView) v.findViewById(R.id.exclist_recycler);
+        // Use linear layout manager
+        RecyclerView.LayoutManager manager = new LinearLayoutManager(getActivity());
+        ((LinearLayoutManager) manager).setOrientation(LinearLayoutManager.VERTICAL);
+        mRecyclerView.setLayoutManager(manager);
+
+        // Set up the emptyview (view that is shown if the database contains no friends)
+        LinearLayout emptyview = (LinearLayout) v.findViewById(R.id.exc_list_empty);
+        mRecyclerView.setEmptyView(emptyview);
+        // Register RecyclerView for the context menu
+        registerForContextMenu(mRecyclerView);
+        // Return the inflated view
         return v;
     }
 
@@ -56,11 +85,70 @@ public class ExerciseHistoryFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
+        bindDbService();
+    }
+
+
+    /**
+     * Populate the RecyclerView
+     */
+    private void populateExerciseHistory() {
+        // Load the list of friends from the database
+        List<GPSTrack> list = mDbBinder.getGPSTracks();
+        // Initialize FriendListCursorAdapter with the cursor
+        mAdapter = new ExerciseListAdapter(getActivity(), this, list);
+        // Set the adapter for the RecyclerView
+        mRecyclerView.setAdapter(mAdapter);
     }
 
 
     @Override
     public void onPause() {
         super.onPause();
+    }
+
+
+    @Override
+    public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+        Log.d(TAG, "onServiceConnected: New service connection received");
+        mDbBinder = (DatabaseServiceBinder) iBinder;
+        // TODO Debugging code, move to passphrase activity once it is added
+        if (!mDbBinder.isDatabaseOpen()) {
+            mDbBinder.openDatabase("VerySecureHardcodedPasswordOlolol123");
+        }
+        // Populate the track list
+        populateExerciseHistory();
+    }
+
+
+    @Override
+    public void onServiceDisconnected(ComponentName componentName) {
+        Log.i(TAG, "onServiceDisconnected: Lost DB binder");
+        mDbBinder = null;
+    }
+
+    /**
+     * Get a binder to the database service
+     * @return true if the request was sent successfully, false otherwise
+     */
+    private boolean bindDbService() {
+        if (!DatabaseService.isRunning(getActivity())) {
+            Log.w(TAG, "bindDbService: Trying to bind to a non-running database service. Aborting");
+            return false;
+        }
+        Intent intent = new Intent(getActivity(), DatabaseService.class);
+        if (!getActivity().bindService(intent, this, 0)) {
+            Log.e(TAG, "bindDbService: An error occured during binding :(");
+            return false;
+        } else {
+            Log.d(TAG, "bindDbService: Database service binding request sent");
+            return true;
+        }
+    }
+
+
+    @Override
+    public void onItemClicked(int position) {
+        Toast.makeText(getActivity(), "Item " + position + " clicked", Toast.LENGTH_SHORT).show();
     }
 }

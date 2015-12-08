@@ -8,6 +8,7 @@ import android.app.Service;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.location.Location;
 import android.os.Binder;
 import android.os.IBinder;
 import android.os.SystemClock;
@@ -18,11 +19,14 @@ import net.sqlcipher.database.SQLiteDatabase;
 import net.sqlcipher.database.SQLiteException;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 import de.greenrobot.event.EventBus;
+import de.velcommuta.denul.data.GPSTrack;
 import de.velcommuta.denul.data.KeySet;
 import de.velcommuta.denul.db.FriendContract;
+import de.velcommuta.denul.db.LocationLoggingContract;
 import de.velcommuta.denul.db.SecureDbHelper;
 import de.velcommuta.denul.event.DatabaseAvailabilityEvent;
 import de.velcommuta.denul.data.Friend;
@@ -448,6 +452,58 @@ public class DatabaseService extends Service {
             boolean rv = c.getCount() == 0;
             c.close();
             return rv;
+        }
+
+
+        @Override
+        public List<GPSTrack> getGPSTracks() {
+            assertOpen();
+            List<GPSTrack> trackList = new LinkedList<>();
+            // Retrieve sessions
+            Cursor session = query(LocationLoggingContract.LocationSessions.TABLE_NAME,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null);
+            while (session.moveToNext()) {
+                // For each session, get the ID
+                int id = session.getInt(session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions._ID));
+                // Prepare output list
+                List<Location> locList = new LinkedList<>();
+                // Query for the Locations in the session
+                String[] whereArgs = { "" + id };
+                Cursor locs = query(LocationLoggingContract.LocationLog.TABLE_NAME,
+                        null,
+                        LocationLoggingContract.LocationLog.COLUMN_NAME_SESSION + " LIKE ?",
+                        whereArgs,
+                        null,
+                        null,
+                        null);
+                while (locs.moveToNext()) {
+                    // For each location, construct a Location object
+                    Location loc = new Location("");
+                    loc.setLongitude(locs.getLong(locs.getColumnIndexOrThrow(LocationLoggingContract.LocationLog.COLUMN_NAME_LONG)));
+                    loc.setLatitude(locs.getLong(locs.getColumnIndexOrThrow(LocationLoggingContract.LocationLog.COLUMN_NAME_LAT)));
+                    loc.setTime(locs.getLong(locs.getColumnIndexOrThrow(LocationLoggingContract.LocationLog.COLUMN_NAME_TIMESTAMP)));
+                    locList.add(loc);
+                }
+                // Close the location cursor
+                locs.close();
+                // Create the GPSTrack object
+                GPSTrack track = new GPSTrack(locList,
+                        session.getString(session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions.COLUMN_NAME_NAME)),
+                        session.getInt(session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions.COLUMN_NAME_MODE)),
+                        session.getLong(session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions.COLUMN_NAME_SESSION_START)),
+                        session.getString(session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions.COLUMN_NAME_TIMEZONE)));
+                // Add it to the return list
+                trackList.add(track);
+            }
+            // Close the session cursor
+            session.close();
+            // Return
+            return trackList;
         }
 
 
