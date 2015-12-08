@@ -3,11 +3,12 @@ package de.velcommuta.denul.data;
 import android.location.Location;
 import android.util.Log;
 
+import org.joda.time.DateTimeZone;
+
 import java.util.LinkedList;
 import java.util.List;
 
 import de.velcommuta.denul.data.proto.DataContainer;
-import de.velcommuta.denul.db.LocationLoggingContract;
 
 /**
  * Event to indicate a finished track
@@ -18,6 +19,8 @@ public class GPSTrack implements Shareable {
     private List<Location> mPosition;
     private String mSessionName;
     private int mModeOfTransportation;
+    private long mTimestamp;
+    private String mTimezone;
 
     public static final int VALUE_RUNNING = 0;
     public static final int VALUE_CYCLING = 1;
@@ -28,11 +31,15 @@ public class GPSTrack implements Shareable {
      * @param pos List of positions
      * @param name Name of Session
      * @param mode Code for mode of transportation, as defined in LocationLoggingContract.LocationSessions
+     * @param timestamp Timestamp of the time at the beginning of the tracking
+     * @param timezone The String representation of the timezone, as returned by {@link DateTimeZone#toString()}
      */
-    public GPSTrack(List<Location> pos, String name, int mode) {
+    public GPSTrack(List<Location> pos, String name, int mode, long timestamp, String timezone) {
         mPosition = pos;
         mSessionName = name;
         mModeOfTransportation = mode;
+        mTimestamp = timestamp;
+        mTimezone = timezone;
     }
 
 
@@ -64,6 +71,24 @@ public class GPSTrack implements Shareable {
     }
 
 
+    /**
+     * Get the timestamp of the beginning of this track
+     * @return The timestamp
+     */
+    public long getTimestamp() {
+        return mTimestamp;
+    }
+
+
+    /**
+     * Get the timezone
+     * @return The string representation of the timezone
+     */
+    public String getTimezone() {
+        return mTimezone;
+    }
+
+
     @Override
     public byte[] getByteRepresentation() {
         // Get wrapper and Track builders
@@ -71,6 +96,9 @@ public class GPSTrack implements Shareable {
         DataContainer.Track.Builder track = DataContainer.Track.newBuilder();
         // Set the name
         track.setName(mSessionName);
+        // Set timestamp and timezone
+        track.setTimestamp(mTimestamp);
+        track.setTimezone(mTimezone);
         // Set the mode of transportation
         switch (mModeOfTransportation) {
             case VALUE_CYCLING:
@@ -127,7 +155,7 @@ public class GPSTrack implements Shareable {
             Log.e(TAG, "fromProtobuf: Unknown Mode of transport, defaulting to running");
             mode = VALUE_RUNNING;
         }
-        return new GPSTrack(locList, track.getName(), mode);
+        return new GPSTrack(locList, track.getName(), mode, track.getTimestamp(), track.getTimezone());
     }
 
 
@@ -145,7 +173,9 @@ public class GPSTrack implements Shareable {
         GPSTrack cmptrack = (GPSTrack) cmp;
         // Check if session name and mode of transportation match
         if (!(cmptrack.getSessionName().equals(getSessionName()) &&
-              cmptrack.getModeOfTransportation() == getModeOfTransportation())) return false;
+              cmptrack.getModeOfTransportation() == getModeOfTransportation() &&
+              cmptrack.getTimestamp() == getTimestamp() &&
+              cmptrack.getTimezone().equals(getTimezone()))) return false;
         // Check if the location lists have the same length
         if (cmptrack.getPosition().size() != getPosition().size()) return false;
         // Check if the locations match

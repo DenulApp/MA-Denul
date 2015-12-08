@@ -6,12 +6,12 @@ import com.google.protobuf.InvalidProtocolBufferException;
 
 import junit.framework.TestCase;
 
-import java.util.Collections;
+import org.joda.time.Instant;
+
 import java.util.LinkedList;
 import java.util.List;
 
 import de.velcommuta.denul.data.proto.DataContainer;
-import de.velcommuta.denul.db.LocationLoggingContract;
 
 /**
  * Test cases for the GPSTrack data object (mostly the serialization and deseralization functions)
@@ -32,7 +32,7 @@ public class GPSTrackTest extends TestCase {
         }
         String name = "test";
         int mode = GPSTrack.VALUE_RUNNING;
-        GPSTrack testtrack = new GPSTrack(loclist, name, mode);
+        GPSTrack testtrack = new GPSTrack(loclist, name, mode, new Instant().getMillis(), "Europe/Berlin");
         // test values
         assertEquals(testtrack.getSessionName(), name);
         assertEquals(testtrack.getModeOfTransportation(), mode);
@@ -53,6 +53,8 @@ public class GPSTrackTest extends TestCase {
         // Test if the values still match
         assertEquals(testtrack.getSessionName(), testtrack2.getSessionName());
         assertEquals(testtrack.getType(), testtrack2.getType());
+        assertEquals(testtrack.getTimestamp(), testtrack2.getTimestamp());
+        assertEquals(testtrack.getTimezone(), testtrack2.getTimezone());
         // Locations do not specify a non-stupid .equals(), so this is the only way to check :/
         for (Location cmploc : testtrack.getPosition()) {
             boolean rv = false;

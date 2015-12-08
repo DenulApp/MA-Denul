@@ -43,6 +43,8 @@ import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.maps.android.ui.IconGenerator;
 
+import org.joda.time.DateTimeZone;
+
 import java.util.List;
 
 import de.greenrobot.event.EventBus;
@@ -284,7 +286,9 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
                     GPSTrack ev = new GPSTrack(
                             gpsloc.getPosition(),
                             mSessionName.getText().toString(),
-                            mode);
+                            mode,
+                            gpsloc.getPosition().get(0).getTime(),
+                            DateTimeZone.getDefault().toString());
                     EventBus.getDefault().post(ev);
                 }
             }
