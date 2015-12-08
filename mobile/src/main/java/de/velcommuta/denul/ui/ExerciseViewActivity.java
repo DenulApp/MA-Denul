@@ -1,6 +1,8 @@
 package de.velcommuta.denul.ui;
 
+import android.app.AlertDialog;
 import android.content.ComponentName;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.location.Location;
@@ -14,6 +16,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import org.joda.time.DateTimeZone;
 import org.joda.time.LocalDateTime;
@@ -79,7 +82,7 @@ public class ExerciseViewActivity extends AppCompatActivity implements ServiceCo
                 finish();
                 return true;
             case R.id.action_delete:
-                // TODO
+                askDeleteConfirm();
                 return true;
             case R.id.action_rename:
                 // TODO
@@ -89,6 +92,27 @@ public class ExerciseViewActivity extends AppCompatActivity implements ServiceCo
                 return true;
         }
         return false;
+    }
+
+
+    /**
+     * Ask the user to confirm the deletion request, and perform the deletion if it was confirmed
+     */
+    private void askDeleteConfirm() {
+        // Prepare a builder
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        // Set the values, build and show the dialog
+        builder.setMessage("Delete this exercise?")
+                .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        mDbBinder.deleteGPSTrack(mTrack);
+                        Toast.makeText(ExerciseViewActivity.this, "Exercise deleted", Toast.LENGTH_SHORT).show();
+                        finish();
+                    }
+                })
+                .setNegativeButton("No", null)
+                .create().show();
     }
 
 
@@ -126,6 +150,7 @@ public class ExerciseViewActivity extends AppCompatActivity implements ServiceCo
         mTrackDate.setText(DateTimeFormat.shortDateTime().print(new LocalDateTime(mTrack.getTimestamp(), DateTimeZone.forID(mTrack.getTimezone()))));
         float distance = 0;
         List<Location> locList = mTrack.getPosition();
+        // TODO This seems to not be working right now :(
         for (int i = 1; i < locList.size(); i++) {
             distance = distance + locList.get(i).distanceTo(locList.get(i-1));
         }

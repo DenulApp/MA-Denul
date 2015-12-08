@@ -527,6 +527,27 @@ public class DatabaseService extends Service {
         }
 
 
+        @Override
+        public void deleteGPSTrack(GPSTrack track) {
+            // Ensure database is open
+            assertOpen();
+            // sanity checks on the object
+            if (track == null) throw new SQLiteException("Friend cannot be null");
+            if (track.getID() == -1) throw new SQLiteException("ID must be set");
+            // Prepare and perform deletion
+            // Entries in LocationLoggingContract.LocationLog will be automatically deleted due to
+            // the foreign key ON DELETE CASCADE statement
+            String[] whereArgs = { "" + track.getID() };
+            int deleted = delete(LocationLoggingContract.LocationSessions.TABLE_NAME,
+                    LocationLoggingContract.LocationSessions._ID +  " LIKE ?",
+                    whereArgs);
+            // Ensure the correct number of items was deleted
+            if (deleted != 1) {
+                throw new SQLiteException("Wanted to delete 1 row, but deleted " + deleted);
+            }
+        }
+
+
         ///// Utility functions
         /**
          * Assert that the database is open, or throw an exception

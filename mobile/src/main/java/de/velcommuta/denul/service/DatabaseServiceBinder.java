@@ -135,4 +135,11 @@ public interface DatabaseServiceBinder {
      * @return The GPS track, or null if no such GPS track exists
      */
     GPSTrack getGPSTrackById(int id);
+
+    /**
+     * Delete a {@link GPSTrack} from the database. The track MUST have the ID property set (i.e.
+     * {@link GPSTrack#getID()} must not return -1).
+     * @param track The track object
+     */
+    void deleteGPSTrack(GPSTrack track);
 }
