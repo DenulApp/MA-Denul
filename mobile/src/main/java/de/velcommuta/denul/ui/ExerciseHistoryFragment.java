@@ -172,6 +172,8 @@ public class ExerciseHistoryFragment extends Fragment implements ServiceConnecti
 
     @Override
     public void onItemClicked(int position) {
-        Toast.makeText(getActivity(), "Item " + position + " clicked", Toast.LENGTH_SHORT).show();
+        Intent i = new Intent(getActivity(), ExerciseViewActivity.class);
+        i.putExtra("track-id", mAdapter.getTrackAt(position).getID());
+        startActivity(i);
     }
 }
