@@ -19,6 +19,9 @@ public class GPSTrack implements Shareable {
     private String mSessionName;
     private int mModeOfTransportation;
 
+    public static final int VALUE_RUNNING = 0;
+    public static final int VALUE_CYCLING = 1;
+
     /**
      * Constructor to pass a list of positions, a name, and a mode of transportation (defined in
      * LocationLoggingContract.LocationSessions) to the subscriber
@@ -70,10 +73,10 @@ public class GPSTrack implements Shareable {
         track.setName(mSessionName);
         // Set the mode of transportation
         switch (mModeOfTransportation) {
-            case LocationLoggingContract.LocationSessions.VALUE_CYCLING:
+            case VALUE_CYCLING:
                 track.setMode(DataContainer.Track.ModeOfTransport.MODE_CYCLING);
                 break;
-            case LocationLoggingContract.LocationSessions.VALUE_RUNNING:
+            case VALUE_RUNNING:
                 track.setMode(DataContainer.Track.ModeOfTransport.MODE_RUNNING);
                 break;
             default:
@@ -117,12 +120,12 @@ public class GPSTrack implements Shareable {
         // Translate Mode of Transportation to constant used in code
         int mode;
         if (track.getMode() == DataContainer.Track.ModeOfTransport.MODE_CYCLING) {
-            mode = LocationLoggingContract.LocationSessions.VALUE_CYCLING;
+            mode = VALUE_CYCLING;
         } else if (track.getMode() == DataContainer.Track.ModeOfTransport.MODE_RUNNING) {
-            mode = LocationLoggingContract.LocationSessions.VALUE_RUNNING;
+            mode = VALUE_RUNNING;
         } else {
             Log.e(TAG, "fromProtobuf: Unknown Mode of transport, defaulting to running");
-            mode = LocationLoggingContract.LocationSessions.VALUE_RUNNING;
+            mode = VALUE_RUNNING;
         }
         return new GPSTrack(locList, track.getName(), mode);
     }

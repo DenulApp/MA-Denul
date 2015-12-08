@@ -394,9 +394,9 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
      */
     private int getSelectedModeOfTransportation() {
         if (mRunning.isSelected()) {
-            return LocationLoggingContract.LocationSessions.VALUE_RUNNING;
+            return GPSTrack.VALUE_RUNNING;
         } else if (mCycling.isSelected()) {
-            return LocationLoggingContract.LocationSessions.VALUE_CYCLING;
+            return GPSTrack.VALUE_CYCLING;
         } else {
             // Nothing is selected :(
             Toast.makeText(getActivity(), "Please select a mode of transportation", Toast.LENGTH_SHORT).show();

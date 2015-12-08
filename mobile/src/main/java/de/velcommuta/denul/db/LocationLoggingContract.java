@@ -41,8 +41,5 @@ public class LocationLoggingContract  {
         // Mode of transportation
         public static final String COLUMN_NAME_MODE = "modeoftransport";
 
-        // Possible values for Mode of transportation
-        public static final int VALUE_RUNNING = 0;
-        public static final int VALUE_CYCLING = 1;
     }
 }

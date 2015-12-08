@@ -31,7 +31,7 @@ public class GPSTrackTest extends TestCase {
             loclist.add(loc);
         }
         String name = "test";
-        int mode = LocationLoggingContract.LocationSessions.VALUE_RUNNING;
+        int mode = GPSTrack.VALUE_RUNNING;
         GPSTrack testtrack = new GPSTrack(loclist, name, mode);
         // test values
         assertEquals(testtrack.getSessionName(), name);
