@@ -21,6 +21,7 @@ public class GPSTrack implements Shareable {
     private int mModeOfTransportation;
     private long mTimestamp;
     private String mTimezone;
+    private int mId = -1;
 
     public static final int VALUE_RUNNING = 0;
     public static final int VALUE_CYCLING = 1;
@@ -86,6 +87,24 @@ public class GPSTrack implements Shareable {
      */
     public String getTimezone() {
         return mTimezone;
+    }
+
+
+    /**
+     * Getter for the database ID
+     * @return The database ID, or -1 if it is not set
+     */
+    public int getID() {
+        return mId;
+    }
+
+
+    /**
+     * Set the database ID for this GPSTrack
+     * @param id The database ID
+     */
+    public void setID(int id) {
+        mId = id;
     }
 
 

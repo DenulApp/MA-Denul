@@ -497,6 +497,7 @@ public class DatabaseService extends Service {
                         session.getInt(session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions.COLUMN_NAME_MODE)),
                         session.getLong(session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions.COLUMN_NAME_SESSION_START)),
                         session.getString(session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions.COLUMN_NAME_TIMEZONE)));
+                track.setID(session.getInt(session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions._ID)));
                 // Add it to the return list
                 trackList.add(track);
             }
