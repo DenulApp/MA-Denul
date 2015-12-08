@@ -39,8 +39,9 @@ public class SecureDbHelper extends SQLiteOpenHelper {
             = "CREATE TABLE " + LocationLoggingContract.LocationSessions.TABLE_NAME + "(" +
             LocationLoggingContract.LocationSessions._ID + TYPE_INT + OPT_PRIMARY_KEY + COMMA_SEP +
             LocationLoggingContract.LocationSessions.COLUMN_NAME_NAME + TYPE_TEXT + COMMA_SEP +
-            LocationLoggingContract.LocationSessions.COLUMN_NAME_SESSION_START + TYPE_DATETIME + OPT_DEFAULT_NOW + COMMA_SEP +
-            LocationLoggingContract.LocationSessions.COLUMN_NAME_SESSION_END + TYPE_DATETIME + COMMA_SEP +
+            LocationLoggingContract.LocationSessions.COLUMN_NAME_SESSION_START + TYPE_DATETIME + OPT_DEFAULT_NOW + OPT_NOT_NULL + COMMA_SEP +
+            LocationLoggingContract.LocationSessions.COLUMN_NAME_SESSION_END + TYPE_DATETIME + OPT_NOT_NULL + COMMA_SEP +
+            LocationLoggingContract.LocationSessions.COLUMN_NAME_TIMEZONE + TYPE_TEXT + OPT_NOT_NULL + COMMA_SEP +
             LocationLoggingContract.LocationSessions.COLUMN_NAME_MODE + TYPE_INT + OPT_DEFAULT_ZERO +
             ");";
 
@@ -111,7 +112,7 @@ public class SecureDbHelper extends SQLiteOpenHelper {
 
     public static final String DATABASE_NAME = "location.db"; // TODO Update
 
-    public static final int DATABASE_VERSION = 9;
+    public static final int DATABASE_VERSION = 10;
 
 
     /**
@@ -144,14 +145,11 @@ public class SecureDbHelper extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        if (oldVersion == 7 && newVersion == 8) {
-            db.execSQL(SQL_CREATE_ENTRIES_FRIENDLIST);
-            db.execSQL(SQL_CREATE_ENTRIES_FRIENDKEYS);
-        } else if (oldVersion == 8 && newVersion == 9) {
-            db.execSQL(SQL_DROP_FRIENDLIST);
-            db.execSQL(SQL_DROP_FRIENDKEYS);
-            db.execSQL(SQL_CREATE_ENTRIES_FRIENDLIST);
-            db.execSQL(SQL_CREATE_ENTRIES_FRIENDKEYS);
+        if (oldVersion == 9 && newVersion == 10) {
+            db.execSQL(SQL_DROP_LOCATIONLOG);
+            db.execSQL(SQL_DROP_LOCATIONSESSIONS);
+            db.execSQL(SQL_CREATE_ENTRIES_LOCATIONSESSIONS);
+            db.execSQL(SQL_CREATE_ENTRIES_LOCATIONLOG);
         } else {
             db.execSQL(SQL_DROP_LOCATIONLOG);
             db.execSQL(SQL_DROP_LOCATIONSESSIONS);

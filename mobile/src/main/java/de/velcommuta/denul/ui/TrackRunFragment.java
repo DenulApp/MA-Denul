@@ -913,6 +913,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
         metadata.put(LocationLoggingContract.LocationSessions.COLUMN_NAME_SESSION_END, ev.getPosition().get(ev.getPosition().size() - 1).getTime());
         metadata.put(LocationLoggingContract.LocationSessions.COLUMN_NAME_NAME, ev.getSessionName());
         metadata.put(LocationLoggingContract.LocationSessions.COLUMN_NAME_MODE, ev.getModeOfTransportation());
+        metadata.put(LocationLoggingContract.LocationSessions.COLUMN_NAME_TIMEZONE, ev.getTimezone());
 
         long rowid = db.insert(LocationLoggingContract.LocationSessions.TABLE_NAME, null, metadata);
 

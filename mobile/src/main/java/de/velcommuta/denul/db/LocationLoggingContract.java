@@ -37,6 +37,7 @@ public class LocationLoggingContract  {
         // Session start and end timestamp
         public static final String COLUMN_NAME_SESSION_START = "session_start";
         public static final String COLUMN_NAME_SESSION_END = "session_end";
+        public static final String COLUMN_NAME_TIMEZONE = "timezone";
 
         // Mode of transportation
         public static final String COLUMN_NAME_MODE = "modeoftransport";
