@@ -76,6 +76,7 @@
 
     <!-- Exercise List context menu -->
     <string name="exercise_ctx_remove">Delete</string>
+    <string name="exercise_ctx_share">Share</string>
 
     <!-- Status messages -->
     <string name="save_success">Saved</string>

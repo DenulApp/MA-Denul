@@ -104,6 +104,9 @@ public class ExerciseHistoryFragment extends Fragment implements ServiceConnecti
             case R.id.exercise_remove:
                 Toast.makeText(getActivity(), "NotImplemented", Toast.LENGTH_SHORT).show();
                 return true;
+            case R.id.exercise_share:
+                Toast.makeText(getActivity(), "NotImplemented", Toast.LENGTH_SHORT).show();
+                return true;
         }
         return false;
     }
