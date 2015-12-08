@@ -10,6 +10,7 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
@@ -77,6 +78,14 @@ public class ExerciseHistoryFragment extends Fragment implements ServiceConnecti
 
 
     @Override
+    public void onViewCreated(View view, Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        // Announce that we have an options menu
+        setHasOptionsMenu(true);
+    }
+
+
+    @Override
     public void onDetach() {
         super.onDetach();
     }
@@ -86,6 +95,17 @@ public class ExerciseHistoryFragment extends Fragment implements ServiceConnecti
     public void onResume() {
         super.onResume();
         bindDbService();
+    }
+
+    @Override
+    public boolean onContextItemSelected(MenuItem item) {
+        int position = mAdapter.getPosition();
+        switch (item.getItemId()) {
+            case R.id.exercise_remove:
+                Toast.makeText(getActivity(), "NotImplemented", Toast.LENGTH_SHORT).show();
+                return true;
+        }
+        return false;
     }
 
 

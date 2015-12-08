@@ -74,6 +74,9 @@
     <string name="exercise_list_empty">Nothing to see here</string>
     <string name="exercise_list_empty_expl">Want to go running?</string>
 
+    <!-- Exercise List context menu -->
+    <string name="exercise_ctx_remove">Delete</string>
+
     <!-- Status messages -->
     <string name="save_success">Saved</string>
 

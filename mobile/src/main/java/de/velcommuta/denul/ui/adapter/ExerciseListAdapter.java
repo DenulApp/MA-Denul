@@ -60,6 +60,7 @@ public class ExerciseListAdapter extends RecyclerView.Adapter<ExerciseListAdapte
             mEntryTitle = (TextView) itemView.findViewById(R.id.exc_list_item_title);
             mEntrySubtitle = (TextView) itemView.findViewById(R.id.exc_list_item_subtitle);
             mEntryIcon = (ImageView) itemView.findViewById(R.id.exc_list_item_icon);
+            itemView.setOnCreateContextMenuListener(this);
         }
 
 
@@ -90,7 +91,7 @@ public class ExerciseListAdapter extends RecyclerView.Adapter<ExerciseListAdapte
             Log.d("ViewHolder", "onCreateContextMenu");
             MenuInflater inflater = new MenuInflater(mContext);
             // TODO
-            inflater.inflate(R.menu.context_friendlist, contextMenu);
+            inflater.inflate(R.menu.context_exercise_list, contextMenu);
             // MenuInfo is null
         }
     }
