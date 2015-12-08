@@ -467,7 +467,7 @@ public class DatabaseService extends Service {
                     null,
                     null,
                     null,
-                    null);
+                    LocationLoggingContract.LocationSessions.COLUMN_NAME_SESSION_START + " DESC");
             while (session.moveToNext()) {
                 // For each session ID, load the track from the database
                 GPSTrack track = getGPSTrackById(session.getInt(session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions._ID)));
@@ -507,8 +507,8 @@ public class DatabaseService extends Service {
                 while (locs.moveToNext()) {
                     // For each location, construct a Location object
                     Location loc = new Location("");
-                    loc.setLongitude(locs.getLong(locs.getColumnIndexOrThrow(LocationLoggingContract.LocationLog.COLUMN_NAME_LONG)));
-                    loc.setLatitude(locs.getLong(locs.getColumnIndexOrThrow(LocationLoggingContract.LocationLog.COLUMN_NAME_LAT)));
+                    loc.setLongitude(locs.getFloat(locs.getColumnIndexOrThrow(LocationLoggingContract.LocationLog.COLUMN_NAME_LONG)));
+                    loc.setLatitude(locs.getFloat(locs.getColumnIndexOrThrow(LocationLoggingContract.LocationLog.COLUMN_NAME_LAT)));
                     loc.setTime(locs.getLong(locs.getColumnIndexOrThrow(LocationLoggingContract.LocationLog.COLUMN_NAME_TIMESTAMP)));
                     locList.add(loc);
                 }
