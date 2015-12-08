@@ -178,6 +178,8 @@ public class MainActivity extends AppCompatActivity
             loadTrackFragment();
         } else if (id == R.id.nav_friends) {
             loadFriendlistFragment();
+        } else if (id == R.id.nav_exc_history) {
+            loadExerciseHistoryFragment();
         } else if (id == R.id.nav_menu) {
             // TODO implement
         }
@@ -211,6 +213,18 @@ public class MainActivity extends AppCompatActivity
     private void loadTrackFragment() {
         FragmentManager fragmentManager = getFragmentManager();
         Fragment fragment = TrackRunFragment.newInstance();
+        fragmentManager.beginTransaction()
+                .replace(R.id.content_frame, fragment)
+                .commit();
+    }
+
+
+    /**
+     * Load the Exercise History fragment
+     */
+    private void loadExerciseHistoryFragment() {
+        FragmentManager fragmentManager = getFragmentManager();
+        Fragment fragment = ExerciseHistoryFragment.newInstance();
         fragmentManager.beginTransaction()
                 .replace(R.id.content_frame, fragment)
                 .commit();

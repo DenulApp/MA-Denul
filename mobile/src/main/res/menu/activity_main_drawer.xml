@@ -6,7 +6,7 @@
             android:title="@string/menu_home" />
         <item android:id="@+id/nav_tracks" android:icon="@android:drawable/ic_menu_mapmode"
             android:title="@string/menu_track_run" />
-        <item android:id="@+id/old_tracks" android:icon="@android:drawable/ic_menu_recent_history"
+        <item android:id="@+id/nav_exc_history" android:icon="@android:drawable/ic_menu_recent_history"
             android:title="@string/menu_old_tracks" />
         <!-- <item android:id="@+id/nav_slideshow" android:icon="@android:drawable/ic_menu_slideshow"
             android:title="Slideshow" />
