@@ -337,8 +337,8 @@ public class DatabaseService extends Service {
                     null);
             c.moveToFirst();
             Friend rv = new Friend(c.getString(c.getColumnIndexOrThrow(FriendContract.FriendList.COLUMN_NAME_FRIEND)),
-                                   c.getInt(   c.getColumnIndexOrThrow(FriendContract.FriendList.COLUMN_NAME_VERIFIED)),
-                                   c.getInt(   c.getColumnIndexOrThrow(FriendContract.FriendList._ID)));
+                                   c.getInt(c.getColumnIndexOrThrow(FriendContract.FriendList.COLUMN_NAME_VERIFIED)),
+                                   c.getInt(c.getColumnIndexOrThrow(FriendContract.FriendList._ID)));
             c.close();
             return rv;
         }
@@ -459,21 +459,44 @@ public class DatabaseService extends Service {
         public List<GPSTrack> getGPSTracks() {
             assertOpen();
             List<GPSTrack> trackList = new LinkedList<>();
-            // Retrieve sessions
+            String[] columns = {LocationLoggingContract.LocationSessions._ID};
+            // Retrieve session IDs
             Cursor session = query(LocationLoggingContract.LocationSessions.TABLE_NAME,
-                    null,
+                    columns,
                     null,
                     null,
                     null,
                     null,
                     null);
             while (session.moveToNext()) {
-                // For each session, get the ID
-                int id = session.getInt(session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions._ID));
+                // For each session ID, load the track from the database
+                GPSTrack track = getGPSTrackById(session.getInt(session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions._ID)));
+                trackList.add(track);
+            }
+            // Close the session cursor
+            session.close();
+            // Return
+            return trackList;
+        }
+
+
+        @Override
+        public GPSTrack getGPSTrackById(int id) {
+            assertOpen();
+            GPSTrack track = null;
+            String[] selectionArgs = { "" + id };
+            Cursor session = query(LocationLoggingContract.LocationSessions.TABLE_NAME,
+                    null,
+                    LocationLoggingContract.LocationSessions._ID + " LIKE ?",
+                    selectionArgs,
+                    null,
+                    null,
+                    null);
+            if (session.moveToFirst()) {
                 // Prepare output list
                 List<Location> locList = new LinkedList<>();
                 // Query for the Locations in the session
-                String[] whereArgs = { "" + id };
+                String[] whereArgs = {"" + id};
                 Cursor locs = query(LocationLoggingContract.LocationLog.TABLE_NAME,
                         null,
                         LocationLoggingContract.LocationLog.COLUMN_NAME_SESSION + " LIKE ?",
@@ -492,19 +515,15 @@ public class DatabaseService extends Service {
                 // Close the location cursor
                 locs.close();
                 // Create the GPSTrack object
-                GPSTrack track = new GPSTrack(locList,
+                track = new GPSTrack(locList,
                         session.getString(session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions.COLUMN_NAME_NAME)),
                         session.getInt(session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions.COLUMN_NAME_MODE)),
                         session.getLong(session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions.COLUMN_NAME_SESSION_START)),
                         session.getString(session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions.COLUMN_NAME_TIMEZONE)));
                 track.setID(session.getInt(session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions._ID)));
-                // Add it to the return list
-                trackList.add(track);
             }
-            // Close the session cursor
             session.close();
-            // Return
-            return trackList;
+            return track;
         }
 
 

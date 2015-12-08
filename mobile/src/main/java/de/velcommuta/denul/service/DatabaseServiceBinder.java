@@ -128,4 +128,11 @@ public interface DatabaseServiceBinder {
      * @return A list of all GPSTracks in the database
      */
     List<GPSTrack> getGPSTracks();
+
+    /**
+     * Retrieve a specific GPS track from the database
+     * @param id The ID of the GPS track
+     * @return The GPS track, or null if no such GPS track exists
+     */
+    GPSTrack getGPSTrackById(int id);
 }
