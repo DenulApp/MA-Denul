@@ -47,19 +47,26 @@ public class GPSTrackTest extends TestCase {
             fail();
             return;
         }
+        // test deserialization
         assertTrue(wrapper.getShareableCase() == DataContainer.Wrapper.ShareableCase.TRACK);
         GPSTrack testtrack2 = GPSTrack.fromProtobuf(wrapper.getTrack());
+        // Test if the values still match
         assertEquals(testtrack.getSessionName(), testtrack2.getSessionName());
         assertEquals(testtrack.getType(), testtrack2.getType());
-        // Strictly speaking, this is not guaranteed to work. But as the Location object does not
-        // implement a non-stupid .equals(), this is the only way. -.-
-        List<Location> loclist2 = testtrack2.getPosition();
-        for (int i = 0; i < loclist2.size(); i++) {
-            Location loc1 = loclist.get(i);
-            Location loc2 = loclist2.get(i);
-            assertTrue(loc1.getLatitude() == loc2.getLatitude() &&
-                loc1.getLongitude() == loc2.getLongitude() &&
-                loc1.getTime() == loc2.getTime());
+        // Locations do not specify a non-stupid .equals(), so this is the only way to check :/
+        for (Location cmploc : testtrack.getPosition()) {
+            boolean rv = false;
+            for (Location myLoc : testtrack2.getPosition()) {
+                if (cmploc.getLatitude() == myLoc.getLatitude() &&
+                        cmploc.getLatitude() == myLoc.getLongitude() &&
+                        cmploc.getTime() == myLoc.getTime()) {
+                    rv = true;
+                    break;
+                }
+            }
+            if (!rv) fail();
         }
+        // Check if the equals operator comes to the same conclusion.
+        assertTrue(testtrack.equals(testtrack2));
     }
 }

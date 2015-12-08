@@ -126,4 +126,38 @@ public class GPSTrack implements Shareable {
         }
         return new GPSTrack(locList, track.getName(), mode);
     }
+
+
+    /**
+     * Check if two GPS-Tracks are equal. Two tracks are equal if all their fields and all Locations
+     * match,
+     * @param cmp The GPSTrack to compare to
+     * @return true if the two objects are equal, false otherwise
+     */
+    @Override
+    public boolean equals(Object cmp) {
+        // Check if comparable object is a GPSTrack
+        if (!(cmp instanceof GPSTrack)) return false;
+        // Cast it to GPSTrack
+        GPSTrack cmptrack = (GPSTrack) cmp;
+        // Check if session name and mode of transportation match
+        if (!(cmptrack.getSessionName().equals(getSessionName()) &&
+              cmptrack.getModeOfTransportation() == getModeOfTransportation())) return false;
+        // Check if the location lists have the same length
+        if (cmptrack.getPosition().size() != getPosition().size()) return false;
+        // Check if the locations match
+        for (Location cmploc : cmptrack.getPosition()) {
+            boolean rv = false;
+            for (Location myLoc : getPosition()) {
+                if (cmploc.getLatitude() == myLoc.getLatitude() &&
+                        cmploc.getLatitude() == myLoc.getLongitude() &&
+                        cmploc.getTime() == myLoc.getTime()) {
+                    rv = true;
+                    break;
+                }
+            }
+            if (!rv) return false;
+        }
+        return true;
+    }
 }
