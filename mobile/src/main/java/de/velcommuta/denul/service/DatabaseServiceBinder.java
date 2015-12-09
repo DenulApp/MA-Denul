@@ -98,6 +98,13 @@ public interface DatabaseServiceBinder {
     KeySet getKeySetForFriend(Friend friend);
 
     /**
+     * Update the {@link KeySet} in the database with the provided values. Will only update the
+     * Keys and Counters
+     * @param keyset The updated KeySet object
+     */
+    void updateKeySet(KeySet keyset);
+
+    /**
      * Add a friend to the database
      * @param friend The {@link Friend} object describing the new friend
      * @param keys The {@link KeySet} containing the keys for communication with that friend

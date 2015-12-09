@@ -359,9 +359,31 @@ public class DatabaseService extends Service {
                                    c.getBlob(c.getColumnIndexOrThrow(FriendContract.FriendKeys.COLUMN_NAME_KEY_OUT)),
                                    c.getBlob(c.getColumnIndexOrThrow(FriendContract.FriendKeys.COLUMN_NAME_CTR_IN)),
                                    c.getBlob(c.getColumnIndexOrThrow(FriendContract.FriendKeys.COLUMN_NAME_CTR_OUT)),
-                                   c.getInt (c.getColumnIndexOrThrow(FriendContract.FriendKeys.COLUMN_NAME_INITIATED)) == 1);
+                                   c.getInt (c.getColumnIndexOrThrow(FriendContract.FriendKeys.COLUMN_NAME_INITIATED)) == 1,
+                                   c.getInt (c.getColumnIndexOrThrow(FriendContract.FriendKeys._ID)));
             c.close();
             return rv;
+        }
+
+
+        @Override
+        public void updateKeySet(KeySet keyset) {
+            assertOpen();
+            if (keyset == null) throw new SQLiteException("KeySet cannot be null");
+            // Prepare ContentValues with new values
+            ContentValues key_entry = new ContentValues();
+            key_entry.put(FriendContract.FriendKeys.COLUMN_NAME_KEY_IN, keyset.getInboundKey());
+            key_entry.put(FriendContract.FriendKeys.COLUMN_NAME_KEY_OUT, keyset.getOutboundKey());
+            key_entry.put(FriendContract.FriendKeys.COLUMN_NAME_CTR_IN, keyset.getInboundCtr());
+            key_entry.put(FriendContract.FriendKeys.COLUMN_NAME_CTR_OUT, keyset.getOutboundCtr());
+            String[] whereArgs = {"" + keyset.getID() };
+            // Perform the update
+            beginTransaction();
+            update(FriendContract.FriendKeys.TABLE_NAME,
+                    key_entry,
+                    FriendContract.FriendKeys._ID + " LIKE ?",
+                    whereArgs);
+            commit();
         }
 
 
