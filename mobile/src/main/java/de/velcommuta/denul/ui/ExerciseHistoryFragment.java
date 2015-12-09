@@ -128,6 +128,7 @@ public class ExerciseHistoryFragment extends Fragment implements ServiceConnecti
     @Override
     public void onPause() {
         super.onPause();
+        getActivity().unbindService(this);
     }
 
 
