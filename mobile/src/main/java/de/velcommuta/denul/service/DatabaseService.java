@@ -539,12 +539,32 @@ public class DatabaseService extends Service {
             // the foreign key ON DELETE CASCADE statement
             String[] whereArgs = { "" + track.getID() };
             int deleted = delete(LocationLoggingContract.LocationSessions.TABLE_NAME,
-                    LocationLoggingContract.LocationSessions._ID +  " LIKE ?",
+                    LocationLoggingContract.LocationSessions._ID + " LIKE ?",
                     whereArgs);
             // Ensure the correct number of items was deleted
             if (deleted != 1) {
                 throw new SQLiteException("Wanted to delete 1 row, but deleted " + deleted);
             }
+        }
+
+
+        @Override
+        public void renameGPSTrack(GPSTrack track, String name) {
+            assertOpen();
+            if (track == null) throw new SQLiteException("Track cannot be null");
+            if (track.getID() == -1) throw new SQLiteException("ID must be set");
+            if (name == null || name.equals("")) throw new SQLiteException("Name must be set");
+            // Prepare ContentValues with new values
+            ContentValues track_entry = new ContentValues();
+            track_entry.put(LocationLoggingContract.LocationSessions.COLUMN_NAME_NAME, name);
+            String[] whereArgs = {"" + track.getID()};
+            // Perform the update
+            beginTransaction();
+            update(LocationLoggingContract.LocationSessions.TABLE_NAME,
+                    track_entry,
+                    LocationLoggingContract.LocationSessions._ID + " LIKE ?",
+                    whereArgs);
+            commit();
         }
 
 

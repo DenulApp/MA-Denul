@@ -15,6 +15,7 @@ import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -28,7 +29,9 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.maps.android.ui.IconGenerator;
 
@@ -42,6 +45,7 @@ import de.velcommuta.denul.R;
 import de.velcommuta.denul.data.GPSTrack;
 import de.velcommuta.denul.service.DatabaseService;
 import de.velcommuta.denul.service.DatabaseServiceBinder;
+import de.velcommuta.denul.util.FriendManager;
 
 /**
  * Activity to show details about a specific track
@@ -58,6 +62,10 @@ public class ExerciseViewActivity extends AppCompatActivity implements ServiceCo
     private TextView mTrackDistance;
     private ImageView mTrackMode;
     private GoogleMap mMap;
+
+    private Marker mStartMarker;
+    private Marker mEndMarker;
+    private Polyline mPolyline;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -103,7 +111,7 @@ public class ExerciseViewActivity extends AppCompatActivity implements ServiceCo
                 askDeleteConfirm();
                 return true;
             case R.id.action_rename:
-                // TODO
+                performRename();
                 return true;
             case R.id.action_share:
                 // TODO
@@ -131,6 +139,38 @@ public class ExerciseViewActivity extends AppCompatActivity implements ServiceCo
                 })
                 .setNegativeButton("No", null)
                 .create().show();
+    }
+
+
+    /**
+     * Rename the Friend and write the updated friend to the database
+     */
+    private void performRename() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        final EditText newName = new EditText(this);
+        newName.setText(mTrack.getSessionName());
+        builder.setView(newName);
+        builder.setTitle("Enter a new Name:");
+        builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i) {
+                String selectedName = newName.getText().toString().trim();
+                if (selectedName.equals("")) {
+                    Toast.makeText(ExerciseViewActivity.this, "Name cannot be empty", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                // if the name has not changed, do nothing
+                if (selectedName.equals(mTrack.getSessionName())) return;
+                // Name is available. Update Track object
+                mDbBinder.renameGPSTrack(mTrack, selectedName);
+                // Reload
+                loadTrackInformation();
+            }
+        });
+        // Set cancel buttel
+        builder.setNegativeButton("Cancel", null);
+        // Create and show the dialog
+        builder.create().show();
     }
 
 
@@ -222,13 +262,15 @@ public class ExerciseViewActivity extends AppCompatActivity implements ServiceCo
      * Draw the path in the {@link GPSTrack} object
      */
     private void drawPath() {
+        // if the map has already been drawn to, just return
+        if (mStartMarker != null && mEndMarker != null && mPolyline != null) return;
         // Draw start marker
         Location start = mTrack.getPosition().get(0);
         // Set icon for start of route
         IconGenerator ig = new IconGenerator(this);
         ig.setStyle(IconGenerator.STYLE_GREEN);
         Bitmap startPoint = ig.makeIcon("Start");
-        mMap.addMarker(new MarkerOptions()
+        mStartMarker = mMap.addMarker(new MarkerOptions()
                 .icon(BitmapDescriptorFactory.fromBitmap(startPoint))
                 .position(new LatLng(start.getLatitude(), start.getLongitude())));
 
@@ -239,7 +281,7 @@ public class ExerciseViewActivity extends AppCompatActivity implements ServiceCo
             poptions.add(new LatLng(l.getLatitude(), l.getLongitude()));
             latlngbounds.include(new LatLng(l.getLatitude(), l.getLongitude()));
         }
-        mMap.addPolyline(poptions);
+        mPolyline = mMap.addPolyline(poptions);
 
         // Get final position
         Location finalPos = mTrack.getPosition().get(mTrack.getPosition().size()-1);
@@ -247,11 +289,12 @@ public class ExerciseViewActivity extends AppCompatActivity implements ServiceCo
         ig.setStyle(IconGenerator.STYLE_RED);
         Bitmap endPoint = ig.makeIcon("Finish");
         // Create marker
-        mMap.addMarker(new MarkerOptions()
+        mEndMarker = mMap.addMarker(new MarkerOptions()
                 .icon(BitmapDescriptorFactory.fromBitmap(endPoint))
                 .position(new LatLng(finalPos.getLatitude(), finalPos.getLongitude())));
 
         // Move the camera to show the whole path
+        // Code credit: http://stackoverflow.com/a/14828739/1232833
         int padding = 100;
         final CameraUpdate cu = CameraUpdateFactory.newLatLngBounds(latlngbounds.build(), padding);
         mMap.setOnMapLoadedCallback(new GoogleMap.OnMapLoadedCallback() {

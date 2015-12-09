@@ -142,4 +142,12 @@ public interface DatabaseServiceBinder {
      * @param track The track object
      */
     void deleteGPSTrack(GPSTrack track);
+
+    /**
+     * Rename a {@link GPSTrack} in the database. The provided track MUST have the ID property set
+     * (i.e. {@link GPSTrack#getID()} must not return -1) and it MUST NOT have been modified since
+     * it was set when it was loaded from the database.
+     * @param track The track object
+     */
+    void renameGPSTrack(GPSTrack track, String name);
 }
