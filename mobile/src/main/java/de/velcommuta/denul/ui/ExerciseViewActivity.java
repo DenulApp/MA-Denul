@@ -5,6 +5,7 @@ import android.content.ComponentName;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.graphics.Bitmap;
 import android.location.Location;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -17,6 +18,19 @@ import android.view.MenuItem;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.google.android.gms.maps.CameraUpdate;
+import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.MapFragment;
+import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.CameraPosition;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
+import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.PolylineOptions;
+import com.google.maps.android.ui.IconGenerator;
 
 import org.joda.time.DateTimeZone;
 import org.joda.time.LocalDateTime;
@@ -32,7 +46,7 @@ import de.velcommuta.denul.service.DatabaseServiceBinder;
 /**
  * Activity to show details about a specific track
  */
-public class ExerciseViewActivity extends AppCompatActivity implements ServiceConnection {
+public class ExerciseViewActivity extends AppCompatActivity implements ServiceConnection, OnMapReadyCallback {
     private static final String TAG = "ExerciseViewActivity";
 
     private DatabaseServiceBinder mDbBinder;
@@ -43,6 +57,7 @@ public class ExerciseViewActivity extends AppCompatActivity implements ServiceCo
     private TextView mTrackDate;
     private TextView mTrackDistance;
     private ImageView mTrackMode;
+    private GoogleMap mMap;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,9 +65,12 @@ public class ExerciseViewActivity extends AppCompatActivity implements ServiceCo
         setContentView(R.layout.activity_exercise_show);
         Toolbar myToolbar = (Toolbar) findViewById(R.id.my_toolbar);
         setSupportActionBar(myToolbar);
-
         ActionBar ab = getSupportActionBar();
         ab.setDisplayHomeAsUpEnabled(true);
+
+        // Get a reference to the Map fragment and perform an async. initialization
+        MapFragment mapFragment = (MapFragment) getFragmentManager().findFragmentById(R.id.exc_view_gmap);
+        mapFragment.getMapAsync(this);
 
         requestDatabaseBinder();
         Bundle b = getIntent().getExtras();
@@ -150,7 +168,6 @@ public class ExerciseViewActivity extends AppCompatActivity implements ServiceCo
         mTrackDate.setText(DateTimeFormat.shortDateTime().print(new LocalDateTime(mTrack.getTimestamp(), DateTimeZone.forID(mTrack.getTimezone()))));
         float distance = 0;
         List<Location> locList = mTrack.getPosition();
-        // TODO This seems to not be working right now :(
         for (int i = 1; i < locList.size(); i++) {
             distance = distance + locList.get(i).distanceTo(locList.get(i-1));
         }
@@ -170,7 +187,7 @@ public class ExerciseViewActivity extends AppCompatActivity implements ServiceCo
                 Log.w(TAG, "loadTrackInformation: Unknown Mode of transportation");
                 mTrackMode.setImageDrawable(getResources().getDrawable(R.drawable.ic_running));
         }
-        // TODO Load google map, plot track
+        if (mMap != null) drawPath();
     }
 
     @Override
@@ -189,5 +206,59 @@ public class ExerciseViewActivity extends AppCompatActivity implements ServiceCo
     public void onServiceDisconnected(ComponentName componentName) {
         Log.d(TAG, "onServiceDisconnected: Lost DB service");
         mDbBinder = null;
+    }
+
+
+    @Override
+    public void onMapReady(GoogleMap googleMap) {
+        mMap = googleMap;
+        // Disable display of device location
+        mMap.setMyLocationEnabled(false);
+        if (mTrack != null) drawPath();
+    }
+
+
+    /**
+     * Draw the path in the {@link GPSTrack} object
+     */
+    private void drawPath() {
+        // Draw start marker
+        Location start = mTrack.getPosition().get(0);
+        // Set icon for start of route
+        IconGenerator ig = new IconGenerator(this);
+        ig.setStyle(IconGenerator.STYLE_GREEN);
+        Bitmap startPoint = ig.makeIcon("Start");
+        mMap.addMarker(new MarkerOptions()
+                .icon(BitmapDescriptorFactory.fromBitmap(startPoint))
+                .position(new LatLng(start.getLatitude(), start.getLongitude())));
+
+        // Draw polyline and prepare LatLngBounds object for later camera zoom
+        PolylineOptions poptions = new PolylineOptions();
+        LatLngBounds.Builder latlngbounds = new LatLngBounds.Builder();
+        for (Location l : mTrack.getPosition()) {
+            poptions.add(new LatLng(l.getLatitude(), l.getLongitude()));
+            latlngbounds.include(new LatLng(l.getLatitude(), l.getLongitude()));
+        }
+        mMap.addPolyline(poptions);
+
+        // Get final position
+        Location finalPos = mTrack.getPosition().get(mTrack.getPosition().size()-1);
+        // Set up style
+        ig.setStyle(IconGenerator.STYLE_RED);
+        Bitmap endPoint = ig.makeIcon("Finish");
+        // Create marker
+        mMap.addMarker(new MarkerOptions()
+                .icon(BitmapDescriptorFactory.fromBitmap(endPoint))
+                .position(new LatLng(finalPos.getLatitude(), finalPos.getLongitude())));
+
+        // Move the camera to show the whole path
+        int padding = 100;
+        final CameraUpdate cu = CameraUpdateFactory.newLatLngBounds(latlngbounds.build(), padding);
+        mMap.setOnMapLoadedCallback(new GoogleMap.OnMapLoadedCallback() {
+            @Override
+            public void onMapLoaded() {
+                mMap.animateCamera(cu);
+            }
+        });
     }
 }

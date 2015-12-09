@@ -55,12 +55,12 @@
                 android:layout_marginRight="5dp"/>
 
             <TextView
-                android:layout_width="0dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textAppearance="?android:attr/textAppearanceMedium"
-                android:text="Medium Text"
+                android:text="km"
                 android:id="@+id/exc_view_distance"
-                android:layout_weight="1"/>
+                android:gravity="right"/>
         </LinearLayout>
 
     </LinearLayout>
@@ -69,8 +69,7 @@
               android:layout_width="fill_parent"
               android:layout_height="match_parent"
               android:id="@+id/exc_view_gmap"
-              android:layout_alignParentTop="true"
-              android:layout_alignParentEnd="true"
+              android:layout_below="@+id/my_toolbar"
               android:layout_alignParentStart="true"/>
 
 </RelativeLayout>
