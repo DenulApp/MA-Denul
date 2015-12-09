@@ -32,7 +32,7 @@ public interface IdentifierDerivation {
      *  @param keyset the {@link KeySet}to use
      *  @return the updated {@link KeySet}
      */
-    KeySet notifyInboundIdentifierUsedForFriend(KeySet keyset);
+    KeySet notifyInboundIdentifierUsed(KeySet keyset);
 
     /**
      * Function to notify the Derivation implementation that an outbound identifier was used and that
@@ -41,7 +41,7 @@ public interface IdentifierDerivation {
      * @param keyset The {@link KeySet} to use
      * @return The updated {@link KeySet}
      */
-    KeySet notifyOutboundIdentifierUsedForFriend(KeySet keyset);
+    KeySet notifyOutboundIdentifierUsed(KeySet keyset);
 
     /**
      * Generate a pair of identifier and revocation token, unrelated to any specific friend.

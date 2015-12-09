@@ -58,7 +58,7 @@ public class SHA256IdentifierDerivation implements IdentifierDerivation {
 
 
     @Override
-    public KeySet notifyInboundIdentifierUsedForFriend(KeySet keyset) {
+    public KeySet notifyInboundIdentifierUsed(KeySet keyset) {
         // Increment counter
         keyset.incrementInboundCtr();
         return keyset;
@@ -66,7 +66,7 @@ public class SHA256IdentifierDerivation implements IdentifierDerivation {
 
 
     @Override
-    public KeySet notifyOutboundIdentifierUsedForFriend(KeySet keyset) {
+    public KeySet notifyOutboundIdentifierUsed(KeySet keyset) {
         // Increment counter
         keyset.incrementOutboundCtr();
         return keyset;
