@@ -26,7 +26,6 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
-import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
@@ -45,7 +44,6 @@ import de.velcommuta.denul.R;
 import de.velcommuta.denul.data.GPSTrack;
 import de.velcommuta.denul.service.DatabaseService;
 import de.velcommuta.denul.service.DatabaseServiceBinder;
-import de.velcommuta.denul.util.FriendManager;
 
 /**
  * Activity to show details about a specific track
