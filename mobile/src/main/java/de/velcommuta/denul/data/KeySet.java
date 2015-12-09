@@ -3,6 +3,8 @@ package de.velcommuta.denul.data;
 import org.spongycastle.crypto.Digest;
 import org.spongycastle.crypto.digests.SHA256Digest;
 
+import java.util.Arrays;
+
 import de.velcommuta.denul.util.FormatHelper;
 
 /**
@@ -14,6 +16,7 @@ public class KeySet {
     private byte[] mInboundCtr;
     private byte[] mOutboundCtr;
     private boolean mInitiated;
+    private int mID;
 
 
     /**
@@ -26,15 +29,30 @@ public class KeySet {
      *                  this device. Used to derive matching fingerprints on both ends
      */
     public KeySet(byte[] KeyIn, byte[] KeyOut, byte[] CtrIn, byte[] CtrOut, boolean initiated) {
-        if (KeyIn.length != 32 || KeyOut.length != 32) throw new IllegalArgumentException("Bad key length");
-        if (CtrIn.length != 32 || CtrOut.length != 32) throw new IllegalArgumentException("Bad ctr length");
-        mInboundKey  = KeyIn;
-        mOutboundKey = KeyOut;
-        mInboundCtr  = CtrIn;
-        mOutboundCtr = CtrOut;
-        mInitiated   = initiated;
+        this(KeyIn, KeyOut, CtrIn, CtrOut, initiated, -1);
     }
 
+
+    /**
+     * Constructor
+     * @param KeyIn Inbound key
+     * @param KeyOut Outbound key
+     * @param CtrIn Inbound counter
+     * @param CtrOut Outbound counter
+     * @param initiated Indicates if the key exchange that generated these values was initiated by
+     *                  this device. Used to derive matching fingerprints on both ends
+     * @param id The database identifier of the KeySet
+     */
+    public KeySet(byte[] KeyIn, byte[] KeyOut, byte[] CtrIn, byte[] CtrOut, boolean initiated, int id) {
+        if (KeyIn.length != 32 || KeyOut.length != 32) throw new IllegalArgumentException("Bad key length");
+        if (CtrIn.length != 32 || CtrOut.length != 32) throw new IllegalArgumentException("Bad ctr length");
+        mInboundKey  = Arrays.copyOf(KeyIn, KeyIn.length);
+        mOutboundKey = Arrays.copyOf(KeyOut, KeyOut.length);
+        mInboundCtr  = Arrays.copyOf(CtrIn, CtrIn.length);
+        mOutboundCtr = Arrays.copyOf(CtrOut, CtrOut.length);
+        mInitiated   = initiated;
+        mID          = id;
+    }
 
     /**
      * Getter for the inbound key
@@ -82,6 +100,15 @@ public class KeySet {
 
 
     /**
+     * Getter for the database ID of this KeySet
+     * @return The Database ID of this KeySet, or -1 if the KeySet is not yet in the database
+     */
+    public int getID() {
+        return mID;
+    }
+
+
+    /**
      * Compute a fingerprint over the keys and counters contained in this KeySet and return it.
      * The fingerprint should be identical on both ends of the connection where the keys have been
      * generated.
@@ -103,5 +130,37 @@ public class KeySet {
         byte[] output = new byte[hash.getDigestSize()];
         hash.doFinal(output, 0);
         return FormatHelper.bytesToHex(output);
+    }
+
+
+    /**
+     * Increment the inbound counter value
+     */
+    public void incrementInboundCtr() {
+        mInboundCtr = incrementByteArray(mInboundCtr);
+    }
+
+
+    /**
+     * Increment the outbound counter value
+     */
+    public void incrementOutboundCtr() {
+        mOutboundCtr = incrementByteArray(mOutboundCtr);
+    }
+
+    /**
+     * Helper function to increment a byte[]
+     * @param input The byte[] to increment (will stay unmodified, a copy will be returned)
+     * @return A copy of the byte array, incremented by one (unsigned)
+     */
+    private byte[] incrementByteArray(byte[] input) {
+        byte[] output = Arrays.copyOf(input, input.length);
+        for (int i = output.length - 1; i >= 0; i--) {
+            output[i]++;
+            if (output[i] != (byte) 0) {
+                break;
+            }
+        }
+        return output;
     }
 }
