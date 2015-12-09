@@ -1,24 +1,15 @@
 package de.velcommuta.denul.data;
 
+import java.util.Arrays;
+
 import de.velcommuta.denul.util.FormatHelper;
 
 /**
  * Container class for pairs of identifier-revocation-tokens.
  */
 public class TokenPair {
-    private String mIdentifier;
-    private String mRevocation;
-
-
-    /**
-     * Constructor for data class. Takes an Identifier-String and a revocation token string.
-     * @param identifier The identifier
-     * @param revocation The matching revocation token
-     */
-    public TokenPair(String identifier, String revocation) {
-        mIdentifier = identifier;
-        mRevocation = revocation;
-    }
+    private byte[] mIdentifier;
+    private byte[] mRevocation;
 
 
     /**
@@ -28,8 +19,8 @@ public class TokenPair {
      * @param revocation The revocation token
      */
     public TokenPair(byte[] identifier, byte[] revocation) {
-        mIdentifier = FormatHelper.bytesToHex(identifier);
-        mRevocation = FormatHelper.bytesToHex(revocation);
+        mIdentifier = Arrays.copyOf(identifier, identifier.length);
+        mRevocation = Arrays.copyOf(revocation, revocation.length);
     }
 
 
@@ -37,7 +28,7 @@ public class TokenPair {
      * Getter for the identifier
      * @return The identifier
      */
-    public String getIdentifier() {
+    public byte[] getIdentifier() {
         return mIdentifier;
     }
 
@@ -46,7 +37,7 @@ public class TokenPair {
      * Getter for the revocation token
      * @return The revocation token
      */
-    public String getRevocation() {
+    public byte[] getRevocation() {
         return mRevocation;
     }
 }
