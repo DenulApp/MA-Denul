@@ -11,7 +11,7 @@ public class DataBlock {
     private static final String TAG = "DataBlock";
 
     private byte[] mKey;
-    private TokenPair mIdentifier;
+    private byte[] mIdentifier;
     private byte[] mCiphertext;
 
 
@@ -21,10 +21,10 @@ public class DataBlock {
      * @param ciphertext The encrypted data
      * @param identifier The identifier associated with this data
      */
-    public DataBlock(byte[] key, byte[] ciphertext, TokenPair identifier) {
+    public DataBlock(byte[] key, byte[] ciphertext, byte[] identifier) {
         mKey = Arrays.copyOf(key, key.length);
         mCiphertext = Arrays.copyOf(ciphertext, ciphertext.length);
-        mIdentifier = identifier;
+        mIdentifier = Arrays.copyOf(identifier, identifier.length);
     }
 
 
@@ -33,9 +33,9 @@ public class DataBlock {
      * @param key The key used to encrypt the data
      * @param identifier The identifier of the data
      */
-    public DataBlock(byte[] key, TokenPair identifier) {
+    public DataBlock(byte[] key, byte[] identifier) {
         mKey = Arrays.copyOf(key, key.length);
-        mIdentifier = identifier;
+        mIdentifier = Arrays.copyOf(identifier, identifier.length);
         mCiphertext = null;
     }
 
@@ -72,10 +72,10 @@ public class DataBlock {
 
 
     /**
-     * Getter for the identifier
-     * @return The identifier
+     * Getter for the Identifier
+     * @return The Identifier
      */
-    public TokenPair getIdentifier() {
-        return mIdentifier;
+    public byte[] getIdentifier() {
+        return Arrays.copyOf(mIdentifier, mIdentifier.length);
     }
 }
