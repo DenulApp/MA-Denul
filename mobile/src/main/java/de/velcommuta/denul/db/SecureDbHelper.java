@@ -21,6 +21,7 @@ public class SecureDbHelper extends SQLiteOpenHelper {
     private static final String OPT_PRIMARY_KEY = " PRIMARY KEY";
     private static final String OPT_NOT_NULL = " NOT NULL";
     private static final String OPT_DEFAULT_ZERO = " DEFAULT 0";
+    private static final String OPT_DEFAULT_MINUS_ONE = " DEFAULT -1";
     private static final String OPT_DEFAULT_NOW = " DEFAULT CURRENT_TIMESTAMP";
     private static final String COMMA_SEP = ",";
 
@@ -39,6 +40,7 @@ public class SecureDbHelper extends SQLiteOpenHelper {
             = "CREATE TABLE " + LocationLoggingContract.LocationSessions.TABLE_NAME + "(" +
             LocationLoggingContract.LocationSessions._ID + TYPE_INT + OPT_PRIMARY_KEY + COMMA_SEP +
             LocationLoggingContract.LocationSessions.COLUMN_NAME_NAME + TYPE_TEXT + COMMA_SEP +
+            LocationLoggingContract.LocationSessions.COLUMN_NAME_OWNER + TYPE_INT + OPT_NOT_NULL + OPT_DEFAULT_MINUS_ONE + COMMA_SEP +
             LocationLoggingContract.LocationSessions.COLUMN_NAME_SESSION_START + TYPE_DATETIME + OPT_DEFAULT_NOW + OPT_NOT_NULL + COMMA_SEP +
             LocationLoggingContract.LocationSessions.COLUMN_NAME_SESSION_END + TYPE_DATETIME + OPT_NOT_NULL + COMMA_SEP +
             LocationLoggingContract.LocationSessions.COLUMN_NAME_TIMEZONE + TYPE_TEXT + OPT_NOT_NULL + COMMA_SEP +
@@ -56,6 +58,7 @@ public class SecureDbHelper extends SQLiteOpenHelper {
     private static final String SQL_CREATE_ENTRIES_STEPCOUNTER
             = "CREATE TABLE " + StepLoggingContract.StepCountLog.TABLE_NAME + "(" +
             StepLoggingContract.StepCountLog._ID + TYPE_INT + OPT_PRIMARY_KEY + COMMA_SEP +
+            StepLoggingContract.StepCountLog.COLUMN_OWNER + TYPE_INT + OPT_NOT_NULL + OPT_DEFAULT_MINUS_ONE + COMMA_SEP +
             StepLoggingContract.StepCountLog.COLUMN_DATE + TYPE_DATETIME + OPT_NOT_NULL + COMMA_SEP +
             StepLoggingContract.StepCountLog.COLUMN_TIME + TYPE_DATETIME + OPT_NOT_NULL + COMMA_SEP +
             StepLoggingContract.StepCountLog.COLUMN_VALUE + TYPE_INT + OPT_NOT_NULL +
@@ -112,7 +115,7 @@ public class SecureDbHelper extends SQLiteOpenHelper {
 
     public static final String DATABASE_NAME = "location.db"; // TODO Update
 
-    public static final int DATABASE_VERSION = 10;
+    public static final int DATABASE_VERSION = 11;
 
 
     /**
@@ -145,11 +148,9 @@ public class SecureDbHelper extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        if (oldVersion == 9 && newVersion == 10) {
-            db.execSQL(SQL_DROP_LOCATIONLOG);
-            db.execSQL(SQL_DROP_LOCATIONSESSIONS);
-            db.execSQL(SQL_CREATE_ENTRIES_LOCATIONSESSIONS);
-            db.execSQL(SQL_CREATE_ENTRIES_LOCATIONLOG);
+        if (oldVersion == 10 && newVersion == 11) {
+            db.execSQL("ALTER TABLE " + StepLoggingContract.StepCountLog.TABLE_NAME + " ADD COLUMN " + StepLoggingContract.StepCountLog.COLUMN_OWNER + TYPE_INT + OPT_NOT_NULL + OPT_DEFAULT_MINUS_ONE + ";");
+            db.execSQL("ALTER TABLE " + LocationLoggingContract.LocationSessions.TABLE_NAME + " ADD COLUMN " + LocationLoggingContract.LocationSessions.COLUMN_NAME_OWNER + TYPE_INT + OPT_NOT_NULL + OPT_DEFAULT_MINUS_ONE + ";");
         } else {
             db.execSQL(SQL_DROP_LOCATIONLOG);
             db.execSQL(SQL_DROP_LOCATIONSESSIONS);
