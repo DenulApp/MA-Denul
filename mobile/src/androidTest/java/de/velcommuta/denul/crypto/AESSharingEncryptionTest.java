@@ -18,6 +18,7 @@ import de.velcommuta.denul.data.TokenPair;
 
 /**
  * SHA256SharingEncryption test cases
+ * TODO Add negative test cases
  */
 public class AESSharingEncryptionTest extends TestCase {
     /**

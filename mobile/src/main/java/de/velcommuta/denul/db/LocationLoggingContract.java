@@ -35,6 +35,7 @@ public class LocationLoggingContract  {
         public static final String COLUMN_NAME_NAME = "name";
         // Owner of the session - References Friend ID, or set to -1 if user is owner.
         public static final String COLUMN_NAME_OWNER = "owner";
+        public static final String COLUMN_NAME_SHARE_ID = "share_id";
 
         // Session start and end timestamp
         public static final String COLUMN_NAME_SESSION_START = "session_start";
