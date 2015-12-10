@@ -56,10 +56,10 @@ public class AES {
 
     ///// Encryption
     /**
-     * Encrypt some data using AES in GCM mode.
+     * Encrypt some data using AES in GCM.
      * @param data The data that is to be encrypted
      * @param keyenc The key, as a byte[]
-     * @return The encrypted data as a byte[]
+     * @return The encrypted data as a byte[], with the IV prepended to it
      */
     public static byte[] encryptAES(byte[] data, byte[] keyenc) {
         return encryptAES(data, keyenc, null);
@@ -67,32 +67,57 @@ public class AES {
 
 
     /**
-     * Encrypt some data using AES in GCM mode.
-     * @param data The data that is to be encrypted
-     * @param keyenc The key, as a byte[]
-     * @param header The header (with length field nulled), to be added and as Associated Data
-     * @return The encrypted data as a byte[]
+     * Encrypt some data using AES in GCM
+     * @param data The data to encrypt
+     * @param keyenc The key, as byte[]
+     * @param header The header, to be added as associated data
+     * @return The encrypted data as byte[], with the IV prepended to it
      */
     public static byte[] encryptAES(byte[] data, byte[] keyenc, byte[] header) {
+        return encryptAES(data, keyenc, header, null);
+    }
+
+
+    /**
+     * Encrypt some data using AES in GCM.
+     * @param data The data that is to be encrypted
+     * @param keyenc The key, as a byte[]
+     * @param header The header (with length field nulled), to be added as Associated Data
+     * @param iv The Initialization Vector to use. If it is null, a random IV will be generated
+     * @return The encrypted data as a byte[]. If the IV was null, the used IV will be prepended
+     *         to the message, otherwise the byte[] will not include the IV.
+     */
+    public static byte[] encryptAES(byte[] data, byte[] keyenc, byte[] header, byte[] iv) {
         try {
+            boolean ivSpecified = iv != null;
+            // Sanity check for IV length - we allow 16 byte (128 bit) and 32 byte (256 bit) IVs
+            if (ivSpecified && iv.length != 16 && iv.length != 32) {
+                Log.e(TAG, "encryptAES: Bad IV length");
+                return null;
+            }
             // Get Cipher instance
             Cipher aesCipher = Cipher.getInstance("AES/GCM/NoPadding", "SC");
             // Create SecretKey object
             SecretKey key = new SecretKeySpec(keyenc, "AES");
             // Initialize the Cipher object
-            aesCipher.init(Cipher.ENCRYPT_MODE, key);
-            // Get the algorithm parameters
-            AlgorithmParameters params = aesCipher.getParameters();
-            // Set the IV
-            // TODO Specify IV as parameter to function so we can use ctr values as IV?
-            // Reminder: IV Reuse is deadly when using AES-GCM
-            byte[] iv = params.getParameterSpec(IvParameterSpec.class).getIV();
+            if (ivSpecified) {
+                aesCipher.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(iv));
+            } else {
+                aesCipher.init(Cipher.ENCRYPT_MODE, key);
+                // Load IV from aesCipher object
+                iv = aesCipher.getIV();
+            }
             // Add header to authentication
             if (header != null) {
                 aesCipher.updateAAD(header);
             }
             // Perform the encryption
             byte[] encrypted = aesCipher.doFinal(data);
+            // If an IV was specified, return the encrypted data without the IV
+            if (ivSpecified) {
+                return encrypted;
+            }
+            // Else, prepend the IV and return iv + data
             byte[] returnvalue = new byte[iv.length + encrypted.length];
             System.arraycopy(iv, 0, returnvalue, 0, iv.length);
             System.arraycopy(encrypted, 0, returnvalue, iv.length, encrypted.length);
@@ -116,30 +141,48 @@ public class AES {
      * tampered with (i.e. the authentication failed)
      */
     public static byte[] decryptAES(byte[] datawithiv, byte[] keyenc) throws BadPaddingException {
-        return decryptAES(datawithiv, keyenc, null);
+        byte[] iv = new byte[16];
+        byte[] encrypted = new byte[datawithiv.length -16];
+        System.arraycopy(datawithiv, 0, iv, 0, 16);
+        System.arraycopy(datawithiv, iv.length, encrypted, 0, datawithiv.length - 16);
+        return decryptAES(encrypted, keyenc, null, iv);
     }
 
 
     /**
-     * Decrypt a piece of AES256-encrypted data with its key
+     * Decrypt a piece of AES2656-encrypted data with its key
      * @param datawithiv Data with first bytes representing the IV
      * @param keyenc byte[]-encoded key
-     * @param header The header, to be authenticated using AEAD
+     * @param header the header to be authenticated using AEAD
      * @return Decrypted data as byte[]
      * @throws BadPaddingException If the padding was bad. This indicates that the ciphertext was
      * tampered with (i.e. the authentication failed)
      */
     public static byte[] decryptAES(byte[] datawithiv, byte[] keyenc, byte[] header) throws BadPaddingException {
+        byte[] iv = new byte[16];
+        byte[] encrypted = new byte[datawithiv.length -16];
+        System.arraycopy(datawithiv, 0, iv, 0, 16);
+        System.arraycopy(datawithiv, iv.length, encrypted, 0, datawithiv.length - 16);
+        return decryptAES(encrypted, keyenc, header, iv);
+    }
+
+
+    /**
+     * Decrypt a piece of AES256-encrypted data with its key
+     * @param encrypted Encrypted Data WITHOUT the IV
+     * @param keyenc byte[]-encoded key
+     * @param header The header, to be authenticated using AEAD
+     * @param iv The initialization vector to use
+     * @return Decrypted data as byte[]
+     * @throws BadPaddingException If the padding was bad. This indicates that the ciphertext was
+     * tampered with (i.e. the authentication failed)
+     */
+    public static byte[] decryptAES(byte[] encrypted, byte[] keyenc, byte[] header, byte[] iv) throws BadPaddingException {
         try {
             // Get Cipher instance
             Cipher aesCipher = Cipher.getInstance("AES/GCM/NoPadding", "SC");
             // Create SecretKey object
             SecretKey key = new SecretKeySpec(keyenc, "AES");
-            // Split datawithiv into iv and data
-            byte[] iv = new byte[16];
-            byte[] encrypted = new byte[datawithiv.length -16];
-            System.arraycopy(datawithiv, 0, iv, 0, 16);
-            System.arraycopy(datawithiv, iv.length, encrypted, 0, datawithiv.length - 16);
             // Initialize cipher
             aesCipher.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(iv));
             // Add header for AAD

@@ -120,6 +120,38 @@ public class CryptoTest extends TestCase {
         }
     }
 
+
+    /**
+     * Test if the encryption and decryption works when explicitly specifying an IV
+     */
+    public void testEncryptionDecryptionWithSpecifiedIV() {
+        byte[] key = AES.generateAES256Key();
+        byte[] message = new byte[128];
+        byte[] iv = new byte[32];
+        new Random().nextBytes(message);
+        new Random().nextBytes(iv);
+        byte[] ciphertext = AES.encryptAES(message, key, null, iv);
+        try {
+            byte[] plaintext = AES.decryptAES(ciphertext, key, null, iv);
+            assertTrue(Arrays.equals(plaintext, message));
+        } catch (BadPaddingException e) {
+            fail(e.toString());
+        }
+    }
+
+    /**
+     * Test if the encryption and decryption works when explicitly specifying an IV
+     */
+    public void testEncryptionDecryptionWithSpecifiedBadIV() {
+        byte[] key = AES.generateAES256Key();
+        byte[] message = new byte[128];
+        byte[] iv = new byte[31];
+        new Random().nextBytes(message);
+        new Random().nextBytes(iv);
+        byte[] ciphertext = AES.encryptAES(message, key, null, iv);
+        assertNull(ciphertext);
+    }
+
     ///// RSA tests
     /**
      * Test if the RSA Key generation works
