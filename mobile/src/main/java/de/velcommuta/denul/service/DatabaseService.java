@@ -683,13 +683,14 @@ public class DatabaseService extends Service {
             // Prepare arguments to the query, based on the shareable
             String[] whereArgs = { "" + sh.getID() };
             String[] columns = { getShareIDColumnForShareable(sh)};
-            String query = getIDColumnForShareable(sh) + " LIKE ? AND " + getShareIDColumnForShareable(sh) + " IS NOT NULL";
-            String table = getTableForShareable(sh);
             // Ensure that the shareable was known to our helper functions
+            String table = getTableForShareable(sh);
             if (table == null) {
+                // Perform check here to avoid NPE on query definition below if Shareable is unknown
                 Log.e(TAG, "isShared: Unknown shareable type");
                 return false;
             }
+            String query = getIDColumnForShareable(sh) + " LIKE ? AND " + getShareIDColumnForShareable(sh) + " IS NOT NULL";
             // Perform the query
             Cursor c = query(table,
                     columns,
@@ -714,14 +715,14 @@ public class DatabaseService extends Service {
             if (!isShared(sh)) return -1;
             // Prepare arguments to query based on Shareable
             String[] whereArgs = { "" + sh.getID() };
-            String[] columns = { getShareIDColumnForShareable(sh)};
-            String query = getIDColumnForShareable(sh) + " LIKE ?";
             String table = getTableForShareable(sh);
-            // Check if the Shareable was known to our helper functions
             if (table == null) {
+                // We perform the sanity check here because the query definition would NPE if the shareable is unknown
                 Log.e(TAG, "isShared: Unknown shareable type");
                 return -1;
             }
+            String[] columns = { getShareIDColumnForShareable(sh)};
+            String query = getIDColumnForShareable(sh) + " LIKE ?";
             // Perform query
             Cursor c = query(table,
                     columns,
