@@ -24,7 +24,7 @@ public class ProtobufProtocolTest extends TestCase {
     // The host and port to connect to. Please make sure that:
     // - The server application is running on that host and port
     // - the server is using a valid certificate for that hostname
-    private static final String host = "cdn.velcommuta.de";
+    private static final String host = "denul.velcommuta.de";
     private static final int port = 5566;
 
     /**
