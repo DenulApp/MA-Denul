@@ -4,6 +4,7 @@ import android.os.AsyncTask;
 import android.util.Log;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import de.velcommuta.denul.crypto.AESSharingEncryption;
@@ -25,7 +26,7 @@ import de.velcommuta.denul.service.DatabaseServiceBinder;
  * Helper class for sharing data
  */
 public class ShareManager {
-    public class ShareWithProgress extends AsyncTask<Friend, Integer, Boolean> {
+    public class ShareWithProgress extends AsyncTask<List<Friend>, Integer, Boolean> {
         private static final String TAG = "ShareWP";
 
         private Shareable[] mShareableList;
@@ -50,10 +51,11 @@ public class ShareManager {
         }
 
         @Override
-        protected Boolean doInBackground(Friend... friends) {
+        protected Boolean doInBackground(List<Friend>... friendslist) {
             // TODO Add status updates at sensible positions
             // Establish a connection to the server (if this fails, we can avoid spending time encrypting stuff)
-            Connection conn = null;
+            Connection conn;
+            List<Friend> friends = friendslist[0];
             try {
                 conn = new TLSConnection("denul.velcommuta.de", 5566);  // TODO Move definitions to $somewhere
             } catch (Exception e) {
@@ -102,6 +104,7 @@ public class ShareManager {
                 }
                 // Iterate through all recipients and prepare messages for them
                 for (Friend friend : friends) {
+                    // TODO Test if data has already been shared with this user
                     // Retrieve keys
                     KeySet keys = mBinder.getKeySetForFriend(friend);
                     // Generate identifier

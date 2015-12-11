@@ -13,10 +13,13 @@ import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.util.SparseBooleanArray;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -38,12 +41,15 @@ import org.joda.time.DateTimeZone;
 import org.joda.time.LocalDateTime;
 import org.joda.time.format.DateTimeFormat;
 
+import java.util.LinkedList;
 import java.util.List;
 
 import de.velcommuta.denul.R;
+import de.velcommuta.denul.data.Friend;
 import de.velcommuta.denul.data.GPSTrack;
 import de.velcommuta.denul.service.DatabaseService;
 import de.velcommuta.denul.service.DatabaseServiceBinder;
+import de.velcommuta.denul.util.ShareManager;
 
 /**
  * Activity to show details about a specific track
@@ -112,7 +118,7 @@ public class ExerciseViewActivity extends AppCompatActivity implements ServiceCo
                 performRename();
                 return true;
             case R.id.action_share:
-                // TODO
+                performShare();
                 return true;
         }
         return false;
@@ -141,7 +147,7 @@ public class ExerciseViewActivity extends AppCompatActivity implements ServiceCo
 
 
     /**
-     * Rename the Friend and write the updated friend to the database
+     * Rename the Exercise and write the updated friend to the database
      */
     private void performRename() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -163,6 +169,67 @@ public class ExerciseViewActivity extends AppCompatActivity implements ServiceCo
                 mDbBinder.renameGPSTrack(mTrack, selectedName);
                 // Reload
                 loadTrackInformation();
+            }
+        });
+        // Set cancel buttel
+        builder.setNegativeButton("Cancel", null);
+        // Create and show the dialog
+        builder.create().show();
+    }
+
+
+    /**
+     * Ask the user with whom he wants to share the data, and perform the actual sharing
+     */
+    private void performShare() {
+        // Create an AlertDialog builder
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        // Create a ListView to display the Friendlist
+        final ListView lv = new ListView(this);
+        // Set the ListView to allow multiple selections
+        lv.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
+        // Load the friend list from the database
+        final List<Friend> friendlist = mDbBinder.getFriends();
+        // Set up the adapter
+        lv.setAdapter(new ArrayAdapter<Friend>(this, android.R.layout.simple_list_item_multiple_choice, friendlist));
+        // Set the finished List as the view of the AlertDialog
+        builder.setView(lv);
+        // Set title
+        builder.setTitle("Select a friend:");
+        // Set "OK" button with callback
+        builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int selected) {
+                // Read out which friends have been selected
+                SparseBooleanArray checked = lv.getCheckedItemPositions();
+                List<Friend> rcpt = new LinkedList<>();
+                for (int i = 0; i<checked.size(); i++) {
+                    if (checked.valueAt(i))
+                        rcpt.add(friendlist.get(checked.keyAt(i)));
+                }
+                // Check if any have been selected
+                if (rcpt.size() > 0) {
+                    // Prepare a ShareWithProgress AsyncTask with nested Callback
+                    // TODO Proper callback and progress bar?
+                    ShareManager.ShareWithProgress m = new ShareManager().new ShareWithProgress(mDbBinder, new ShareManager.ShareManagerCallback() {
+                        @Override
+                        public void onShareStatusUpdate(int status) {
+                            // Toast.makeText(ExerciseViewActivity.this, ""+status, Toast.LENGTH_SHORT).show();
+                        }
+
+
+                        @Override
+                        public void onShareFinished(boolean success) {
+                            if (success)
+                                Toast.makeText(ExerciseViewActivity.this, "Done", Toast.LENGTH_SHORT).show();
+                            else
+                                Toast.makeText(ExerciseViewActivity.this, "Failed", Toast.LENGTH_SHORT).show();
+                        }
+                    }, mTrack);
+                    m.execute(rcpt);
+                } else {
+                    Toast.makeText(ExerciseViewActivity.this, "No one selected", Toast.LENGTH_SHORT).show();
+                }
             }
         });
         // Set cancel buttel
