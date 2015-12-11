@@ -30,4 +30,11 @@ public interface Shareable {
      * @return The Owner ID, or -1
      */
     int getOwner();
+
+    /**
+     * Getter for the database ID.
+     * @return The database ID of the database entry represented by this sharable, or -1 if no such
+     *         database entry exists
+     */
+    int getID();
 }

@@ -111,10 +111,7 @@ public class GPSTrack implements Shareable {
     }
 
 
-    /**
-     * Getter for the database ID
-     * @return The database ID, or -1 if it is not set
-     */
+    @Override
     public int getID() {
         return mId;
     }
