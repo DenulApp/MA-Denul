@@ -476,6 +476,57 @@ public class DatabaseService extends Service {
             return rv;
         }
 
+        @Override
+        public void addGPSTrack(GPSTrack track) {
+            assertOpen();
+            addGPSTrack(track, -1);
+        }
+
+        @Override
+        public void addGPSTrackForFriend(GPSTrack track, Friend friend) {
+            assertOpen();
+            addGPSTrack(track, friend.getID());
+        }
+
+        /**
+         * Private helper function to add a track with a certain owner ID to the database
+         * @param track The track
+         * @param ownerid The owner ID ({@link Friend#getID()}, or -1 if the track is owned by the
+         *                device owner)
+         */
+        private void addGPSTrack(GPSTrack track, int ownerid) {
+            // Start a transaction to get an all-or-nothing write to the database
+            beginTransaction();
+            // Write new database entry with metadata for the track
+            ContentValues metadata = new ContentValues();
+
+            metadata.put(LocationLoggingContract.LocationSessions.COLUMN_NAME_SESSION_START, track.getPosition().get(0).getTime());
+            metadata.put(LocationLoggingContract.LocationSessions.COLUMN_NAME_SESSION_END, track.getPosition().get(track.getPosition().size() - 1).getTime());
+            metadata.put(LocationLoggingContract.LocationSessions.COLUMN_NAME_NAME, track.getSessionName());
+            metadata.put(LocationLoggingContract.LocationSessions.COLUMN_NAME_MODE, track.getModeOfTransportation());
+            metadata.put(LocationLoggingContract.LocationSessions.COLUMN_NAME_TIMEZONE, track.getTimezone());
+            metadata.put(LocationLoggingContract.LocationSessions.COLUMN_NAME_OWNER, ownerid);
+
+            long rowid = insert(LocationLoggingContract.LocationSessions.TABLE_NAME, null, metadata);
+
+            // Write the individual steps in the track
+            for (int i = 0; i < track.getPosition().size(); i++) {
+                // Prepare ContentValues object
+                ContentValues entry = new ContentValues();
+                // Get Location object
+                Location cLoc = track.getPosition().get(i);
+                // Set values for ContentValues
+                entry.put(LocationLoggingContract.LocationLog.COLUMN_NAME_SESSION, rowid);
+                entry.put(LocationLoggingContract.LocationLog.COLUMN_NAME_LAT, cLoc.getLatitude());
+                entry.put(LocationLoggingContract.LocationLog.COLUMN_NAME_LONG, cLoc.getLongitude());
+                entry.put(LocationLoggingContract.LocationLog.COLUMN_NAME_TIMESTAMP, cLoc.getTime());
+                // Save ContentValues into Database
+                insert(LocationLoggingContract.LocationLog.TABLE_NAME, null, entry);
+            }
+            // Finish transaction
+            commit();
+        }
+
 
         @Override
         public List<GPSTrack> getGPSTracks() {
@@ -487,6 +538,31 @@ public class DatabaseService extends Service {
                     columns,
                     null,
                     null,
+                    null,
+                    null,
+                    LocationLoggingContract.LocationSessions.COLUMN_NAME_SESSION_START + " DESC");
+            while (session.moveToNext()) {
+                // For each session ID, load the track from the database
+                GPSTrack track = getGPSTrackById(session.getInt(session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions._ID)));
+                trackList.add(track);
+            }
+            // Close the session cursor
+            session.close();
+            // Return
+            return trackList;
+        }
+
+        @Override
+        public List<GPSTrack> getOwnerGPSTracks() {
+            assertOpen();
+            List<GPSTrack> trackList = new LinkedList<>();
+            String[] columns = {LocationLoggingContract.LocationSessions._ID};
+            String[] whereArgs = { "-1" };
+            // Retrieve session IDs
+            Cursor session = query(LocationLoggingContract.LocationSessions.TABLE_NAME,
+                    columns,
+                    LocationLoggingContract.LocationSessions.COLUMN_NAME_OWNER + " LIKE ?",
+                    whereArgs,
                     null,
                     null,
                     LocationLoggingContract.LocationSessions.COLUMN_NAME_SESSION_START + " DESC");
@@ -541,7 +617,8 @@ public class DatabaseService extends Service {
                         session.getString(session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions.COLUMN_NAME_NAME)),
                         session.getInt(session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions.COLUMN_NAME_MODE)),
                         session.getLong(session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions.COLUMN_NAME_SESSION_START)),
-                        session.getString(session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions.COLUMN_NAME_TIMEZONE)));
+                        session.getString(session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions.COLUMN_NAME_TIMEZONE)),
+                        session.getInt(session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions.COLUMN_NAME_OWNER)));
                 track.setID(session.getInt(session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions._ID)));
             }
             session.close();

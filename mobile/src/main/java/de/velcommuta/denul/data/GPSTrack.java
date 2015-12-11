@@ -22,6 +22,7 @@ public class GPSTrack implements Shareable {
     private long mTimestamp;
     private String mTimezone;
     private int mId = -1;
+    private int mOwner;
 
     public static final int VALUE_RUNNING = 0;
     public static final int VALUE_CYCLING = 1;
@@ -41,6 +42,26 @@ public class GPSTrack implements Shareable {
         mModeOfTransportation = mode;
         mTimestamp = timestamp;
         mTimezone = timezone;
+        mOwner = -1;
+    }
+
+    /**
+     * Constructor to pass a list of positions, a name, and a mode of transportation (defined in
+     * LocationLoggingContract.LocationSessions) to the subscriber
+     * @param pos List of positions
+     * @param name Name of Session
+     * @param mode Code for mode of transportation, as defined in LocationLoggingContract.LocationSessions
+     * @param timestamp Timestamp of the time at the beginning of the tracking
+     * @param timezone The String representation of the timezone, as returned by {@link DateTimeZone#toString()}
+     * @param owner The ID of the owner of this track
+     */
+    public GPSTrack(List<Location> pos, String name, int mode, long timestamp, String timezone, int owner) {
+        mPosition = pos;
+        mSessionName = name;
+        mModeOfTransportation = mode;
+        mTimestamp = timestamp;
+        mTimezone = timezone;
+        mOwner = owner;
     }
 
 
@@ -211,5 +232,10 @@ public class GPSTrack implements Shareable {
             if (!rv) return false;
         }
         return true;
+    }
+
+    @Override
+    public int getOwner() {
+        return mOwner;
     }
 }

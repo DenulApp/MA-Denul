@@ -23,4 +23,11 @@ public interface Shareable {
      * @return A byte[]-representation of the object
      */
     byte[] getByteRepresentation();
+
+    /**
+     * Getter for the ID of the owner. Will be set to the database ID of a {@link Friend}, or -1 if
+     * it is owned by the user
+     * @return The Owner ID, or -1
+     */
+    int getOwner();
 }

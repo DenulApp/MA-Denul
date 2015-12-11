@@ -896,43 +896,8 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
             EventBus.getDefault().post(new DatabaseResultEvent("Database not open"));
             return;
         }
-
-        // Ensure that the event is sane
-        // TODO Ensure that this IF is sane, because it isn't
-        if (ev.getPosition().size() != ev.getPosition().size()) {
-            EventBus.getDefault().post(new DatabaseResultEvent("Position list has different size than timestsamp list - aborting"));
-            return;
-        }
-
-        // Start a transaction to get an all-or-nothing write to the database
-        db.beginTransaction();
-        // Write new database entry with metadata for the track
-        ContentValues metadata = new ContentValues();
-
-        metadata.put(LocationLoggingContract.LocationSessions.COLUMN_NAME_SESSION_START, ev.getPosition().get(0).getTime());
-        metadata.put(LocationLoggingContract.LocationSessions.COLUMN_NAME_SESSION_END, ev.getPosition().get(ev.getPosition().size() - 1).getTime());
-        metadata.put(LocationLoggingContract.LocationSessions.COLUMN_NAME_NAME, ev.getSessionName());
-        metadata.put(LocationLoggingContract.LocationSessions.COLUMN_NAME_MODE, ev.getModeOfTransportation());
-        metadata.put(LocationLoggingContract.LocationSessions.COLUMN_NAME_TIMEZONE, ev.getTimezone());
-
-        long rowid = db.insert(LocationLoggingContract.LocationSessions.TABLE_NAME, null, metadata);
-
-        // Write the individual steps in the track
-        for (int i = 0; i < ev.getPosition().size(); i++) {
-            // Prepare ContentValues object
-            ContentValues entry = new ContentValues();
-            // Get Location object
-            Location cLoc = ev.getPosition().get(i);
-            // Set values for ContentValues
-            entry.put(LocationLoggingContract.LocationLog.COLUMN_NAME_SESSION, rowid);
-            entry.put(LocationLoggingContract.LocationLog.COLUMN_NAME_LAT, cLoc.getLatitude());
-            entry.put(LocationLoggingContract.LocationLog.COLUMN_NAME_LONG, cLoc.getLongitude());
-            entry.put(LocationLoggingContract.LocationLog.COLUMN_NAME_TIMESTAMP, cLoc.getTime());
-            // Save ContentValues into Database
-            db.insert(LocationLoggingContract.LocationLog.TABLE_NAME, null, entry);
-        }
-        // Finish transaction
-        db.commit();
+        // Add to database
+        db.addGPSTrack(ev);
         // Notify main thread
         EventBus.getDefault().post(new DatabaseResultEvent(getString(R.string.save_success)));
     }

@@ -117,7 +117,7 @@ public class ExerciseHistoryFragment extends Fragment implements ServiceConnecti
      */
     private void populateExerciseHistory() {
         // Load the list of friends from the database
-        List<GPSTrack> list = mDbBinder.getGPSTracks();
+        List<GPSTrack> list = mDbBinder.getOwnerGPSTracks();
         // Initialize FriendListCursorAdapter with the cursor
         mAdapter = new ExerciseListAdapter(getActivity(), this, list);
         // Set the adapter for the RecyclerView

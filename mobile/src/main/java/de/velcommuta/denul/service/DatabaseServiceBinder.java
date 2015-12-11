@@ -131,10 +131,29 @@ public interface DatabaseServiceBinder {
     boolean isNameAvailable(String name);
 
     /**
+     * Add a GPS track to the database, owned by the owner of the device
+     * @param track The GPS track to add
+     */
+    void addGPSTrack(GPSTrack track);
+
+    /**
+     * Add a GPS track to the database, owned by the specified friend
+     * @param track The track
+     * @param friend The friend
+     */
+    void addGPSTrackForFriend(GPSTrack track, Friend friend);
+
+    /**
      * Retrieve the list of all GPS tracks from the database and return it
      * @return A list of all GPSTracks in the database
      */
     List<GPSTrack> getGPSTracks();
+
+    /**
+     * Retrieve the list of all GPS tracks owned by the user from the database and return it
+     * @return A list of all GPSTracks owned by the user in the database
+     */
+    List<GPSTrack> getOwnerGPSTracks();
 
     /**
      * Retrieve a specific GPS track from the database
@@ -155,6 +174,7 @@ public interface DatabaseServiceBinder {
      * (i.e. {@link GPSTrack#getID()} must not return -1) and it MUST NOT have been modified since
      * it was set when it was loaded from the database.
      * @param track The track object
+     * @param name The new name of the GPS track
      */
     void renameGPSTrack(GPSTrack track, String name);
 }
