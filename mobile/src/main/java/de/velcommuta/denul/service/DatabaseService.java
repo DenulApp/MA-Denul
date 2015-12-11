@@ -795,6 +795,34 @@ public class DatabaseService extends Service {
             commit();
         }
 
+        @Override
+        public DataBlock getShareData(int shareid) {
+            assertOpen();
+            if (shareid == -1) {
+                Log.e(TAG, "getShareData: shareid cannot be -1");
+                return null;
+            }
+            String[] whereArgs = { "" + shareid };
+            String[] columns = {SharingContract.DataShareLog.COLUMN_IDENTIFIER, SharingContract.DataShareLog.COLUMN_KEY};
+            Cursor c = query(SharingContract.DataShareLog.TABLE_NAME,
+                    columns,
+                    SharingContract.DataShareLog._ID + " LIKE ?",
+                    whereArgs,
+                    null,
+                    null,
+                    null);
+            DataBlock rv;
+            if (c.moveToFirst()) {
+                rv = new DataBlock(c.getBlob(c.getColumnIndexOrThrow(SharingContract.DataShareLog.COLUMN_KEY)),
+                                   c.getBlob(c.getColumnIndexOrThrow(SharingContract.DataShareLog.COLUMN_IDENTIFIER)));
+            } else {
+                Log.e(TAG, "getShareData: No results for ID " + shareid);
+                rv = null;
+            }
+            c.close();
+            return rv;
+        }
+
 
         ///// Utility functions
         /**

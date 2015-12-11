@@ -189,6 +189,15 @@ public interface DatabaseServiceBinder {
     boolean isShared(Shareable sh);
 
     /**
+     * Determine the share ID of a Shareable (the ID referencing the sharing information of the
+     * {@link DataBlock} associated with the shareable, if it exists).
+     * @param sh The shareable
+     * @return The ID of the DataBlock information in the database, if available, or -1, if the
+     *         Shareable has not been shared
+     */
+    int getShareID(Shareable sh);
+
+    /**
      * Add information about a shared {@link DataBlock} to the database
      * @param sh The {@link Shareable} represented by the DataBlock
      * @param pair The TokenPair containing identifier and revocation token for the Data block
@@ -199,19 +208,17 @@ public interface DatabaseServiceBinder {
     int addShare(Shareable sh, TokenPair pair, DataBlock block);
 
     /**
-     * Determine the share ID of a Shareable (the ID referencing the sharing information of the
-     * {@link DataBlock} associated with the shareable, if it exists).
-     * @param sh The shareable
-     * @return The ID of the DataBlock information in the database, if available, or -1, if the
-     *         Shareable has not been shared
-     */
-    int getShareID(Shareable sh);
-
-    /**
      * Add information about a recipient for an existing DataBlock share to the database
-     * @param datashareid The ID of the entry in the DataShareLog table
+     * @param shareid The ID of the entry in the DataShareLog table
      * @param friend The Friend to whom the data was shared
      * @param pair The TokenPair that was used
      */
-    void addShareRecipient(int datashareid, Friend friend, TokenPair pair);
+    void addShareRecipient(int shareid, Friend friend, TokenPair pair);
+
+    /**
+     * Retrieve the share data from the database
+     * @param shareid The ID of the entry in the share database
+     * @return A {@link DataBlock}with the Identifier and Key properties set
+     */
+    DataBlock getShareData(int shareid);
 }
