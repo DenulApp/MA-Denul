@@ -3,7 +3,9 @@ package de.velcommuta.denul.util;
 import android.os.AsyncTask;
 import android.util.Log;
 
+import java.io.IOException;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -26,6 +28,10 @@ import de.velcommuta.denul.service.DatabaseServiceBinder;
  * Helper class for sharing data
  */
 public class ShareManager {
+    protected String host = "denul.velcommuta.de";
+    protected int port = 5566;
+    // TODO Move definitions somewhere sensible
+
     public class ShareWithProgress extends AsyncTask<List<Friend>, Integer, Boolean> {
         private static final String TAG = "ShareWP";
 
@@ -57,7 +63,7 @@ public class ShareManager {
             Connection conn;
             List<Friend> friends = friendslist[0];
             try {
-                conn = new TLSConnection("denul.velcommuta.de", 5566);  // TODO Move definitions to $somewhere
+                conn = new TLSConnection(host, port);
             } catch (Exception e) {
                 Log.e(TAG, "doInBackground:", e);
                 return false;
@@ -149,6 +155,8 @@ public class ShareManager {
                         Log.e(TAG, "doInBackground: Unknown error code for PUT");
                 }
             }
+            // Disconnect from the server
+            proto.disconnect();
             return true;
         }
 
@@ -175,6 +183,131 @@ public class ShareManager {
                 friend = f;
                 share_id = sid;
             }
+        }
+    }
+
+    // TODO Modify to automatically request the next identifier in line if an identifier is detected on the server
+    // TODO Add "dirty marking" of the VICBF to avoid re-querying the same false positive VICBF entry every time
+    public class RetrieveWithProgress extends AsyncTask<List<Friend>, Integer, Boolean> {
+        private static final String TAG = "RetrWP";
+
+        private ShareManagerCallback mCallback;
+        private DatabaseServiceBinder mBinder;
+
+
+        /**
+         * Constructor
+         * @param callback The callback to send notifications to
+         * @param binder The database binder to use
+         */
+        public RetrieveWithProgress(ShareManagerCallback callback, DatabaseServiceBinder binder) {
+            if (binder == null || !binder.isDatabaseOpen()) throw new IllegalArgumentException("Bad database binder");
+            mCallback = callback;
+            mBinder = binder;
+        }
+
+        @Override
+        protected Boolean doInBackground(List<Friend>... lists) {
+            List<Friend> friends = lists[0];
+            IdentifierDerivation derive = new SHA256IdentifierDerivation();
+            SharingEncryption enc = new AESSharingEncryption();
+            Map<String, Friend> buffer = new HashMap<>();
+            List<String> tokens = new LinkedList<>();
+            // prepare connection and protocol instance
+            Connection conn;
+            try {
+                conn = new TLSConnection(host, port);
+            } catch (IOException e) {
+                e.printStackTrace();
+                return false;
+            }
+            Protocol proto = new ProtobufProtocol();
+            proto.connect(conn);
+            // Iterate through friends
+            for (Friend friend : friends) {
+                // get the keys for that friend
+                KeySet keys = mBinder.getKeySetForFriend(friend);
+                // Derive the expected identifier
+                TokenPair pair = derive.generateInboundIdentifier(keys);
+                // Put the identifier in the buffer for later use
+                buffer.put(FormatHelper.bytesToHex(pair.getIdentifier()), friend);
+                tokens.add(FormatHelper.bytesToHex(pair.getIdentifier()));
+            }
+            // Send the bundled GET requests
+            Map<String, byte[]> rv = proto.getMany(tokens);
+            // Prepare a list of revocation tokens, to delete any retrieved values from the server
+            Map<String, String> revoke = new HashMap<>();
+            List<String> retrieve = new LinkedList<>();
+            Map<String, DataBlock> blocks = new HashMap<>();
+            // Process results
+            for (String ident : rv.keySet()) {
+                byte[] value = rv.get(ident);
+                if (value == Protocol.GET_FAIL_KEY_FMT || value == Protocol.GET_FAIL_NO_CONNECTION || value == Protocol.GET_FAIL_PROTOCOL_ERROR) {
+                    Log.e(TAG, "doInBackground: Protocol error");
+                } else if (value == Protocol.GET_FAIL_KEY_NOT_TAKEN){
+                    // Key is not on the server, skip
+                } else {
+                    // We retrieved a value, and it was no error message
+                    // Retrieve the matching friend from the buffer
+                    Friend friend = buffer.get(ident);
+                    // Retrieve the matching keys from the database
+                    KeySet keys = mBinder.getKeySetForFriend(friend);
+                    // Decrypt the data
+                    DataBlock data = enc.decryptKeysAndIdentifier(value, keys);
+                    if (data == null) {
+                        Log.w(TAG, "doInBackground: Loaded data, but could not decrypt it. Assuming false positive match, incrementing counter");
+                        keys = derive.notifyInboundIdentifierUsed(keys);
+                        mBinder.updateKeySet(keys);
+                        continue;
+                    }
+                    // Associate this DataBlock with its owner (the person who shared it with us)
+                    data.setOwner(friend);
+                    // Derive the identifier pair again, so we can get access to the revocation token
+                    TokenPair pair = derive.generateInboundIdentifier(keys);
+                    // Update the counter
+                    keys = derive.notifyInboundIdentifierUsed(keys);
+                    // Update the keyset in the database
+                    mBinder.updateKeySet(keys);
+                    // Prepare to delete the retrieved value from the server
+                    revoke.put(FormatHelper.bytesToHex(pair.getIdentifier()), FormatHelper.bytesToHex(pair.getRevocation()));
+                    // Prepare to retrieve the new identifier from the server
+                    retrieve.add(FormatHelper.bytesToHex(data.getIdentifier()));
+                    // Also save the data object, as it contains the key and the owner
+                    blocks.put(FormatHelper.bytesToHex(data.getIdentifier()), data);
+                }
+            }
+            // If there are any revocations, perform them
+            if (revoke.size() > 0) proto.delMany(revoke);
+            // If there are any further retrievals, perform them
+            if (retrieve.size() > 0) {
+                rv = proto.getMany(retrieve);
+                for (String ident : rv.keySet()) {
+                    byte[] value = rv.get(ident);
+                    if (value == Protocol.GET_FAIL_KEY_FMT || value == Protocol.GET_FAIL_NO_CONNECTION || value == Protocol.GET_FAIL_PROTOCOL_ERROR) {
+                        Log.e(TAG, "doInBackground: Protocol error");
+                    } else if (value == Protocol.GET_FAIL_KEY_NOT_TAKEN) {
+                        Log.w(TAG, "doInBackground: Data block not on server. This should not happen... Skipping");
+                    } else {
+                        // Get data block from cache
+                        DataBlock block = blocks.get(ident);
+                        block.setCiphertext(value);
+                        // Decrypt the data into a shareable
+                        Shareable sh = enc.decryptShareable(block);
+                        if (sh != null) {
+                            // Insert into database
+                            mBinder.addShareable(sh);
+                        }
+                    }
+                }
+            }
+            // Disconnect from the server
+            proto.disconnect();
+            return true;
+        }
+
+        @Override
+        protected void onPostExecute(Boolean result) {
+            mCallback.onShareFinished(result);
         }
     }
 

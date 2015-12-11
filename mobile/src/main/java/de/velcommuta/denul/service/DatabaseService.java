@@ -823,6 +823,21 @@ public class DatabaseService extends Service {
             return rv;
         }
 
+        @Override
+        public void addShareable(Shareable shareable) {
+            assertOpen();
+            if (shareable == null) return;
+            switch (shareable.getType()) {
+                case Shareable.SHAREABLE_TRACK:
+                    addGPSTrack((GPSTrack) shareable, shareable.getOwner());
+                    break;
+                case Shareable.SHAREABLE_STEPCOUNT:
+                    // TODO
+                    Log.e(TAG, "addShareable: Step count Not implemented");
+                    break;
+            }
+        }
+
 
         ///// Utility functions
         /**

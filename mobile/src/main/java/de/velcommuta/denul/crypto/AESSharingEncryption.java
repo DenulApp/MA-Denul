@@ -61,7 +61,9 @@ public class AESSharingEncryption implements SharingEncryption {
             Log.e(TAG, "decryptShareable: InvalidProtocolBufferException");
             return null;
         }
-        return ShareableUnwrapper.unwrap(wrapper);
+        Shareable rv = ShareableUnwrapper.unwrap(wrapper);
+        if (rv != null && encrypted.getOwner() != null && encrypted.getOwner().getID() != -1) rv.setOwner(encrypted.getOwner().getID());
+        return rv;
     }
 
 

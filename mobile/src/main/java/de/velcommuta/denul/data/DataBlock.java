@@ -13,6 +13,7 @@ public class DataBlock {
     private byte[] mKey;
     private byte[] mIdentifier;
     private byte[] mCiphertext;
+    private Friend mOwner;
 
 
     /**
@@ -77,5 +78,23 @@ public class DataBlock {
      */
     public byte[] getIdentifier() {
         return Arrays.copyOf(mIdentifier, mIdentifier.length);
+    }
+
+
+    /**
+     * Setter for the optional Owner field
+     * @param owner The owner of the data
+     */
+    public void setOwner(Friend owner) {
+        mOwner = owner;
+    }
+
+
+    /**
+     * Getter for the optional owner field
+     * @return The owner, if set, or null;
+     */
+    public Friend getOwner() {
+        return mOwner;
     }
 }

@@ -235,4 +235,8 @@ public class GPSTrack implements Shareable {
     public int getOwner() {
         return mOwner;
     }
+
+    public void setOwner(int owner) {
+        mOwner = owner;
+    }
 }

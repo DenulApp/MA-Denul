@@ -221,4 +221,11 @@ public interface DatabaseServiceBinder {
      * @return A {@link DataBlock}with the Identifier and Key properties set
      */
     DataBlock getShareData(int shareid);
+
+    /**
+     * Add a shareable to the database (i.e. determine what the type is, and insert it into the
+     * proper database with the proper owner)
+     * @param shareable The shareable to add
+     */
+    void addShareable(Shareable shareable);
 }

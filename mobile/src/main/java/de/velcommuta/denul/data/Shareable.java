@@ -32,6 +32,12 @@ public interface Shareable {
     int getOwner();
 
     /**
+     * Setter for the ID of the owner.
+     * @param owner The owner ID
+     */
+    void setOwner(int owner);
+
+    /**
      * Getter for the database ID.
      * @return The database ID of the database entry represented by this sharable, or -1 if no such
      *         database entry exists
