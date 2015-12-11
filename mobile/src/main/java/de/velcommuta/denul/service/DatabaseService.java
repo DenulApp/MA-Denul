@@ -23,11 +23,16 @@ import java.util.LinkedList;
 import java.util.List;
 
 import de.greenrobot.event.EventBus;
+import de.velcommuta.denul.data.DataBlock;
 import de.velcommuta.denul.data.GPSTrack;
 import de.velcommuta.denul.data.KeySet;
+import de.velcommuta.denul.data.Shareable;
+import de.velcommuta.denul.data.TokenPair;
 import de.velcommuta.denul.db.FriendContract;
 import de.velcommuta.denul.db.LocationLoggingContract;
 import de.velcommuta.denul.db.SecureDbHelper;
+import de.velcommuta.denul.db.SharingContract;
+import de.velcommuta.denul.db.StepLoggingContract;
 import de.velcommuta.denul.event.DatabaseAvailabilityEvent;
 import de.velcommuta.denul.data.Friend;
 
@@ -650,6 +655,7 @@ public class DatabaseService extends Service {
         @Override
         public void renameGPSTrack(GPSTrack track, String name) {
             assertOpen();
+            // Sanity checks
             if (track == null) throw new SQLiteException("Track cannot be null");
             if (track.getID() == -1) throw new SQLiteException("ID must be set");
             if (name == null || name.equals("")) throw new SQLiteException("Name must be set");
@@ -666,6 +672,128 @@ public class DatabaseService extends Service {
             commit();
         }
 
+        @Override
+        public boolean isShared(Shareable sh) {
+            assertOpen();
+            // Sanity check
+            if (sh.getID() == -1) {
+                Log.e(TAG, "isShared: Shareable had ID -1");
+                return false;
+            }
+            // Prepare arguments to the query, based on the shareable
+            String[] whereArgs = { "" + sh.getID() };
+            String[] columns = { getShareIDColumnForShareable(sh)};
+            String query = getIDColumnForShareable(sh) + " LIKE ? AND " + getShareIDColumnForShareable(sh) + " IS NOT NULL";
+            String table = getTableForShareable(sh);
+            // Ensure that the shareable was known to our helper functions
+            if (table == null) {
+                Log.e(TAG, "isShared: Unknown shareable type");
+                return false;
+            }
+            // Perform the query
+            Cursor c = query(table,
+                    columns,
+                    query,
+                    whereArgs,
+                    null,
+                    null,
+                    null);
+            // If we got a result, the Shareable has already been shared, as that is the only situation
+            // in which the Share ID column will not be NULL
+            boolean rv = c.getCount() == 1;
+            // Close the cursor
+            c.close();
+            // Return
+            return rv;
+        }
+
+        @Override
+        public int getShareID(Shareable sh) {
+            // Sanity checks
+            assertOpen();
+            if (!isShared(sh)) return -1;
+            // Prepare arguments to query based on Shareable
+            String[] whereArgs = { "" + sh.getID() };
+            String[] columns = { getShareIDColumnForShareable(sh)};
+            String query = getIDColumnForShareable(sh) + " LIKE ?";
+            String table = getTableForShareable(sh);
+            // Check if the Shareable was known to our helper functions
+            if (table == null) {
+                Log.e(TAG, "isShared: Unknown shareable type");
+                return -1;
+            }
+            // Perform query
+            Cursor c = query(table,
+                    columns,
+                    query,
+                    whereArgs,
+                    null,
+                    null,
+                    null);
+            // Retrieve data (there must be a result, otherwise isShared(sh) would have returned false)
+            c.moveToFirst();
+            int rv = c.getInt(c.getColumnIndexOrThrow(getShareIDColumnForShareable(sh)));
+            // Close cursor, return
+            c.close();
+            return rv;
+        }
+
+        @Override
+        public int addShare(Shareable sh, TokenPair pair, DataBlock block) {
+            assertOpen();
+            // Sanity checks
+            if (sh.getID() == -1) return -1;
+            if (isShared(sh)) return -1;
+            // Begin a database transaction
+            beginTransaction();
+            // Prepare entry in DataShareLog
+            ContentValues data = new ContentValues();
+            data.put(SharingContract.DataShareLog.COLUMN_KEY, block.getKey());
+            data.put(SharingContract.DataShareLog.COLUMN_IDENTIFIER, pair.getIdentifier());
+            data.put(SharingContract.DataShareLog.COLUMN_REVOCATION_TOKEN, pair.getRevocation());
+            // Insert
+            int dataid = (int) insert(SharingContract.DataShareLog.TABLE_NAME, null, data);
+
+            // Prepare insert into regular database to link the Shareable with the DataShareLog
+            ContentValues link = new ContentValues();
+            link.put(getShareIDColumnForShareable(sh), dataid);
+            // Prepare table information
+            String table = getTableForShareable(sh);
+            String selection = getIDColumnForShareable(sh) + " LIKE ?";
+            String[] selectArgs = { "" + sh.getID() };
+            // Perform update
+            int updated = update(table, link, selection, selectArgs);
+            // Ensure the update took place
+            if (updated == 0) {
+                Log.e(TAG, "addShare: Update of Shareable database failed, rolling back");
+                revert();
+                return -1;
+            } else {
+                commit();
+            }
+            return dataid;
+        }
+
+
+        @Override
+        public void addShareRecipient(int datashareid, Friend friend, TokenPair pair) {
+            assertOpen();
+            // Sanity checks
+            if (datashareid == -1 || friend.getID() == -1) {
+                Log.e(TAG, "addShareRecipient: Bad ID. Data = " + datashareid + ", Friend = " + friend.getID());
+                return;
+            }
+            // Prepare contentValues
+            ContentValues share = new ContentValues();
+            share.put(SharingContract.FriendShareLog.COLUMN_DATASHARE_ID, datashareid);
+            share.put(SharingContract.FriendShareLog.COLUMN_FRIEND_ID, friend.getID());
+            share.put(SharingContract.FriendShareLog.COLUMN_REVOCATION_TOKEN, pair.getRevocation());
+            // Perform insert
+            beginTransaction();
+            insert(SharingContract.FriendShareLog.TABLE_NAME, null, share);
+            commit();
+        }
+
 
         ///// Utility functions
         /**
@@ -675,6 +803,60 @@ public class DatabaseService extends Service {
         private void assertOpen() throws SQLiteException {
             if (!(mSQLiteHandler != null && mSQLiteHandler.isOpen()))
                 throw new SQLiteException("Database is not open");
+        }
+
+
+        //// Shareable helper functions
+        // TODO Add new shareables here
+        /**
+         * Helper function to determine the name of the table in which a Shareable is saved
+         * @param sh The shareable
+         * @return The table name
+         */
+        private String getTableForShareable(Shareable sh) {
+            switch (sh.getType()) {
+                case Shareable.SHAREABLE_TRACK:
+                    return LocationLoggingContract.LocationSessions.TABLE_NAME;
+                case Shareable.SHAREABLE_STEPCOUNT:
+                    return StepLoggingContract.StepCountLog.TABLE_NAME;
+                default:
+                    return null;
+            }
+        }
+
+
+        /**
+         * Helper function to determine the name of the ID column in the table in which a shareable is saved
+         * @param sh The shareable
+         * @return The ID column name
+         */
+        private String getIDColumnForShareable(Shareable sh) {
+            switch (sh.getType()) {
+                case Shareable.SHAREABLE_TRACK:
+                    return LocationLoggingContract.LocationSessions._ID;
+                case Shareable.SHAREABLE_STEPCOUNT:
+                    return StepLoggingContract.StepCountLog._ID;
+                default:
+                    return null;
+            }
+        }
+
+
+        /**
+         * Helper function to determine the name of the share ID column in the table in which a shareable
+         * is saved
+         * @param sh The Shareable
+         * @return The share ID column
+         */
+        private String getShareIDColumnForShareable(Shareable sh) {
+            switch (sh.getType()) {
+                case Shareable.SHAREABLE_TRACK:
+                    return LocationLoggingContract.LocationSessions.COLUMN_NAME_SHARE_ID;
+                case Shareable.SHAREABLE_STEPCOUNT:
+                    return StepLoggingContract.StepCountLog.COLUMN_SHARE_ID;
+                default:
+                    return null;
+            }
         }
     }
 

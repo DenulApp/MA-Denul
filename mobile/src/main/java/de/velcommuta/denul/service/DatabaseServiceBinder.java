@@ -6,9 +6,12 @@ import net.sqlcipher.Cursor;
 
 import java.util.List;
 
+import de.velcommuta.denul.data.DataBlock;
 import de.velcommuta.denul.data.GPSTrack;
 import de.velcommuta.denul.data.KeySet;
 import de.velcommuta.denul.data.Friend;
+import de.velcommuta.denul.data.Shareable;
+import de.velcommuta.denul.data.TokenPair;
 
 /**
  * Interface for the DatabaseService class, for use with an IBinder implementation
@@ -177,4 +180,38 @@ public interface DatabaseServiceBinder {
      * @param name The new name of the GPS track
      */
     void renameGPSTrack(GPSTrack track, String name);
+
+    /**
+     * Check if a certain sharable has already been shared before
+     * @param sh The shareable
+     * @return true if it was shared before (i.e. an uploaded DataBlock exists), false otherwise
+     */
+    boolean isShared(Shareable sh);
+
+    /**
+     * Add information about a shared {@link DataBlock} to the database
+     * @param sh The {@link Shareable} represented by the DataBlock
+     * @param pair The TokenPair containing identifier and revocation token for the Data block
+     * @param block The data block itself
+     * @return The database ID of the new share in the DataShareLog table, or -1 if the Shareable
+     *         was already shared with different data.
+     */
+    int addShare(Shareable sh, TokenPair pair, DataBlock block);
+
+    /**
+     * Determine the share ID of a Shareable (the ID referencing the sharing information of the
+     * {@link DataBlock} associated with the shareable, if it exists).
+     * @param sh The shareable
+     * @return The ID of the DataBlock information in the database, if available, or -1, if the
+     *         Shareable has not been shared
+     */
+    int getShareID(Shareable sh);
+
+    /**
+     * Add information about a recipient for an existing DataBlock share to the database
+     * @param datashareid The ID of the entry in the DataShareLog table
+     * @param friend The Friend to whom the data was shared
+     * @param pair The TokenPair that was used
+     */
+    void addShareRecipient(int datashareid, Friend friend, TokenPair pair);
 }
