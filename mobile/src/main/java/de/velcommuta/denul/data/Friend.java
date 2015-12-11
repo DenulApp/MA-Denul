@@ -82,4 +82,8 @@ public class Friend {
     public void setID(int id) {
         mID = id;
     }
+
+    public String toString() {
+        return mName;
+    }
 }
