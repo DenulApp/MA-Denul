@@ -41,7 +41,7 @@ dependencies {
     // Protocol buffers
     compile 'com.google.protobuf:protobuf-java:2.6.1'
     // Android maps utils (for markers on maps)
-    compile 'com.google.maps.android:android-maps-utils:0.4+'
+    compile 'com.google.maps.android:android-maps-utils:0.4'
     // MPAndroidChart for charts (doh)
     compile 'com.github.PhilJay:MPAndroidChart:v2.1.4'
     // SQLCipher for encrypted SQLite database
