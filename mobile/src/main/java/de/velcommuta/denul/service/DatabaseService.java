@@ -759,6 +759,34 @@ public class DatabaseService extends Service {
 
 
         @Override
+        public void storePedometerKeypair(String pubkey, String privkey) {
+            assertOpen();
+            // Begin a database transaction
+            beginTransaction();
+            // Prepare database entry for the private key
+            ContentValues keyEntry = new ContentValues();
+            // Set type to private RSA key
+            keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_TYPE, VaultContract.KeyStore.TYPE_RSA_PRIV);
+            // Set the key descriptor to Pedometer key
+            keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_NAME, VaultContract.KeyStore.NAME_PEDOMETER_PRIVATE);
+            // Add the actual key to the insert
+            keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_BYTES, privkey);
+            // Insert the values into the database
+            insert(VaultContract.KeyStore.TABLE_NAME, null, keyEntry);
+
+            // Perform the same steps for the public key (as a backup)
+            keyEntry = new ContentValues();
+            keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_TYPE, VaultContract.KeyStore.TYPE_RSA_PUB);
+            keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_NAME, VaultContract.KeyStore.NAME_PEDOMETER_PUBLIC);;
+            keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_BYTES,pubkey);
+            // insert the values
+            insert(VaultContract.KeyStore.TABLE_NAME, null, keyEntry);
+            // Finish the transaction
+            commit();
+        }
+
+
+        @Override
         public Hashtable<DateTime, Long> getStepCountForDay(DateTime dt) {
             assertOpen();
             String date = formatDate(dt);

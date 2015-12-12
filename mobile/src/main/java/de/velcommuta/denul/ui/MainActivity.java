@@ -3,7 +3,6 @@ package de.velcommuta.denul.ui;
 import android.app.Fragment;
 import android.app.FragmentManager;
 import android.content.ComponentName;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
@@ -26,12 +25,9 @@ import android.widget.Toast;
 import net.sqlcipher.database.SQLiteDatabase;
 
 import java.security.KeyPair;
-import java.security.PrivateKey;
-import java.security.PublicKey;
 
 import de.greenrobot.event.EventBus;
 import de.velcommuta.denul.R;
-import de.velcommuta.denul.db.VaultContract;
 import de.velcommuta.denul.event.DatabaseAvailabilityEvent;
 import de.velcommuta.denul.service.DatabaseService;
 import de.velcommuta.denul.service.DatabaseServiceBinder;
@@ -327,33 +323,9 @@ public class MainActivity extends AppCompatActivity
         if (keypair == null) return; // If the keypair is null, something went wrong. Do nothing.
         Log.d(TAG, "setGeneratedKeypair: Got keypair, saving to database");
         if (mDbBinder != null) {
-            // Begin a database transaction
-            mDbBinder.beginTransaction();
-            // Prepare database entry for the private key
-            ContentValues keyEntry = new ContentValues();
-            // Retrieve private key
-            PrivateKey priv = keypair.getPrivate();
-            // Set type to private RSA key
-            keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_TYPE, VaultContract.KeyStore.TYPE_RSA_PRIV);
-            // Set the key descriptor to Pedometer key
-            keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_NAME, VaultContract.KeyStore.NAME_PEDOMETER_PRIVATE);
-            // Add the actual key to the insert
-            keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_BYTES, RSA.encodeKey(priv));
-            // Insert the values into the database
-            mDbBinder.insert(VaultContract.KeyStore.TABLE_NAME, null, keyEntry);
-
-            // Perform the same steps for the public key (as a backup)
-            keyEntry = new ContentValues();
-            PublicKey pub = keypair.getPublic();
-            keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_TYPE, VaultContract.KeyStore.TYPE_RSA_PUB);
-            keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_NAME, VaultContract.KeyStore.NAME_PEDOMETER_PUBLIC);
-            String encodedPub = RSA.encodeKey(pub);
-            keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_BYTES,encodedPub);
-
-            mDbBinder.insert(VaultContract.KeyStore.TABLE_NAME, null, keyEntry);
-
-            // Finish the transaction
-            mDbBinder.commit();
+            String encodedPub = RSA.encodeKey(keypair.getPublic());
+            String encodedPriv = RSA.encodeKey(keypair.getPrivate());
+            mDbBinder.storePedometerKeypair(encodedPub, encodedPriv);
             Log.d(TAG, "setGeneratedKeypair: Saved to database. Saving public key to SharedPreference");
 
             // Get a SharedPreferences.Editor

@@ -5,7 +5,6 @@ import android.app.ActivityManager;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -22,11 +21,8 @@ import android.os.IBinder;
 import android.os.SystemClock;
 import android.util.Log;
 
-import net.sqlcipher.Cursor;
-
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
-import org.joda.time.format.DateTimeFormat;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -54,8 +50,6 @@ import javax.crypto.IllegalBlockSizeException;
 
 import de.greenrobot.event.EventBus;
 import de.velcommuta.denul.R;
-import de.velcommuta.denul.db.StepLoggingContract;
-import de.velcommuta.denul.db.VaultContract;
 import de.velcommuta.denul.event.DatabaseAvailabilityEvent;
 import de.velcommuta.denul.crypto.FileOperation;
 import de.velcommuta.denul.crypto.Hybrid;

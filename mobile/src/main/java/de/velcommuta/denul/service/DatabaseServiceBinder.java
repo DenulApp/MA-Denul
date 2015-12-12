@@ -154,6 +154,13 @@ public interface DatabaseServiceBinder {
     String getPedometerPrivateKey();
 
     /**
+     * Store the keypair used by the pedometer to protect its cache files
+     * @param pubkey The String-encoded public key
+     * @param privkey The String-encoded private key
+     */
+    void storePedometerKeypair(String pubkey, String privkey);
+
+    /**
      * Retrieve the step count history for a specific day from the database
      * @param date The day for which the history should be retrieved
      * @return The history, if available, or an empty Hashtable
