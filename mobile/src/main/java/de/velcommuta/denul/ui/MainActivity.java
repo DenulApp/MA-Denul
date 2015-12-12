@@ -39,7 +39,6 @@ import de.velcommuta.denul.crypto.RSA;
  */
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener,
-        StartScreenFragment.OnFragmentInteractionListener,
         HeartRateFragment.OnFragmentInteractionListener,
         ServiceConnection
 {

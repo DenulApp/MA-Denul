@@ -81,7 +81,8 @@
     <string name="exercise_show_delete">Delete</string>
     <string name="exercise_show_rename">Rename</string>
     <string name="exercise_show_share">Share</string>
-
+    <!-- Social stream menu buttons -->
+    <string name="social_refresh">Refresh</string>
     <!-- Status messages -->
     <string name="save_success">Saved</string>
 
