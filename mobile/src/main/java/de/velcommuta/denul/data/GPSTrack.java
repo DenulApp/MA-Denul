@@ -24,6 +24,8 @@ public class GPSTrack implements Shareable {
     private int mId = -1;
     private int mOwner;
 
+    private float mDistance = 0.0f;
+
     public static final int VALUE_RUNNING = 0;
     public static final int VALUE_CYCLING = 1;
 
@@ -110,6 +112,20 @@ public class GPSTrack implements Shareable {
         return mTimezone;
     }
 
+
+    /**
+     * Function to calculate and return the distance run / cycled in this track
+     * @return The distance, as a float
+     */
+    public float getDistance() {
+        // Check if a cached value exists
+        if (mDistance != 0.0f) return mDistance;
+        // Calculate and return distance
+        for (int i = 1; i < mPosition.size(); i++) {
+            mDistance = mDistance + mPosition.get(i).distanceTo(mPosition.get(i-1));
+        }
+        return mDistance;
+    }
 
     @Override
     public int getID() {

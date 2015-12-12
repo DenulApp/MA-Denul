@@ -271,11 +271,7 @@ public class ExerciseViewActivity extends AppCompatActivity implements ServiceCo
         mTrackTitle.setText(mTrack.getSessionName());
         // Set date
         mTrackDate.setText(DateTimeFormat.shortDateTime().print(new LocalDateTime(mTrack.getTimestamp(), DateTimeZone.forID(mTrack.getTimezone()))));
-        float distance = 0;
-        List<Location> locList = mTrack.getPosition();
-        for (int i = 1; i < locList.size(); i++) {
-            distance = distance + locList.get(i).distanceTo(locList.get(i-1));
-        }
+        float distance = mTrack.getDistance();
         if (distance < 1000.0f) {
             mTrackDistance.setText(String.format(getString(R.string.distance_m), (int) distance));
         } else {

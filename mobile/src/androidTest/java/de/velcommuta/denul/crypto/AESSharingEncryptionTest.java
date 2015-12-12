@@ -19,6 +19,7 @@ import de.velcommuta.denul.data.TokenPair;
 /**
  * SHA256SharingEncryption test cases
  * TODO Add negative test cases
+ * TODO Test if it correctly applies the friend ID found in the DataBlock
  */
 public class AESSharingEncryptionTest extends TestCase {
     /**
