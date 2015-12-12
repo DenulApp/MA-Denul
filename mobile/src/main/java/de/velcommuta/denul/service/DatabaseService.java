@@ -18,7 +18,11 @@ import net.sqlcipher.Cursor;
 import net.sqlcipher.database.SQLiteDatabase;
 import net.sqlcipher.database.SQLiteException;
 
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormat;
+
 import java.util.ArrayList;
+import java.util.Hashtable;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -33,6 +37,7 @@ import de.velcommuta.denul.db.LocationLoggingContract;
 import de.velcommuta.denul.db.SecureDbHelper;
 import de.velcommuta.denul.db.SharingContract;
 import de.velcommuta.denul.db.StepLoggingContract;
+import de.velcommuta.denul.db.VaultContract;
 import de.velcommuta.denul.event.DatabaseAvailabilityEvent;
 import de.velcommuta.denul.data.Friend;
 
@@ -51,6 +56,10 @@ public class DatabaseService extends Service {
     // Alarm manager
     private AlarmManager mManager;
     private PendingIntent mIntent;
+
+    // Formatting constants
+    private String FORMAT_DATE = "dd/MM/yyyy";
+    private String FORMAT_TIME = "HH:mm";
 
     ///// Lifecycle Management
     /**
@@ -202,8 +211,7 @@ public class DatabaseService extends Service {
          * Begin a database transaction
          * @throws SQLiteException Thrown in case the database is not open or already in a transaction
          */
-        @Override
-        public void beginTransaction() throws SQLiteException {
+        private void beginTransaction() throws SQLiteException {
             assertOpen();
             if (mSQLiteHandler.inTransaction()) {
                 Log.e(TAG, "beginTransaction: Already in transaction, aborting");
@@ -218,8 +226,7 @@ public class DatabaseService extends Service {
          * Commit a database transaction
          * @throws SQLiteException Thrown in case the database is not open or not in a transaction
          */
-        @Override
-        public void commit() throws SQLiteException{
+        private void commit() throws SQLiteException{
             assertOpen();
             if (!mSQLiteHandler.inTransaction()) {
                 Log.e(TAG, "commit: Not in transaction");
@@ -235,8 +242,7 @@ public class DatabaseService extends Service {
          * Revert a database transaction
          * @throws SQLiteException Thrown in case the database is not open or not in a transaction
          */
-        @Override
-        public void revert() throws SQLiteException {
+        private void revert() throws SQLiteException {
             assertOpen();
             if (!mSQLiteHandler.inTransaction()) {
                 Log.e(TAG, "revert: Not in transaction, aborting");
@@ -256,8 +262,7 @@ public class DatabaseService extends Service {
          * @return The row of the inserted data, as per the SQLite interface
          * @throws SQLiteException If the database is not open or the insert failed
          */
-        @Override
-        public long insert(String table, String nullable, ContentValues values) throws SQLiteException {
+        private long insert(String table, String nullable, ContentValues values) throws SQLiteException {
             assertOpen();
             Log.d(TAG, "insert: Running insert");
             return mSQLiteHandler.insertOrThrow(table, nullable, values);
@@ -275,16 +280,23 @@ public class DatabaseService extends Service {
          * @param having Filtering clause (excluding the HAVING)
          * @param orderBy Ordering clause (excluding the ORDER BY)
          * @return A cursor object that allows interaction with the data
+         * @throws SQLiteException if the underlying query function throws it
          */
-        @Override
-        public Cursor query(String table, String[] columns, String selection, String[] selectionArgs, String groupBy, String having, String orderBy) throws SQLiteException {
+        private Cursor query(String table, String[] columns, String selection, String[] selectionArgs, String groupBy, String having, String orderBy) throws SQLiteException {
             assertOpen();
             Log.d(TAG, "query: Running query");
             return mSQLiteHandler.query(table, columns, selection, selectionArgs, groupBy, having, orderBy);
         }
 
-        @Override
-        public int update(String table, ContentValues values, String selection, String[] selectionArgs) {
+        /**
+         * Send an UPDATE query to the SQLite database
+         * @param table The table to be updated
+         * @param values The values to update it with
+         * @param selection The selection of which entries should be updated
+         * @param selectionArgs The arguments to replace wildcards ("?")
+         * @return The number of updated entries
+         */
+        private int update(String table, ContentValues values, String selection, String[] selectionArgs) {
             assertOpen();
             Log.d(TAG, "update: Running update");
             return mSQLiteHandler.update(table, values, selection, selectionArgs);
@@ -672,6 +684,151 @@ public class DatabaseService extends Service {
             commit();
         }
 
+
+        @Override
+        public void integratePedometerCache(Hashtable<DateTime, Long> cache) {
+            assertOpen();
+            beginTransaction();
+            for (DateTime ts : cache.keySet()) {
+                int c = getStepCountForTimestamp(ts);
+                if (c != -1) {
+                    if (c < cache.get(ts)) {
+                        ContentValues update = new ContentValues();
+                        update.put(StepLoggingContract.StepCountLog.COLUMN_VALUE, cache.get(ts));
+                        String selection = StepLoggingContract.StepCountLog.COLUMN_DATE + " LIKE ? AND "
+                                + StepLoggingContract.StepCountLog.COLUMN_TIME + " LIKE ?";
+                        String[] selectionArgs = {formatDate(ts), formatTime(ts)};
+                        update(StepLoggingContract.StepCountLog.TABLE_NAME, update, selection, selectionArgs);
+                    }
+                } else {
+                    Log.d(TAG, "saveToDatabase: Inserting value");
+                    ContentValues entry = new ContentValues();
+                    entry.put(StepLoggingContract.StepCountLog.COLUMN_DATE, formatDate(ts));
+                    entry.put(StepLoggingContract.StepCountLog.COLUMN_TIME, formatTime(ts));
+                    entry.put(StepLoggingContract.StepCountLog.COLUMN_VALUE, cache.get(ts));
+                    insert(StepLoggingContract.StepCountLog.TABLE_NAME, null, entry);
+                }
+            }
+            Log.d(TAG, "saveToDatabase: All values saved, committing");
+            commit();
+        }
+
+        @Override
+        public int getStepCountForTimestamp(DateTime dt) {
+            assertOpen();
+            int rv = -1;
+            Cursor c = query(StepLoggingContract.StepCountLog.TABLE_NAME,
+                    new String[]{StepLoggingContract.StepCountLog.COLUMN_VALUE},
+                    StepLoggingContract.StepCountLog.COLUMN_DATE + " = '" + formatDate(dt) + "' AND " +
+                            StepLoggingContract.StepCountLog.COLUMN_TIME + " = '" + formatTime(dt) + "'",
+                    null,
+                    null,
+                    null,
+                    null);
+            if (c.moveToFirst()) {
+                rv = c.getInt(c.getColumnIndexOrThrow(StepLoggingContract.StepCountLog.COLUMN_VALUE));
+            }
+            c.close();
+            return rv;
+        }
+
+
+        @Override
+        public String getPedometerPrivateKey() {
+            assertOpen();
+            String encoded = null;
+            // Query the database for the private key
+            Cursor c = query(VaultContract.KeyStore.TABLE_NAME,
+                    new String[] {VaultContract.KeyStore.COLUMN_KEY_BYTES},
+                    VaultContract.KeyStore.COLUMN_KEY_NAME + " LIKE ?",
+                    new String[] {VaultContract.KeyStore.NAME_PEDOMETER_PRIVATE},
+                    null,
+                    null,
+                    null);
+            // Retrieve the encoded string
+            if (c.moveToFirst()) {
+                encoded = c.getString(
+                        c.getColumnIndexOrThrow(VaultContract.KeyStore.COLUMN_KEY_BYTES)
+                );
+            }
+            // Close the cursor
+            c.close();
+            // Return
+            return encoded;
+        }
+
+
+        @Override
+        public Hashtable<DateTime, Long> getStepCountForDay(DateTime dt) {
+            assertOpen();
+            String date = formatDate(dt);
+            Hashtable<DateTime, Long> rv = new Hashtable<>();
+            Cursor c = query(StepLoggingContract.StepCountLog.TABLE_NAME,
+                    new String[]{StepLoggingContract.StepCountLog.COLUMN_TIME, StepLoggingContract.StepCountLog.COLUMN_VALUE},
+                    StepLoggingContract.StepCountLog.COLUMN_DATE + " LIKE ?",
+                    new String[]{date},
+                    null, // groupby
+                    null, // having
+                    null); // orderby
+            if (c.getCount() > 0) {
+                while (c.moveToNext()) {
+                    // retrieve values
+                    long value = c.getInt(c.getColumnIndexOrThrow(StepLoggingContract.StepCountLog.COLUMN_VALUE));
+                    String time = c.getString(c.getColumnIndexOrThrow(StepLoggingContract.StepCountLog.COLUMN_TIME));
+                    // Convert to DateTime
+                    DateTime timestamp = DateTime.parse(date + " " + time, DateTimeFormat.forPattern(FORMAT_DATE + " " + FORMAT_TIME));
+                    rv.put(timestamp, value);
+                }
+                Log.d(TAG, "getStepCountForDay: Got a result");
+            } else {
+                Log.d(TAG, "getStepCountForDay: Nothing in the database for specified day");
+            }
+            c.close();
+            return rv;
+        }
+
+
+        @Override
+        public int getMaxStepCounterSequenceNumber() {
+            assertOpen();
+            int rv = -1;
+            Cursor c = query(VaultContract.SequenceNumberStore.TABLE_NAME,
+                    new String[]{VaultContract.SequenceNumberStore.COLUMN_SNR_VALUE},
+                    VaultContract.SequenceNumberStore.COLUMN_SNR_TYPE + " LIKE ?",
+                    new String[]{VaultContract.SequenceNumberStore.TYPE_PEDOMETER},
+                    null,
+                    null,
+                    null);
+            if (c.moveToFirst()) {
+                rv = c.getInt(c.getColumnIndexOrThrow(VaultContract.SequenceNumberStore.COLUMN_SNR_VALUE));
+            }
+            c.close();
+            return rv;
+        }
+
+
+        @Override
+        public void storeStepCounterSequenceNumber(int seqnr) {
+            int cSeqNr = getMaxStepCounterSequenceNumber();
+            if (cSeqNr == -1) {
+                Log.d(TAG, "storeStepCounterSequenceNumber: Inserting new value");
+                ContentValues insert = new ContentValues();
+                insert.put(VaultContract.SequenceNumberStore.COLUMN_SNR_TYPE, VaultContract.SequenceNumberStore.TYPE_PEDOMETER);
+                insert.put(VaultContract.SequenceNumberStore.COLUMN_SNR_VALUE, seqnr);
+                insert(VaultContract.SequenceNumberStore.TABLE_NAME, null, insert);
+            } else {
+                Log.d(TAG, "storeStepCounterSequenceNumber: Updating value");
+                ContentValues values = new ContentValues();
+                values.put(VaultContract.SequenceNumberStore.COLUMN_SNR_VALUE, seqnr);
+                update(VaultContract.SequenceNumberStore.TABLE_NAME,
+                        values,
+                        VaultContract.SequenceNumberStore.COLUMN_SNR_TYPE + " LIKE ?",
+                        new String[]{VaultContract.SequenceNumberStore.TYPE_PEDOMETER}
+                );
+            }
+        }
+
+
         @Override
         public boolean isShared(Shareable sh) {
             assertOpen();
@@ -901,6 +1058,27 @@ public class DatabaseService extends Service {
                 default:
                     return null;
             }
+        }
+
+        // Formatting helper
+
+        /**
+         * Format a given DateTime for the date column of the database
+         * @param dt The DateTime object
+         * @return The String representation of the day
+         */
+        private String formatDate(DateTime dt) {
+            return dt.toString(DateTimeFormat.forPattern(FORMAT_DATE));
+        }
+
+
+        /**
+         * Format a given DateTime for the time column of the database
+         * @param dt The DateTime Object
+         * @return The String representation of the time
+         */
+        private String formatTime(DateTime dt) {
+            return dt.toString(DateTimeFormat.forPattern(FORMAT_TIME));
         }
     }
 

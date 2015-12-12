@@ -4,6 +4,9 @@ import android.content.ContentValues;
 
 import net.sqlcipher.Cursor;
 
+import org.joda.time.DateTime;
+
+import java.util.Hashtable;
 import java.util.List;
 
 import de.velcommuta.denul.data.DataBlock;
@@ -28,57 +31,6 @@ public interface DatabaseServiceBinder {
      * @return true if yes, false if not
      */
     boolean isDatabaseOpen();
-
-
-    /**
-     * Begin a database transaction
-     */
-    void beginTransaction();
-
-
-    /**
-     * Commit a database transaction
-     */
-    void commit();
-
-
-    /**
-     * Roll back a database transaction
-     */
-    void revert();
-
-    
-    /**
-     * Insert a ContentValues object into the database
-     * @param table Table to insert into
-     * @param nullable Nullable columns, as per the insert logic of the database interface
-     * @param values The ContentValues object
-     * @return The RowID of the inserted record, as per the original APIs
-     */
-    long insert(String table, String nullable, ContentValues values);
-
-    /**
-     * Query the SQLite database. Many of the parameters can be nulled if they should not be used
-     * @param table The table to query
-     * @param columns The columns to return
-     * @param selection Filter to query which rows should be displayed
-     * @param selectionArgs Arguments to selection (for "?" wildcards)
-     * @param groupBy Grouping clause (excluding the GROUP BY statement)
-     * @param having Filtering clause (excluding the HAVING)
-     * @param orderBy Ordering clause (excluding the ORDER BY)
-     * @return A cursor object that can be used to retrieve the data
-     */
-    Cursor query(String table, String[] columns, String selection, String[] selectionArgs, String groupBy, String having, String orderBy);
-
-    /**
-     * Send an UPDATE query to the SQLite database
-     * @param table The table to be updated
-     * @param values The values to update it with
-     * @param selection The selection of which entries should be updated
-     * @param selectionArgs The arguments to replace wildcards ("?")
-     * @return The number of updated entries
-     */
-    int update(String table, ContentValues values, String selection, String[] selectionArgs);
 
     /**
      * Query the database for all friends and return the result as a cursor
@@ -180,6 +132,45 @@ public interface DatabaseServiceBinder {
      * @param name The new name of the GPS track
      */
     void renameGPSTrack(GPSTrack track, String name);
+
+    /**
+     * Integrate the pedometer cache with the database, ensuring that the cached data is persistently
+     * saved
+     * @param cache The cache object
+     */
+    void integratePedometerCache(Hashtable<DateTime, Long> cache);
+
+    /**
+     * Retrieve the step count for a certain {@link DateTime} timestamp from the database
+     * @param ts The Timestamp
+     * @return The step count, or -1 if no data is in the database for that timestamp
+     */
+    int getStepCountForTimestamp(DateTime ts);
+
+    /**
+     * Retrieve the pedometer private key from the database, encoded as a String
+     * @return The pedometer private key, as string, if it exists
+     */
+    String getPedometerPrivateKey();
+
+    /**
+     * Retrieve the step count history for a specific day from the database
+     * @param date The day for which the history should be retrieved
+     * @return The history, if available, or an empty Hashtable
+     */
+    Hashtable<DateTime, Long> getStepCountForDay(DateTime date);
+
+    /**
+     * Getter for the largest used step counter sequence number (used during encryption of the cache)
+     * @return The sequence number, or -1 if none was found
+     */
+    int getMaxStepCounterSequenceNumber();
+
+    /**
+     * Update the stored maximum sequence number of the step counter in the database
+     * @param seqnr The sequence number
+     */
+    void storeStepCounterSequenceNumber(int seqnr);
 
     /**
      * Check if a certain sharable has already been shared before
