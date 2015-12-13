@@ -111,6 +111,13 @@ public interface DatabaseServiceBinder {
     List<GPSTrack> getOwnerGPSTracks();
 
     /**
+     * Get all GPS tracks shared by a specific friend
+     * @param friend The Friend. MUST NOT return -1 on a call to {@link Friend#getID()}
+     * @return A List of all GPSTracks shared by the friend, or an empty List.
+     */
+    List<GPSTrack> getGPSTrackByFriend(Friend friend);
+
+    /**
      * Retrieve a specific GPS track from the database
      * @param id The ID of the GPS track
      * @return The GPS track, or null if no such GPS track exists
@@ -219,6 +226,13 @@ public interface DatabaseServiceBinder {
      * @return A {@link DataBlock}with the Identifier and Key properties set
      */
     DataBlock getShareData(int shareid);
+
+    /**
+     * Delete all data that has been shared by a specific user
+     * @param friend The friend owning the data. The object MUST NOT return -1 on the
+     *               {@link Friend#getID()} call.
+     */
+    void deleteSharesByFriend(Friend friend);
 
     /**
      * Add a shareable to the database (i.e. determine what the type is, and insert it into the

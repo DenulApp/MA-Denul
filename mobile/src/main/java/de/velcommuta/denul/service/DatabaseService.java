@@ -352,10 +352,12 @@ public class DatabaseService extends Service {
                     null,
                     null,
                     null);
-            c.moveToFirst();
-            Friend rv = new Friend(c.getString(c.getColumnIndexOrThrow(FriendContract.FriendList.COLUMN_NAME_FRIEND)),
-                                   c.getInt(c.getColumnIndexOrThrow(FriendContract.FriendList.COLUMN_NAME_VERIFIED)),
-                                   c.getInt(c.getColumnIndexOrThrow(FriendContract.FriendList._ID)));
+            Friend rv = null;
+            if (c.moveToFirst()) {
+                rv = new Friend(c.getString(c.getColumnIndexOrThrow(FriendContract.FriendList.COLUMN_NAME_FRIEND)),
+                        c.getInt(c.getColumnIndexOrThrow(FriendContract.FriendList.COLUMN_NAME_VERIFIED)),
+                        c.getInt(c.getColumnIndexOrThrow(FriendContract.FriendList._ID)));
+            }
             c.close();
             return rv;
         }
@@ -571,10 +573,21 @@ public class DatabaseService extends Service {
 
         @Override
         public List<GPSTrack> getOwnerGPSTracks() {
+            return getGPSTracksForOwnerID(-1);
+        }
+
+
+        /**
+         * Private helper function to retrieve all GPS tracks by a specific owner
+         * @param id The owner ID (i.e. the database ID of a Friend, or -1 to get all GPSTracks by
+         *           the device owner
+         * @return A List of GPSTracks owned by the user with that ID, or an empty List.
+         */
+        private List<GPSTrack> getGPSTracksForOwnerID(int id) {
             assertOpen();
             List<GPSTrack> trackList = new LinkedList<>();
             String[] columns = {LocationLoggingContract.LocationSessions._ID};
-            String[] whereArgs = { "-1" };
+            String[] whereArgs = { ""+id };
             // Retrieve session IDs
             Cursor session = query(LocationLoggingContract.LocationSessions.TABLE_NAME,
                     columns,
@@ -592,6 +605,13 @@ public class DatabaseService extends Service {
             session.close();
             // Return
             return trackList;
+        }
+
+
+        @Override
+        public List<GPSTrack> getGPSTrackByFriend(Friend friend) {
+            if (friend == null || friend.getID() == -1) throw new IllegalArgumentException("Bad friend object");
+            return getGPSTracksForOwnerID(friend.getID());
         }
 
 
@@ -777,7 +797,7 @@ public class DatabaseService extends Service {
             // Perform the same steps for the public key (as a backup)
             keyEntry = new ContentValues();
             keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_TYPE, VaultContract.KeyStore.TYPE_RSA_PUB);
-            keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_NAME, VaultContract.KeyStore.NAME_PEDOMETER_PUBLIC);;
+            keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_NAME, VaultContract.KeyStore.NAME_PEDOMETER_PUBLIC);
             keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_BYTES,pubkey);
             // insert the values
             insert(VaultContract.KeyStore.TABLE_NAME, null, keyEntry);
@@ -1007,6 +1027,19 @@ public class DatabaseService extends Service {
             c.close();
             return rv;
         }
+
+
+        @Override
+        public void deleteSharesByFriend(Friend friend) {
+            assertOpen();
+            if (friend == null || friend.getID() == -1) throw new IllegalArgumentException("Bad friend object");
+            List<GPSTrack> shares = getGPSTrackByFriend(friend);
+            for (GPSTrack track : shares) {
+                deleteGPSTrack(track);
+            }
+            // TODO Add further shareable types here
+        }
+
 
         @Override
         public void addShareable(Shareable shareable) {

@@ -247,6 +247,7 @@ public class ShareManager {
                 } else if (value == Protocol.GET_FAIL_KEY_NOT_TAKEN){
                     // Key is not on the server, skip
                 } else {
+                    Log.d(TAG, "doInBackground: Found Key block under key");
                     // We retrieved a value, and it was no error message
                     // Retrieve the matching friend from the buffer
                     Friend friend = buffer.get(ident);
@@ -280,6 +281,7 @@ public class ShareManager {
             if (revoke.size() > 0) proto.delMany(revoke);
             // If there are any further retrievals, perform them
             if (retrieve.size() > 0) {
+                Log.d(TAG, "doInBackground: Retrieving data blocks");
                 rv = proto.getMany(retrieve);
                 for (String ident : rv.keySet()) {
                     byte[] value = rv.get(ident);
@@ -288,6 +290,7 @@ public class ShareManager {
                     } else if (value == Protocol.GET_FAIL_KEY_NOT_TAKEN) {
                         Log.w(TAG, "doInBackground: Data block not on server. This should not happen... Skipping");
                     } else {
+                        Log.d(TAG, "doInBackground: Got data block");
                         // Get data block from cache
                         DataBlock block = blocks.get(ident);
                         block.setCiphertext(value);
