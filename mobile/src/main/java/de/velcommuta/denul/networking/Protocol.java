@@ -73,7 +73,7 @@ public interface Protocol {
      * @return The value saved under that key, or null if the key is not set
      */
     @Nullable
-    byte[] get(String key);
+    byte[] get(byte[] key);
 
     /**
      * Retrieve all values stored under a List of keys from the server
@@ -81,7 +81,7 @@ public interface Protocol {
      * @return A dictionary mapping the key Strings to the byte[] values, or null if they are not
      * on the server
      */
-    Map<String, byte[]> getMany(List<String> keys);
+    Map<byte[], byte[]> getMany(List<byte[]> keys);
 
     /**
      * Insert a value into the database of the server
@@ -90,7 +90,7 @@ public interface Protocol {
      * @return One of the PUT_* constants defined by the interface, indicating the result of the
      * operation
      */
-    int put(String key, byte[] value);
+    int put(byte[] key, byte[] value);
 
     /**
      * Insert a number of key-value-pairs into the database of the server
@@ -98,7 +98,7 @@ public interface Protocol {
      * @return A Dictionary mapping the keys to PUT_* constants defined by the interface, indicating
      * the individual results of the put operations
      */
-    Map<String, Integer> putMany(Map<String, byte[]> records);
+    Map<byte[], Integer> putMany(Map<byte[], byte[]> records);
 
     /**
      * Delete a key from the database of the server, authenticating the deletion operation by
@@ -107,7 +107,7 @@ public interface Protocol {
      * @param authenticator The authenticator for the operation
      * @return One of the DEL_* constants defined by the interface, indicating the result
      */
-    int del(String key, String authenticator);
+    int del(byte[] key, byte[] authenticator);
 
     /**
      * Delete a number of keys from the database of the server, authenticating each operation by
@@ -116,5 +116,5 @@ public interface Protocol {
      * @return A dictionary mapping the keys to one of the DEL_* constants defined in the interface,
      * indicating the result of the operation
      */
-    Map<String, Integer> delMany(Map<String, String> records);
+    Map<byte[], Integer> delMany(Map<byte[], byte[]> records);
 }

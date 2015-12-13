@@ -13,7 +13,7 @@ public final class C2S {
       com.google.protobuf.MessageOrBuilder {
 
     /**
-     * <code>required string key = 1;</code>
+     * <code>required bytes key = 1;</code>
      *
      * <pre>
      * Key under which the value should be stored
@@ -21,22 +21,13 @@ public final class C2S {
      */
     boolean hasKey();
     /**
-     * <code>required string key = 1;</code>
+     * <code>required bytes key = 1;</code>
      *
      * <pre>
      * Key under which the value should be stored
      * </pre>
      */
-    java.lang.String getKey();
-    /**
-     * <code>required string key = 1;</code>
-     *
-     * <pre>
-     * Key under which the value should be stored
-     * </pre>
-     */
-    com.google.protobuf.ByteString
-        getKeyBytes();
+    com.google.protobuf.ByteString getKey();
 
     /**
      * <code>required bytes value = 2;</code>
@@ -112,9 +103,8 @@ public final class C2S {
               break;
             }
             case 10: {
-              com.google.protobuf.ByteString bs = input.readBytes();
               bitField0_ |= 0x00000001;
-              key_ = bs;
+              key_ = input.readBytes();
               break;
             }
             case 18: {
@@ -163,9 +153,9 @@ public final class C2S {
 
     private int bitField0_;
     public static final int KEY_FIELD_NUMBER = 1;
-    private java.lang.Object key_;
+    private com.google.protobuf.ByteString key_;
     /**
-     * <code>required string key = 1;</code>
+     * <code>required bytes key = 1;</code>
      *
      * <pre>
      * Key under which the value should be stored
@@ -175,45 +165,14 @@ public final class C2S {
       return ((bitField0_ & 0x00000001) == 0x00000001);
     }
     /**
-     * <code>required string key = 1;</code>
+     * <code>required bytes key = 1;</code>
      *
      * <pre>
      * Key under which the value should be stored
      * </pre>
      */
-    public java.lang.String getKey() {
-      java.lang.Object ref = key_;
-      if (ref instanceof java.lang.String) {
-        return (java.lang.String) ref;
-      } else {
-        com.google.protobuf.ByteString bs = 
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          key_ = s;
-        }
-        return s;
-      }
-    }
-    /**
-     * <code>required string key = 1;</code>
-     *
-     * <pre>
-     * Key under which the value should be stored
-     * </pre>
-     */
-    public com.google.protobuf.ByteString
-        getKeyBytes() {
-      java.lang.Object ref = key_;
-      if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        key_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
+    public com.google.protobuf.ByteString getKey() {
+      return key_;
     }
 
     public static final int VALUE_FIELD_NUMBER = 2;
@@ -240,7 +199,7 @@ public final class C2S {
     }
 
     private void initFields() {
-      key_ = "";
+      key_ = com.google.protobuf.ByteString.EMPTY;
       value_ = com.google.protobuf.ByteString.EMPTY;
     }
     private byte memoizedIsInitialized = -1;
@@ -265,7 +224,7 @@ public final class C2S {
                         throws java.io.IOException {
       getSerializedSize();
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        output.writeBytes(1, getKeyBytes());
+        output.writeBytes(1, key_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         output.writeBytes(2, value_);
@@ -281,7 +240,7 @@ public final class C2S {
       size = 0;
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(1, getKeyBytes());
+          .computeBytesSize(1, key_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.CodedOutputStream
@@ -408,7 +367,7 @@ public final class C2S {
 
       public Builder clear() {
         super.clear();
-        key_ = "";
+        key_ = com.google.protobuf.ByteString.EMPTY;
         bitField0_ = (bitField0_ & ~0x00000001);
         value_ = com.google.protobuf.ByteString.EMPTY;
         bitField0_ = (bitField0_ & ~0x00000002);
@@ -465,9 +424,7 @@ public final class C2S {
       public Builder mergeFrom(de.velcommuta.denul.networking.protobuf.c2s.C2S.Store other) {
         if (other == de.velcommuta.denul.networking.protobuf.c2s.C2S.Store.getDefaultInstance()) return this;
         if (other.hasKey()) {
-          bitField0_ |= 0x00000001;
-          key_ = other.key_;
-          onChanged();
+          setKey(other.getKey());
         }
         if (other.hasValue()) {
           setValue(other.getValue());
@@ -507,9 +464,9 @@ public final class C2S {
       }
       private int bitField0_;
 
-      private java.lang.Object key_ = "";
+      private com.google.protobuf.ByteString key_ = com.google.protobuf.ByteString.EMPTY;
       /**
-       * <code>required string key = 1;</code>
+       * <code>required bytes key = 1;</code>
        *
        * <pre>
        * Key under which the value should be stored
@@ -519,55 +476,23 @@ public final class C2S {
         return ((bitField0_ & 0x00000001) == 0x00000001);
       }
       /**
-       * <code>required string key = 1;</code>
+       * <code>required bytes key = 1;</code>
        *
        * <pre>
        * Key under which the value should be stored
        * </pre>
        */
-      public java.lang.String getKey() {
-        java.lang.Object ref = key_;
-        if (!(ref instanceof java.lang.String)) {
-          com.google.protobuf.ByteString bs =
-              (com.google.protobuf.ByteString) ref;
-          java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            key_ = s;
-          }
-          return s;
-        } else {
-          return (java.lang.String) ref;
-        }
+      public com.google.protobuf.ByteString getKey() {
+        return key_;
       }
       /**
-       * <code>required string key = 1;</code>
+       * <code>required bytes key = 1;</code>
        *
        * <pre>
        * Key under which the value should be stored
        * </pre>
        */
-      public com.google.protobuf.ByteString
-          getKeyBytes() {
-        java.lang.Object ref = key_;
-        if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
-              com.google.protobuf.ByteString.copyFromUtf8(
-                  (java.lang.String) ref);
-          key_ = b;
-          return b;
-        } else {
-          return (com.google.protobuf.ByteString) ref;
-        }
-      }
-      /**
-       * <code>required string key = 1;</code>
-       *
-       * <pre>
-       * Key under which the value should be stored
-       * </pre>
-       */
-      public Builder setKey(
-          java.lang.String value) {
+      public Builder setKey(com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
@@ -577,7 +502,7 @@ public final class C2S {
         return this;
       }
       /**
-       * <code>required string key = 1;</code>
+       * <code>required bytes key = 1;</code>
        *
        * <pre>
        * Key under which the value should be stored
@@ -586,23 +511,6 @@ public final class C2S {
       public Builder clearKey() {
         bitField0_ = (bitField0_ & ~0x00000001);
         key_ = getDefaultInstance().getKey();
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>required string key = 1;</code>
-       *
-       * <pre>
-       * Key under which the value should be stored
-       * </pre>
-       */
-      public Builder setKeyBytes(
-          com.google.protobuf.ByteString value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  bitField0_ |= 0x00000001;
-        key_ = value;
         onChanged();
         return this;
       }
@@ -691,7 +599,7 @@ public final class C2S {
     de.velcommuta.denul.networking.protobuf.c2s.C2S.StoreReply.StoreReplyCode getOpcode();
 
     /**
-     * <code>required string key = 2;</code>
+     * <code>required bytes key = 2;</code>
      *
      * <pre>
      * Key of the Store operation this is referring to
@@ -699,22 +607,13 @@ public final class C2S {
      */
     boolean hasKey();
     /**
-     * <code>required string key = 2;</code>
+     * <code>required bytes key = 2;</code>
      *
      * <pre>
      * Key of the Store operation this is referring to
      * </pre>
      */
-    java.lang.String getKey();
-    /**
-     * <code>required string key = 2;</code>
-     *
-     * <pre>
-     * Key of the Store operation this is referring to
-     * </pre>
-     */
-    com.google.protobuf.ByteString
-        getKeyBytes();
+    com.google.protobuf.ByteString getKey();
   }
   /**
    * Protobuf type {@code de.velcommuta.denul.networking.protobuf.c2s.StoreReply}
@@ -780,9 +679,8 @@ public final class C2S {
               break;
             }
             case 18: {
-              com.google.protobuf.ByteString bs = input.readBytes();
               bitField0_ |= 0x00000002;
-              key_ = bs;
+              key_ = input.readBytes();
               break;
             }
           }
@@ -981,9 +879,9 @@ public final class C2S {
     }
 
     public static final int KEY_FIELD_NUMBER = 2;
-    private java.lang.Object key_;
+    private com.google.protobuf.ByteString key_;
     /**
-     * <code>required string key = 2;</code>
+     * <code>required bytes key = 2;</code>
      *
      * <pre>
      * Key of the Store operation this is referring to
@@ -993,50 +891,19 @@ public final class C2S {
       return ((bitField0_ & 0x00000002) == 0x00000002);
     }
     /**
-     * <code>required string key = 2;</code>
+     * <code>required bytes key = 2;</code>
      *
      * <pre>
      * Key of the Store operation this is referring to
      * </pre>
      */
-    public java.lang.String getKey() {
-      java.lang.Object ref = key_;
-      if (ref instanceof java.lang.String) {
-        return (java.lang.String) ref;
-      } else {
-        com.google.protobuf.ByteString bs = 
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          key_ = s;
-        }
-        return s;
-      }
-    }
-    /**
-     * <code>required string key = 2;</code>
-     *
-     * <pre>
-     * Key of the Store operation this is referring to
-     * </pre>
-     */
-    public com.google.protobuf.ByteString
-        getKeyBytes() {
-      java.lang.Object ref = key_;
-      if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        key_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
+    public com.google.protobuf.ByteString getKey() {
+      return key_;
     }
 
     private void initFields() {
       opcode_ = de.velcommuta.denul.networking.protobuf.c2s.C2S.StoreReply.StoreReplyCode.STORE_OK;
-      key_ = "";
+      key_ = com.google.protobuf.ByteString.EMPTY;
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -1063,7 +930,7 @@ public final class C2S {
         output.writeEnum(1, opcode_.getNumber());
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        output.writeBytes(2, getKeyBytes());
+        output.writeBytes(2, key_);
       }
       getUnknownFields().writeTo(output);
     }
@@ -1080,7 +947,7 @@ public final class C2S {
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(2, getKeyBytes());
+          .computeBytesSize(2, key_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -1201,7 +1068,7 @@ public final class C2S {
         super.clear();
         opcode_ = de.velcommuta.denul.networking.protobuf.c2s.C2S.StoreReply.StoreReplyCode.STORE_OK;
         bitField0_ = (bitField0_ & ~0x00000001);
-        key_ = "";
+        key_ = com.google.protobuf.ByteString.EMPTY;
         bitField0_ = (bitField0_ & ~0x00000002);
         return this;
       }
@@ -1259,9 +1126,7 @@ public final class C2S {
           setOpcode(other.getOpcode());
         }
         if (other.hasKey()) {
-          bitField0_ |= 0x00000002;
-          key_ = other.key_;
-          onChanged();
+          setKey(other.getKey());
         }
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
@@ -1349,9 +1214,9 @@ public final class C2S {
         return this;
       }
 
-      private java.lang.Object key_ = "";
+      private com.google.protobuf.ByteString key_ = com.google.protobuf.ByteString.EMPTY;
       /**
-       * <code>required string key = 2;</code>
+       * <code>required bytes key = 2;</code>
        *
        * <pre>
        * Key of the Store operation this is referring to
@@ -1361,55 +1226,23 @@ public final class C2S {
         return ((bitField0_ & 0x00000002) == 0x00000002);
       }
       /**
-       * <code>required string key = 2;</code>
+       * <code>required bytes key = 2;</code>
        *
        * <pre>
        * Key of the Store operation this is referring to
        * </pre>
        */
-      public java.lang.String getKey() {
-        java.lang.Object ref = key_;
-        if (!(ref instanceof java.lang.String)) {
-          com.google.protobuf.ByteString bs =
-              (com.google.protobuf.ByteString) ref;
-          java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            key_ = s;
-          }
-          return s;
-        } else {
-          return (java.lang.String) ref;
-        }
+      public com.google.protobuf.ByteString getKey() {
+        return key_;
       }
       /**
-       * <code>required string key = 2;</code>
+       * <code>required bytes key = 2;</code>
        *
        * <pre>
        * Key of the Store operation this is referring to
        * </pre>
        */
-      public com.google.protobuf.ByteString
-          getKeyBytes() {
-        java.lang.Object ref = key_;
-        if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
-              com.google.protobuf.ByteString.copyFromUtf8(
-                  (java.lang.String) ref);
-          key_ = b;
-          return b;
-        } else {
-          return (com.google.protobuf.ByteString) ref;
-        }
-      }
-      /**
-       * <code>required string key = 2;</code>
-       *
-       * <pre>
-       * Key of the Store operation this is referring to
-       * </pre>
-       */
-      public Builder setKey(
-          java.lang.String value) {
+      public Builder setKey(com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
@@ -1419,7 +1252,7 @@ public final class C2S {
         return this;
       }
       /**
-       * <code>required string key = 2;</code>
+       * <code>required bytes key = 2;</code>
        *
        * <pre>
        * Key of the Store operation this is referring to
@@ -1428,23 +1261,6 @@ public final class C2S {
       public Builder clearKey() {
         bitField0_ = (bitField0_ & ~0x00000002);
         key_ = getDefaultInstance().getKey();
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>required string key = 2;</code>
-       *
-       * <pre>
-       * Key of the Store operation this is referring to
-       * </pre>
-       */
-      public Builder setKeyBytes(
-          com.google.protobuf.ByteString value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  bitField0_ |= 0x00000002;
-        key_ = value;
         onChanged();
         return this;
       }
@@ -1465,7 +1281,7 @@ public final class C2S {
       com.google.protobuf.MessageOrBuilder {
 
     /**
-     * <code>required string key = 1;</code>
+     * <code>required bytes key = 1;</code>
      *
      * <pre>
      * Key that should be queried
@@ -1473,22 +1289,13 @@ public final class C2S {
      */
     boolean hasKey();
     /**
-     * <code>required string key = 1;</code>
+     * <code>required bytes key = 1;</code>
      *
      * <pre>
      * Key that should be queried
      * </pre>
      */
-    java.lang.String getKey();
-    /**
-     * <code>required string key = 1;</code>
-     *
-     * <pre>
-     * Key that should be queried
-     * </pre>
-     */
-    com.google.protobuf.ByteString
-        getKeyBytes();
+    com.google.protobuf.ByteString getKey();
   }
   /**
    * Protobuf type {@code de.velcommuta.denul.networking.protobuf.c2s.Get}
@@ -1543,9 +1350,8 @@ public final class C2S {
               break;
             }
             case 10: {
-              com.google.protobuf.ByteString bs = input.readBytes();
               bitField0_ |= 0x00000001;
-              key_ = bs;
+              key_ = input.readBytes();
               break;
             }
           }
@@ -1589,9 +1395,9 @@ public final class C2S {
 
     private int bitField0_;
     public static final int KEY_FIELD_NUMBER = 1;
-    private java.lang.Object key_;
+    private com.google.protobuf.ByteString key_;
     /**
-     * <code>required string key = 1;</code>
+     * <code>required bytes key = 1;</code>
      *
      * <pre>
      * Key that should be queried
@@ -1601,49 +1407,18 @@ public final class C2S {
       return ((bitField0_ & 0x00000001) == 0x00000001);
     }
     /**
-     * <code>required string key = 1;</code>
+     * <code>required bytes key = 1;</code>
      *
      * <pre>
      * Key that should be queried
      * </pre>
      */
-    public java.lang.String getKey() {
-      java.lang.Object ref = key_;
-      if (ref instanceof java.lang.String) {
-        return (java.lang.String) ref;
-      } else {
-        com.google.protobuf.ByteString bs = 
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          key_ = s;
-        }
-        return s;
-      }
-    }
-    /**
-     * <code>required string key = 1;</code>
-     *
-     * <pre>
-     * Key that should be queried
-     * </pre>
-     */
-    public com.google.protobuf.ByteString
-        getKeyBytes() {
-      java.lang.Object ref = key_;
-      if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        key_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
+    public com.google.protobuf.ByteString getKey() {
+      return key_;
     }
 
     private void initFields() {
-      key_ = "";
+      key_ = com.google.protobuf.ByteString.EMPTY;
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -1663,7 +1438,7 @@ public final class C2S {
                         throws java.io.IOException {
       getSerializedSize();
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        output.writeBytes(1, getKeyBytes());
+        output.writeBytes(1, key_);
       }
       getUnknownFields().writeTo(output);
     }
@@ -1676,7 +1451,7 @@ public final class C2S {
       size = 0;
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(1, getKeyBytes());
+          .computeBytesSize(1, key_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -1795,7 +1570,7 @@ public final class C2S {
 
       public Builder clear() {
         super.clear();
-        key_ = "";
+        key_ = com.google.protobuf.ByteString.EMPTY;
         bitField0_ = (bitField0_ & ~0x00000001);
         return this;
       }
@@ -1846,9 +1621,7 @@ public final class C2S {
       public Builder mergeFrom(de.velcommuta.denul.networking.protobuf.c2s.C2S.Get other) {
         if (other == de.velcommuta.denul.networking.protobuf.c2s.C2S.Get.getDefaultInstance()) return this;
         if (other.hasKey()) {
-          bitField0_ |= 0x00000001;
-          key_ = other.key_;
-          onChanged();
+          setKey(other.getKey());
         }
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
@@ -1881,9 +1654,9 @@ public final class C2S {
       }
       private int bitField0_;
 
-      private java.lang.Object key_ = "";
+      private com.google.protobuf.ByteString key_ = com.google.protobuf.ByteString.EMPTY;
       /**
-       * <code>required string key = 1;</code>
+       * <code>required bytes key = 1;</code>
        *
        * <pre>
        * Key that should be queried
@@ -1893,55 +1666,23 @@ public final class C2S {
         return ((bitField0_ & 0x00000001) == 0x00000001);
       }
       /**
-       * <code>required string key = 1;</code>
+       * <code>required bytes key = 1;</code>
        *
        * <pre>
        * Key that should be queried
        * </pre>
        */
-      public java.lang.String getKey() {
-        java.lang.Object ref = key_;
-        if (!(ref instanceof java.lang.String)) {
-          com.google.protobuf.ByteString bs =
-              (com.google.protobuf.ByteString) ref;
-          java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            key_ = s;
-          }
-          return s;
-        } else {
-          return (java.lang.String) ref;
-        }
+      public com.google.protobuf.ByteString getKey() {
+        return key_;
       }
       /**
-       * <code>required string key = 1;</code>
+       * <code>required bytes key = 1;</code>
        *
        * <pre>
        * Key that should be queried
        * </pre>
        */
-      public com.google.protobuf.ByteString
-          getKeyBytes() {
-        java.lang.Object ref = key_;
-        if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
-              com.google.protobuf.ByteString.copyFromUtf8(
-                  (java.lang.String) ref);
-          key_ = b;
-          return b;
-        } else {
-          return (com.google.protobuf.ByteString) ref;
-        }
-      }
-      /**
-       * <code>required string key = 1;</code>
-       *
-       * <pre>
-       * Key that should be queried
-       * </pre>
-       */
-      public Builder setKey(
-          java.lang.String value) {
+      public Builder setKey(com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
@@ -1951,7 +1692,7 @@ public final class C2S {
         return this;
       }
       /**
-       * <code>required string key = 1;</code>
+       * <code>required bytes key = 1;</code>
        *
        * <pre>
        * Key that should be queried
@@ -1960,23 +1701,6 @@ public final class C2S {
       public Builder clearKey() {
         bitField0_ = (bitField0_ & ~0x00000001);
         key_ = getDefaultInstance().getKey();
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>required string key = 1;</code>
-       *
-       * <pre>
-       * Key that should be queried
-       * </pre>
-       */
-      public Builder setKeyBytes(
-          com.google.protobuf.ByteString value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  bitField0_ |= 0x00000001;
-        key_ = value;
         onChanged();
         return this;
       }
@@ -2014,7 +1738,7 @@ public final class C2S {
     de.velcommuta.denul.networking.protobuf.c2s.C2S.GetReply.GetReplyCode getOpcode();
 
     /**
-     * <code>required string key = 2;</code>
+     * <code>required bytes key = 2;</code>
      *
      * <pre>
      * Key of the Get operation
@@ -2022,22 +1746,13 @@ public final class C2S {
      */
     boolean hasKey();
     /**
-     * <code>required string key = 2;</code>
+     * <code>required bytes key = 2;</code>
      *
      * <pre>
      * Key of the Get operation
      * </pre>
      */
-    java.lang.String getKey();
-    /**
-     * <code>required string key = 2;</code>
-     *
-     * <pre>
-     * Key of the Get operation
-     * </pre>
-     */
-    com.google.protobuf.ByteString
-        getKeyBytes();
+    com.google.protobuf.ByteString getKey();
 
     /**
      * <code>optional bytes value = 3;</code>
@@ -2120,9 +1835,8 @@ public final class C2S {
               break;
             }
             case 18: {
-              com.google.protobuf.ByteString bs = input.readBytes();
               bitField0_ |= 0x00000002;
-              key_ = bs;
+              key_ = input.readBytes();
               break;
             }
             case 26: {
@@ -2326,9 +2040,9 @@ public final class C2S {
     }
 
     public static final int KEY_FIELD_NUMBER = 2;
-    private java.lang.Object key_;
+    private com.google.protobuf.ByteString key_;
     /**
-     * <code>required string key = 2;</code>
+     * <code>required bytes key = 2;</code>
      *
      * <pre>
      * Key of the Get operation
@@ -2338,45 +2052,14 @@ public final class C2S {
       return ((bitField0_ & 0x00000002) == 0x00000002);
     }
     /**
-     * <code>required string key = 2;</code>
+     * <code>required bytes key = 2;</code>
      *
      * <pre>
      * Key of the Get operation
      * </pre>
      */
-    public java.lang.String getKey() {
-      java.lang.Object ref = key_;
-      if (ref instanceof java.lang.String) {
-        return (java.lang.String) ref;
-      } else {
-        com.google.protobuf.ByteString bs = 
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          key_ = s;
-        }
-        return s;
-      }
-    }
-    /**
-     * <code>required string key = 2;</code>
-     *
-     * <pre>
-     * Key of the Get operation
-     * </pre>
-     */
-    public com.google.protobuf.ByteString
-        getKeyBytes() {
-      java.lang.Object ref = key_;
-      if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        key_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
+    public com.google.protobuf.ByteString getKey() {
+      return key_;
     }
 
     public static final int VALUE_FIELD_NUMBER = 3;
@@ -2404,7 +2087,7 @@ public final class C2S {
 
     private void initFields() {
       opcode_ = de.velcommuta.denul.networking.protobuf.c2s.C2S.GetReply.GetReplyCode.GET_OK;
-      key_ = "";
+      key_ = com.google.protobuf.ByteString.EMPTY;
       value_ = com.google.protobuf.ByteString.EMPTY;
     }
     private byte memoizedIsInitialized = -1;
@@ -2432,7 +2115,7 @@ public final class C2S {
         output.writeEnum(1, opcode_.getNumber());
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        output.writeBytes(2, getKeyBytes());
+        output.writeBytes(2, key_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
         output.writeBytes(3, value_);
@@ -2452,7 +2135,7 @@ public final class C2S {
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(2, getKeyBytes());
+          .computeBytesSize(2, key_);
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
         size += com.google.protobuf.CodedOutputStream
@@ -2577,7 +2260,7 @@ public final class C2S {
         super.clear();
         opcode_ = de.velcommuta.denul.networking.protobuf.c2s.C2S.GetReply.GetReplyCode.GET_OK;
         bitField0_ = (bitField0_ & ~0x00000001);
-        key_ = "";
+        key_ = com.google.protobuf.ByteString.EMPTY;
         bitField0_ = (bitField0_ & ~0x00000002);
         value_ = com.google.protobuf.ByteString.EMPTY;
         bitField0_ = (bitField0_ & ~0x00000004);
@@ -2641,9 +2324,7 @@ public final class C2S {
           setOpcode(other.getOpcode());
         }
         if (other.hasKey()) {
-          bitField0_ |= 0x00000002;
-          key_ = other.key_;
-          onChanged();
+          setKey(other.getKey());
         }
         if (other.hasValue()) {
           setValue(other.getValue());
@@ -2734,9 +2415,9 @@ public final class C2S {
         return this;
       }
 
-      private java.lang.Object key_ = "";
+      private com.google.protobuf.ByteString key_ = com.google.protobuf.ByteString.EMPTY;
       /**
-       * <code>required string key = 2;</code>
+       * <code>required bytes key = 2;</code>
        *
        * <pre>
        * Key of the Get operation
@@ -2746,55 +2427,23 @@ public final class C2S {
         return ((bitField0_ & 0x00000002) == 0x00000002);
       }
       /**
-       * <code>required string key = 2;</code>
+       * <code>required bytes key = 2;</code>
        *
        * <pre>
        * Key of the Get operation
        * </pre>
        */
-      public java.lang.String getKey() {
-        java.lang.Object ref = key_;
-        if (!(ref instanceof java.lang.String)) {
-          com.google.protobuf.ByteString bs =
-              (com.google.protobuf.ByteString) ref;
-          java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            key_ = s;
-          }
-          return s;
-        } else {
-          return (java.lang.String) ref;
-        }
+      public com.google.protobuf.ByteString getKey() {
+        return key_;
       }
       /**
-       * <code>required string key = 2;</code>
+       * <code>required bytes key = 2;</code>
        *
        * <pre>
        * Key of the Get operation
        * </pre>
        */
-      public com.google.protobuf.ByteString
-          getKeyBytes() {
-        java.lang.Object ref = key_;
-        if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
-              com.google.protobuf.ByteString.copyFromUtf8(
-                  (java.lang.String) ref);
-          key_ = b;
-          return b;
-        } else {
-          return (com.google.protobuf.ByteString) ref;
-        }
-      }
-      /**
-       * <code>required string key = 2;</code>
-       *
-       * <pre>
-       * Key of the Get operation
-       * </pre>
-       */
-      public Builder setKey(
-          java.lang.String value) {
+      public Builder setKey(com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
@@ -2804,7 +2453,7 @@ public final class C2S {
         return this;
       }
       /**
-       * <code>required string key = 2;</code>
+       * <code>required bytes key = 2;</code>
        *
        * <pre>
        * Key of the Get operation
@@ -2813,23 +2462,6 @@ public final class C2S {
       public Builder clearKey() {
         bitField0_ = (bitField0_ & ~0x00000002);
         key_ = getDefaultInstance().getKey();
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>required string key = 2;</code>
-       *
-       * <pre>
-       * Key of the Get operation
-       * </pre>
-       */
-      public Builder setKeyBytes(
-          com.google.protobuf.ByteString value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  bitField0_ |= 0x00000002;
-        key_ = value;
         onChanged();
         return this;
       }
@@ -2901,7 +2533,7 @@ public final class C2S {
       com.google.protobuf.MessageOrBuilder {
 
     /**
-     * <code>required string key = 1;</code>
+     * <code>required bytes key = 1;</code>
      *
      * <pre>
      * Key that should be deleted
@@ -2909,25 +2541,16 @@ public final class C2S {
      */
     boolean hasKey();
     /**
-     * <code>required string key = 1;</code>
+     * <code>required bytes key = 1;</code>
      *
      * <pre>
      * Key that should be deleted
      * </pre>
      */
-    java.lang.String getKey();
-    /**
-     * <code>required string key = 1;</code>
-     *
-     * <pre>
-     * Key that should be deleted
-     * </pre>
-     */
-    com.google.protobuf.ByteString
-        getKeyBytes();
+    com.google.protobuf.ByteString getKey();
 
     /**
-     * <code>required string auth = 2;</code>
+     * <code>required bytes auth = 2;</code>
      *
      * <pre>
      * Authentication for the deletion
@@ -2935,22 +2558,13 @@ public final class C2S {
      */
     boolean hasAuth();
     /**
-     * <code>required string auth = 2;</code>
+     * <code>required bytes auth = 2;</code>
      *
      * <pre>
      * Authentication for the deletion
      * </pre>
      */
-    java.lang.String getAuth();
-    /**
-     * <code>required string auth = 2;</code>
-     *
-     * <pre>
-     * Authentication for the deletion
-     * </pre>
-     */
-    com.google.protobuf.ByteString
-        getAuthBytes();
+    com.google.protobuf.ByteString getAuth();
   }
   /**
    * Protobuf type {@code de.velcommuta.denul.networking.protobuf.c2s.Delete}
@@ -3005,15 +2619,13 @@ public final class C2S {
               break;
             }
             case 10: {
-              com.google.protobuf.ByteString bs = input.readBytes();
               bitField0_ |= 0x00000001;
-              key_ = bs;
+              key_ = input.readBytes();
               break;
             }
             case 18: {
-              com.google.protobuf.ByteString bs = input.readBytes();
               bitField0_ |= 0x00000002;
-              auth_ = bs;
+              auth_ = input.readBytes();
               break;
             }
           }
@@ -3057,9 +2669,9 @@ public final class C2S {
 
     private int bitField0_;
     public static final int KEY_FIELD_NUMBER = 1;
-    private java.lang.Object key_;
+    private com.google.protobuf.ByteString key_;
     /**
-     * <code>required string key = 1;</code>
+     * <code>required bytes key = 1;</code>
      *
      * <pre>
      * Key that should be deleted
@@ -3069,51 +2681,20 @@ public final class C2S {
       return ((bitField0_ & 0x00000001) == 0x00000001);
     }
     /**
-     * <code>required string key = 1;</code>
+     * <code>required bytes key = 1;</code>
      *
      * <pre>
      * Key that should be deleted
      * </pre>
      */
-    public java.lang.String getKey() {
-      java.lang.Object ref = key_;
-      if (ref instanceof java.lang.String) {
-        return (java.lang.String) ref;
-      } else {
-        com.google.protobuf.ByteString bs = 
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          key_ = s;
-        }
-        return s;
-      }
-    }
-    /**
-     * <code>required string key = 1;</code>
-     *
-     * <pre>
-     * Key that should be deleted
-     * </pre>
-     */
-    public com.google.protobuf.ByteString
-        getKeyBytes() {
-      java.lang.Object ref = key_;
-      if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        key_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
+    public com.google.protobuf.ByteString getKey() {
+      return key_;
     }
 
     public static final int AUTH_FIELD_NUMBER = 2;
-    private java.lang.Object auth_;
+    private com.google.protobuf.ByteString auth_;
     /**
-     * <code>required string auth = 2;</code>
+     * <code>required bytes auth = 2;</code>
      *
      * <pre>
      * Authentication for the deletion
@@ -3123,50 +2704,19 @@ public final class C2S {
       return ((bitField0_ & 0x00000002) == 0x00000002);
     }
     /**
-     * <code>required string auth = 2;</code>
+     * <code>required bytes auth = 2;</code>
      *
      * <pre>
      * Authentication for the deletion
      * </pre>
      */
-    public java.lang.String getAuth() {
-      java.lang.Object ref = auth_;
-      if (ref instanceof java.lang.String) {
-        return (java.lang.String) ref;
-      } else {
-        com.google.protobuf.ByteString bs = 
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          auth_ = s;
-        }
-        return s;
-      }
-    }
-    /**
-     * <code>required string auth = 2;</code>
-     *
-     * <pre>
-     * Authentication for the deletion
-     * </pre>
-     */
-    public com.google.protobuf.ByteString
-        getAuthBytes() {
-      java.lang.Object ref = auth_;
-      if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        auth_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
+    public com.google.protobuf.ByteString getAuth() {
+      return auth_;
     }
 
     private void initFields() {
-      key_ = "";
-      auth_ = "";
+      key_ = com.google.protobuf.ByteString.EMPTY;
+      auth_ = com.google.protobuf.ByteString.EMPTY;
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -3190,10 +2740,10 @@ public final class C2S {
                         throws java.io.IOException {
       getSerializedSize();
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
-        output.writeBytes(1, getKeyBytes());
+        output.writeBytes(1, key_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        output.writeBytes(2, getAuthBytes());
+        output.writeBytes(2, auth_);
       }
       getUnknownFields().writeTo(output);
     }
@@ -3206,11 +2756,11 @@ public final class C2S {
       size = 0;
       if (((bitField0_ & 0x00000001) == 0x00000001)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(1, getKeyBytes());
+          .computeBytesSize(1, key_);
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(2, getAuthBytes());
+          .computeBytesSize(2, auth_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -3329,9 +2879,9 @@ public final class C2S {
 
       public Builder clear() {
         super.clear();
-        key_ = "";
+        key_ = com.google.protobuf.ByteString.EMPTY;
         bitField0_ = (bitField0_ & ~0x00000001);
-        auth_ = "";
+        auth_ = com.google.protobuf.ByteString.EMPTY;
         bitField0_ = (bitField0_ & ~0x00000002);
         return this;
       }
@@ -3386,14 +2936,10 @@ public final class C2S {
       public Builder mergeFrom(de.velcommuta.denul.networking.protobuf.c2s.C2S.Delete other) {
         if (other == de.velcommuta.denul.networking.protobuf.c2s.C2S.Delete.getDefaultInstance()) return this;
         if (other.hasKey()) {
-          bitField0_ |= 0x00000001;
-          key_ = other.key_;
-          onChanged();
+          setKey(other.getKey());
         }
         if (other.hasAuth()) {
-          bitField0_ |= 0x00000002;
-          auth_ = other.auth_;
-          onChanged();
+          setAuth(other.getAuth());
         }
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
@@ -3430,9 +2976,9 @@ public final class C2S {
       }
       private int bitField0_;
 
-      private java.lang.Object key_ = "";
+      private com.google.protobuf.ByteString key_ = com.google.protobuf.ByteString.EMPTY;
       /**
-       * <code>required string key = 1;</code>
+       * <code>required bytes key = 1;</code>
        *
        * <pre>
        * Key that should be deleted
@@ -3442,55 +2988,23 @@ public final class C2S {
         return ((bitField0_ & 0x00000001) == 0x00000001);
       }
       /**
-       * <code>required string key = 1;</code>
+       * <code>required bytes key = 1;</code>
        *
        * <pre>
        * Key that should be deleted
        * </pre>
        */
-      public java.lang.String getKey() {
-        java.lang.Object ref = key_;
-        if (!(ref instanceof java.lang.String)) {
-          com.google.protobuf.ByteString bs =
-              (com.google.protobuf.ByteString) ref;
-          java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            key_ = s;
-          }
-          return s;
-        } else {
-          return (java.lang.String) ref;
-        }
+      public com.google.protobuf.ByteString getKey() {
+        return key_;
       }
       /**
-       * <code>required string key = 1;</code>
+       * <code>required bytes key = 1;</code>
        *
        * <pre>
        * Key that should be deleted
        * </pre>
        */
-      public com.google.protobuf.ByteString
-          getKeyBytes() {
-        java.lang.Object ref = key_;
-        if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
-              com.google.protobuf.ByteString.copyFromUtf8(
-                  (java.lang.String) ref);
-          key_ = b;
-          return b;
-        } else {
-          return (com.google.protobuf.ByteString) ref;
-        }
-      }
-      /**
-       * <code>required string key = 1;</code>
-       *
-       * <pre>
-       * Key that should be deleted
-       * </pre>
-       */
-      public Builder setKey(
-          java.lang.String value) {
+      public Builder setKey(com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
@@ -3500,7 +3014,7 @@ public final class C2S {
         return this;
       }
       /**
-       * <code>required string key = 1;</code>
+       * <code>required bytes key = 1;</code>
        *
        * <pre>
        * Key that should be deleted
@@ -3512,27 +3026,10 @@ public final class C2S {
         onChanged();
         return this;
       }
-      /**
-       * <code>required string key = 1;</code>
-       *
-       * <pre>
-       * Key that should be deleted
-       * </pre>
-       */
-      public Builder setKeyBytes(
-          com.google.protobuf.ByteString value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  bitField0_ |= 0x00000001;
-        key_ = value;
-        onChanged();
-        return this;
-      }
 
-      private java.lang.Object auth_ = "";
+      private com.google.protobuf.ByteString auth_ = com.google.protobuf.ByteString.EMPTY;
       /**
-       * <code>required string auth = 2;</code>
+       * <code>required bytes auth = 2;</code>
        *
        * <pre>
        * Authentication for the deletion
@@ -3542,55 +3039,23 @@ public final class C2S {
         return ((bitField0_ & 0x00000002) == 0x00000002);
       }
       /**
-       * <code>required string auth = 2;</code>
+       * <code>required bytes auth = 2;</code>
        *
        * <pre>
        * Authentication for the deletion
        * </pre>
        */
-      public java.lang.String getAuth() {
-        java.lang.Object ref = auth_;
-        if (!(ref instanceof java.lang.String)) {
-          com.google.protobuf.ByteString bs =
-              (com.google.protobuf.ByteString) ref;
-          java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            auth_ = s;
-          }
-          return s;
-        } else {
-          return (java.lang.String) ref;
-        }
+      public com.google.protobuf.ByteString getAuth() {
+        return auth_;
       }
       /**
-       * <code>required string auth = 2;</code>
+       * <code>required bytes auth = 2;</code>
        *
        * <pre>
        * Authentication for the deletion
        * </pre>
        */
-      public com.google.protobuf.ByteString
-          getAuthBytes() {
-        java.lang.Object ref = auth_;
-        if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
-              com.google.protobuf.ByteString.copyFromUtf8(
-                  (java.lang.String) ref);
-          auth_ = b;
-          return b;
-        } else {
-          return (com.google.protobuf.ByteString) ref;
-        }
-      }
-      /**
-       * <code>required string auth = 2;</code>
-       *
-       * <pre>
-       * Authentication for the deletion
-       * </pre>
-       */
-      public Builder setAuth(
-          java.lang.String value) {
+      public Builder setAuth(com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
@@ -3600,7 +3065,7 @@ public final class C2S {
         return this;
       }
       /**
-       * <code>required string auth = 2;</code>
+       * <code>required bytes auth = 2;</code>
        *
        * <pre>
        * Authentication for the deletion
@@ -3609,23 +3074,6 @@ public final class C2S {
       public Builder clearAuth() {
         bitField0_ = (bitField0_ & ~0x00000002);
         auth_ = getDefaultInstance().getAuth();
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>required string auth = 2;</code>
-       *
-       * <pre>
-       * Authentication for the deletion
-       * </pre>
-       */
-      public Builder setAuthBytes(
-          com.google.protobuf.ByteString value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  bitField0_ |= 0x00000002;
-        auth_ = value;
         onChanged();
         return this;
       }
@@ -3663,7 +3111,7 @@ public final class C2S {
     de.velcommuta.denul.networking.protobuf.c2s.C2S.DeleteReply.DeleteReplyCode getOpcode();
 
     /**
-     * <code>required string key = 2;</code>
+     * <code>required bytes key = 2;</code>
      *
      * <pre>
      * Key that was deleted (as confirmation)
@@ -3671,22 +3119,13 @@ public final class C2S {
      */
     boolean hasKey();
     /**
-     * <code>required string key = 2;</code>
+     * <code>required bytes key = 2;</code>
      *
      * <pre>
      * Key that was deleted (as confirmation)
      * </pre>
      */
-    java.lang.String getKey();
-    /**
-     * <code>required string key = 2;</code>
-     *
-     * <pre>
-     * Key that was deleted (as confirmation)
-     * </pre>
-     */
-    com.google.protobuf.ByteString
-        getKeyBytes();
+    com.google.protobuf.ByteString getKey();
   }
   /**
    * Protobuf type {@code de.velcommuta.denul.networking.protobuf.c2s.DeleteReply}
@@ -3752,9 +3191,8 @@ public final class C2S {
               break;
             }
             case 18: {
-              com.google.protobuf.ByteString bs = input.readBytes();
               bitField0_ |= 0x00000002;
-              key_ = bs;
+              key_ = input.readBytes();
               break;
             }
           }
@@ -3970,9 +3408,9 @@ public final class C2S {
     }
 
     public static final int KEY_FIELD_NUMBER = 2;
-    private java.lang.Object key_;
+    private com.google.protobuf.ByteString key_;
     /**
-     * <code>required string key = 2;</code>
+     * <code>required bytes key = 2;</code>
      *
      * <pre>
      * Key that was deleted (as confirmation)
@@ -3982,50 +3420,19 @@ public final class C2S {
       return ((bitField0_ & 0x00000002) == 0x00000002);
     }
     /**
-     * <code>required string key = 2;</code>
+     * <code>required bytes key = 2;</code>
      *
      * <pre>
      * Key that was deleted (as confirmation)
      * </pre>
      */
-    public java.lang.String getKey() {
-      java.lang.Object ref = key_;
-      if (ref instanceof java.lang.String) {
-        return (java.lang.String) ref;
-      } else {
-        com.google.protobuf.ByteString bs = 
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        if (bs.isValidUtf8()) {
-          key_ = s;
-        }
-        return s;
-      }
-    }
-    /**
-     * <code>required string key = 2;</code>
-     *
-     * <pre>
-     * Key that was deleted (as confirmation)
-     * </pre>
-     */
-    public com.google.protobuf.ByteString
-        getKeyBytes() {
-      java.lang.Object ref = key_;
-      if (ref instanceof java.lang.String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        key_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
+    public com.google.protobuf.ByteString getKey() {
+      return key_;
     }
 
     private void initFields() {
       opcode_ = de.velcommuta.denul.networking.protobuf.c2s.C2S.DeleteReply.DeleteReplyCode.DELETE_OK;
-      key_ = "";
+      key_ = com.google.protobuf.ByteString.EMPTY;
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -4052,7 +3459,7 @@ public final class C2S {
         output.writeEnum(1, opcode_.getNumber());
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
-        output.writeBytes(2, getKeyBytes());
+        output.writeBytes(2, key_);
       }
       getUnknownFields().writeTo(output);
     }
@@ -4069,7 +3476,7 @@ public final class C2S {
       }
       if (((bitField0_ & 0x00000002) == 0x00000002)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(2, getKeyBytes());
+          .computeBytesSize(2, key_);
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -4190,7 +3597,7 @@ public final class C2S {
         super.clear();
         opcode_ = de.velcommuta.denul.networking.protobuf.c2s.C2S.DeleteReply.DeleteReplyCode.DELETE_OK;
         bitField0_ = (bitField0_ & ~0x00000001);
-        key_ = "";
+        key_ = com.google.protobuf.ByteString.EMPTY;
         bitField0_ = (bitField0_ & ~0x00000002);
         return this;
       }
@@ -4248,9 +3655,7 @@ public final class C2S {
           setOpcode(other.getOpcode());
         }
         if (other.hasKey()) {
-          bitField0_ |= 0x00000002;
-          key_ = other.key_;
-          onChanged();
+          setKey(other.getKey());
         }
         this.mergeUnknownFields(other.getUnknownFields());
         return this;
@@ -4338,9 +3743,9 @@ public final class C2S {
         return this;
       }
 
-      private java.lang.Object key_ = "";
+      private com.google.protobuf.ByteString key_ = com.google.protobuf.ByteString.EMPTY;
       /**
-       * <code>required string key = 2;</code>
+       * <code>required bytes key = 2;</code>
        *
        * <pre>
        * Key that was deleted (as confirmation)
@@ -4350,55 +3755,23 @@ public final class C2S {
         return ((bitField0_ & 0x00000002) == 0x00000002);
       }
       /**
-       * <code>required string key = 2;</code>
+       * <code>required bytes key = 2;</code>
        *
        * <pre>
        * Key that was deleted (as confirmation)
        * </pre>
        */
-      public java.lang.String getKey() {
-        java.lang.Object ref = key_;
-        if (!(ref instanceof java.lang.String)) {
-          com.google.protobuf.ByteString bs =
-              (com.google.protobuf.ByteString) ref;
-          java.lang.String s = bs.toStringUtf8();
-          if (bs.isValidUtf8()) {
-            key_ = s;
-          }
-          return s;
-        } else {
-          return (java.lang.String) ref;
-        }
+      public com.google.protobuf.ByteString getKey() {
+        return key_;
       }
       /**
-       * <code>required string key = 2;</code>
+       * <code>required bytes key = 2;</code>
        *
        * <pre>
        * Key that was deleted (as confirmation)
        * </pre>
        */
-      public com.google.protobuf.ByteString
-          getKeyBytes() {
-        java.lang.Object ref = key_;
-        if (ref instanceof String) {
-          com.google.protobuf.ByteString b = 
-              com.google.protobuf.ByteString.copyFromUtf8(
-                  (java.lang.String) ref);
-          key_ = b;
-          return b;
-        } else {
-          return (com.google.protobuf.ByteString) ref;
-        }
-      }
-      /**
-       * <code>required string key = 2;</code>
-       *
-       * <pre>
-       * Key that was deleted (as confirmation)
-       * </pre>
-       */
-      public Builder setKey(
-          java.lang.String value) {
+      public Builder setKey(com.google.protobuf.ByteString value) {
         if (value == null) {
     throw new NullPointerException();
   }
@@ -4408,7 +3781,7 @@ public final class C2S {
         return this;
       }
       /**
-       * <code>required string key = 2;</code>
+       * <code>required bytes key = 2;</code>
        *
        * <pre>
        * Key that was deleted (as confirmation)
@@ -4417,23 +3790,6 @@ public final class C2S {
       public Builder clearKey() {
         bitField0_ = (bitField0_ & ~0x00000002);
         key_ = getDefaultInstance().getKey();
-        onChanged();
-        return this;
-      }
-      /**
-       * <code>required string key = 2;</code>
-       *
-       * <pre>
-       * Key that was deleted (as confirmation)
-       * </pre>
-       */
-      public Builder setKeyBytes(
-          com.google.protobuf.ByteString value) {
-        if (value == null) {
-    throw new NullPointerException();
-  }
-  bitField0_ |= 0x00000002;
-        key_ = value;
         onChanged();
         return this;
       }
@@ -6030,23 +5386,23 @@ public final class C2S {
   static {
     java.lang.String[] descriptorData = {
       "\n\tc2s.proto\022+de.velcommuta.denul.network" +
-      "ing.protobuf.c2s\"#\n\005Store\022\013\n\003key\030\001 \002(\t\022\r" +
+      "ing.protobuf.c2s\"#\n\005Store\022\013\n\003key\030\001 \002(\014\022\r" +
       "\n\005value\030\002 \002(\014\"\333\001\n\nStoreReply\022V\n\006opcode\030\001" +
       " \002(\0162F.de.velcommuta.denul.networking.pr" +
       "otobuf.c2s.StoreReply.StoreReplyCode\022\013\n\003" +
-      "key\030\002 \002(\t\"h\n\016StoreReplyCode\022\014\n\010STORE_OK\020" +
+      "key\030\002 \002(\014\"h\n\016StoreReplyCode\022\014\n\010STORE_OK\020" +
       "\000\022\030\n\024STORE_FAIL_KEY_TAKEN\020\001\022\026\n\022STORE_FAI" +
       "L_KEY_FMT\020\002\022\026\n\022STORE_FAIL_UNKNOWN\020\003\"\022\n\003G" +
-      "et\022\013\n\003key\030\001 \002(\t\"\334\001\n\010GetReply\022R\n\006opcode\030\001" +
+      "et\022\013\n\003key\030\001 \002(\014\"\334\001\n\010GetReply\022R\n\006opcode\030\001" +
       " \002(\0162B.de.velcommuta.denul.networking.pr",
       "otobuf.c2s.GetReply.GetReplyCode\022\013\n\003key\030" +
-      "\002 \002(\t\022\r\n\005value\030\003 \001(\014\"`\n\014GetReplyCode\022\n\n\006" +
+      "\002 \002(\014\022\r\n\005value\030\003 \001(\014\"`\n\014GetReplyCode\022\n\n\006" +
       "GET_OK\020\000\022\024\n\020GET_FAIL_KEY_FMT\020\001\022\030\n\024GET_FA" +
       "IL_UNKNOWN_KEY\020\002\022\024\n\020GET_FAIL_UNKNOWN\020\003\"#" +
-      "\n\006Delete\022\013\n\003key\030\001 \002(\t\022\014\n\004auth\030\002 \002(\t\"\372\001\n\013" +
+      "\n\006Delete\022\013\n\003key\030\001 \002(\014\022\014\n\004auth\030\002 \002(\014\"\372\001\n\013" +
       "DeleteReply\022X\n\006opcode\030\001 \002(\0162H.de.velcomm" +
       "uta.denul.networking.protobuf.c2s.Delete" +
-      "Reply.DeleteReplyCode\022\013\n\003key\030\002 \002(\t\"\203\001\n\017D" +
+      "Reply.DeleteReplyCode\022\013\n\003key\030\002 \002(\014\"\203\001\n\017D" +
       "eleteReplyCode\022\r\n\tDELETE_OK\020\000\022\024\n\020DELETE_" +
       "FAIL_AUTH\020\001\022\031\n\025DELETE_FAIL_NOT_FOUND\020\002\022\027",
       "\n\023DELETE_FAIL_KEY_FMT\020\003\022\027\n\023DELETE_FAIL_U" +

@@ -4,6 +4,7 @@ import android.os.AsyncTask;
 import android.util.Log;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -79,9 +80,9 @@ public class ShareManager {
             // IdentifierDerivation instance for identifer generation
             IdentifierDerivation deriv = new SHA256IdentifierDerivation();
             // Map mapping identifiers to data that is to be saved on the server
-            Map<String, byte[]> outbox = new HashMap<>();
+            Map<byte[], byte[]> outbox = new HashMap<>();
             // Map mapping identifiers to deferred database operations
-            Map<String, DeferDB> defer = new HashMap<>();
+            Map<byte[], DeferDB> defer = new HashMap<>();
             // Iterate through provided shareables
             for (Shareable shareable : mShareableList) {
                 DataBlock data;
@@ -94,7 +95,7 @@ public class ShareManager {
                     // Encrypt the shareable
                     data = enc.encryptShareable(shareable, data_identifier);
                     // Submit to the server
-                    int rv = proto.put(FormatHelper.bytesToHex(data_identifier.getIdentifier()), data.getCiphertext());
+                    int rv = proto.put(data_identifier.getIdentifier(), data.getCiphertext());
                     if (rv == Protocol.PUT_OK) {
                         // Save to database
                         s_id = mBinder.addShare(shareable, data_identifier, data);
@@ -116,11 +117,11 @@ public class ShareManager {
                     // Generate identifier
                     TokenPair ident = deriv.generateOutboundIdentifier(keys);
                     // Encrypt identifier and key of data block and add to outbox
-                    outbox.put(FormatHelper.bytesToHex(ident.getIdentifier()), enc.encryptKeysAndIdentifier(data, keys));
+                    outbox.put(ident.getIdentifier(), enc.encryptKeysAndIdentifier(data, keys));
                     // Mark the counter value as used
                     keys = deriv.notifyOutboundIdentifierUsed(keys);
                     // Schedule a deferred database update
-                    defer.put(FormatHelper.bytesToHex(ident.getIdentifier()), new DeferDB(ident, keys, friend, s_id));
+                    defer.put(ident.getIdentifier(), new DeferDB(ident, keys, friend, s_id));
                     // mBinder.updateKeySet(keys);
                     // Add information about the share to the database
                     // mBinder.addShareRecipient(s_id, friend, ident);
@@ -131,8 +132,8 @@ public class ShareManager {
             // Notify that encryption finished
             publishProgress(2);
             // Send ALL THE store messages
-            Map<String, Integer> rv = proto.putMany(outbox);
-            for (String ident : outbox.keySet()) {
+            Map<byte[], Integer> rv = proto.putMany(outbox);
+            for (byte[] ident : outbox.keySet()) {
                 switch (rv.get(ident)) {
                     case Protocol.PUT_OK:
                         DeferDB d = defer.get(ident);
@@ -140,16 +141,16 @@ public class ShareManager {
                         mBinder.addShareRecipient(d.share_id, d.friend, d.tokens);
                         break;
                     case Protocol.PUT_FAIL_KEY_TAKEN:
-                        Log.e(TAG, "doInBackground: PUT failed for identifier " + ident + ": KEY_TAKEN");
+                        Log.e(TAG, "doInBackground: PUT failed: KEY_TAKEN");
                         break;
                     case Protocol.PUT_FAIL_KEY_FMT:
-                        Log.e(TAG, "doInBackground: PUT failed for identifier " + ident + ": KEY_FMT");
+                        Log.e(TAG, "doInBackground: PUT failed: KEY_FMT");
                         break;
                     case Protocol.PUT_FAIL_PROTOCOL_ERROR:
-                        Log.e(TAG, "doInBackground: PUT failed for identifier " + ident + ": PROTOCOL_ERROR");
+                        Log.e(TAG, "doInBackground: PUT failed: PROTOCOL_ERROR");
                         break;
                     case Protocol.PUT_FAIL_NO_CONNECTION:
-                        Log.e(TAG, "doInBackground: PUT failed for identifier " + ident + ": NO_CONNECTION");
+                        Log.e(TAG, "doInBackground: PUT failed: NO_CONNECTION");
                         break;
                     default:
                         Log.e(TAG, "doInBackground: Unknown error code for PUT");
@@ -211,8 +212,8 @@ public class ShareManager {
             List<Friend> friends = lists[0];
             IdentifierDerivation derive = new SHA256IdentifierDerivation();
             SharingEncryption enc = new AESSharingEncryption();
-            Map<String, Friend> buffer = new HashMap<>();
-            List<String> tokens = new LinkedList<>();
+            Map<byte[], Friend> buffer = new HashMap<>();
+            List<byte[]> tokens = new LinkedList<>();
             // prepare connection and protocol instance
             Connection conn;
             try {
@@ -225,27 +226,29 @@ public class ShareManager {
             proto.connect(conn);
             // Iterate through friends
             for (Friend friend : friends) {
+                Log.d(TAG, "doInBackground: Checking for updates from " + friend.getName());
                 // get the keys for that friend
                 KeySet keys = mBinder.getKeySetForFriend(friend);
                 // Derive the expected identifier
                 TokenPair pair = derive.generateInboundIdentifier(keys);
                 // Put the identifier in the buffer for later use
-                buffer.put(FormatHelper.bytesToHex(pair.getIdentifier()), friend);
-                tokens.add(FormatHelper.bytesToHex(pair.getIdentifier()));
+                buffer.put(pair.getIdentifier(), friend);
+                tokens.add(pair.getIdentifier());
             }
             // Send the bundled GET requests
-            Map<String, byte[]> rv = proto.getMany(tokens);
+            Map<byte[], byte[]> rv = proto.getMany(tokens);
             // Prepare a list of revocation tokens, to delete any retrieved values from the server
-            Map<String, String> revoke = new HashMap<>();
-            List<String> retrieve = new LinkedList<>();
-            Map<String, DataBlock> blocks = new HashMap<>();
+            Map<byte[], byte[]> revoke = new HashMap<>();
+            List<byte[]> retrieve = new LinkedList<>();
+            Map<byte[], DataBlock> blocks = new HashMap<>();
             // Process results
-            for (String ident : rv.keySet()) {
+            for (byte[] ident : rv.keySet()) {
                 byte[] value = rv.get(ident);
                 if (value == Protocol.GET_FAIL_KEY_FMT || value == Protocol.GET_FAIL_NO_CONNECTION || value == Protocol.GET_FAIL_PROTOCOL_ERROR) {
                     Log.e(TAG, "doInBackground: Protocol error");
                 } else if (value == Protocol.GET_FAIL_KEY_NOT_TAKEN){
                     // Key is not on the server, skip
+                    Log.d(TAG, "doInBackground: No updates from " + buffer.get(ident).getName());
                 } else {
                     Log.d(TAG, "doInBackground: Found Key block under key");
                     // We retrieved a value, and it was no error message
@@ -270,11 +273,11 @@ public class ShareManager {
                     // Update the keyset in the database
                     mBinder.updateKeySet(keys);
                     // Prepare to delete the retrieved value from the server
-                    revoke.put(FormatHelper.bytesToHex(pair.getIdentifier()), FormatHelper.bytesToHex(pair.getRevocation()));
+                    revoke.put(pair.getIdentifier(), pair.getRevocation());
                     // Prepare to retrieve the new identifier from the server
-                    retrieve.add(FormatHelper.bytesToHex(data.getIdentifier()));
+                    retrieve.add(data.getIdentifier());
                     // Also save the data object, as it contains the key and the owner
-                    blocks.put(FormatHelper.bytesToHex(data.getIdentifier()), data);
+                    blocks.put(data.getIdentifier(), data);
                 }
             }
             // If there are any revocations, perform them
@@ -283,7 +286,7 @@ public class ShareManager {
             if (retrieve.size() > 0) {
                 Log.d(TAG, "doInBackground: Retrieving data blocks");
                 rv = proto.getMany(retrieve);
-                for (String ident : rv.keySet()) {
+                for (byte[] ident : rv.keySet()) {
                     byte[] value = rv.get(ident);
                     if (value == Protocol.GET_FAIL_KEY_FMT || value == Protocol.GET_FAIL_NO_CONNECTION || value == Protocol.GET_FAIL_PROTOCOL_ERROR) {
                         Log.e(TAG, "doInBackground: Protocol error");
