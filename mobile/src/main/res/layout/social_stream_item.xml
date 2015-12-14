@@ -44,8 +44,28 @@
             android:layout_height="wrap_content"
             android:id="@+id/stream_icon"
             android:layout_alignParentTop="true"
-            android:layout_alignParentEnd="true"
+            android:layout_alignParentRight="true"
             android:src="@drawable/ic_cycling"/>
+
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_share"
+            android:id="@+id/stream_share_icon"
+            android:layout_alignParentTop="true"
+            android:layout_toLeftOf="@+id/stream_share_count"
+            android:visibility="gone" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:text="0"
+            android:id="@+id/stream_share_count"
+            android:layout_alignParentTop="true"
+            android:layout_toLeftOf="@+id/stream_icon"
+            android:paddingRight="5dp"
+            android:visibility="gone"/>
     </RelativeLayout>
 
     <RelativeLayout

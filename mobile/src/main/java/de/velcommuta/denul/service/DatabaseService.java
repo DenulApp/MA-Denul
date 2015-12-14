@@ -798,7 +798,7 @@ public class DatabaseService extends Service {
             keyEntry = new ContentValues();
             keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_TYPE, VaultContract.KeyStore.TYPE_RSA_PUB);
             keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_NAME, VaultContract.KeyStore.NAME_PEDOMETER_PUBLIC);
-            keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_BYTES,pubkey);
+            keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_BYTES, pubkey);
             // insert the values
             insert(VaultContract.KeyStore.TABLE_NAME, null, keyEntry);
             // Finish the transaction
@@ -999,6 +999,31 @@ public class DatabaseService extends Service {
             insert(SharingContract.FriendShareLog.TABLE_NAME, null, share);
             commit();
         }
+
+
+        @Override
+        public List<Friend> getShareRecipientsForShareable(Shareable shareable) {
+            assertOpen();
+            if (shareable == null || shareable.getID() == -1) throw new IllegalArgumentException("shareable must have database ID set");
+            List<Friend> rv = new LinkedList<>();
+            int share_id = getShareID(shareable);
+            if (share_id == -1) return rv;
+            String[] whereArgs = { "" + share_id };
+            String[] columns = { FriendContract.FriendList._ID };
+            Cursor c = query(SharingContract.FriendShareLog.TABLE_NAME,
+                    columns,
+                    SharingContract.FriendShareLog.COLUMN_DATASHARE_ID + " LIKE ?",
+                    whereArgs,
+                    null,
+                    null,
+                    null);
+            while (c.moveToNext()) {
+                rv.add(getFriendById(c.getInt(c.getColumnIndexOrThrow(FriendContract.FriendList._ID))));
+            }
+            c.close();
+            return rv;
+        }
+
 
         @Override
         public DataBlock getShareData(int shareid) {

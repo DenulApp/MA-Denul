@@ -221,9 +221,16 @@ public interface DatabaseServiceBinder {
     void addShareRecipient(int shareid, Friend friend, TokenPair pair);
 
     /**
+     * Return a List of all Friends who received the provided shareable
+     * @param shareable A {@link Shareable} with {@link Shareable#getID()} != -1
+     * @return A List of {@link Friend}s that received the Shareable
+     */
+    List<Friend> getShareRecipientsForShareable(Shareable shareable);
+
+    /**
      * Retrieve the share data from the database
      * @param shareid The ID of the entry in the share database
-     * @return A {@link DataBlock}with the Identifier and Key properties set
+     * @return A {@link DataBlock} with the Identifier and Key properties set
      */
     DataBlock getShareData(int shareid);
 
