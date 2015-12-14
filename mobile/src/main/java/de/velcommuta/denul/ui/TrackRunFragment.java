@@ -216,21 +216,19 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
     }
 
     @Override
-    public void onStart() {
-        super.onStart();
-        Log.i(TAG, "onStart: Registering with EventBus");
-        if (mEventBus == null) {
-            mEventBus = EventBus.getDefault();
-            mEventBus.register(this);
-        }
+    public void onResume() {
+        super.onResume();
+        Log.i(TAG, "onResume: Registering with EventBus");
+        mEventBus = EventBus.getDefault();
+        mEventBus.register(this);
     }
 
     @Override
-    public void onStop() {
+    public void onPause() {
         // Unregister from EventBus
-        Log.d(TAG, "onStop: Unregister from EventBus");
+        Log.d(TAG, "onPause: Unregister from EventBus");
         EventBus.getDefault().unregister(this);
-        super.onStop();
+        super.onPause();
     }
 
     @Override
