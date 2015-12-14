@@ -210,10 +210,6 @@ public class ShareManager {
         @Override
         protected Boolean doInBackground(List<Friend>... lists) {
             List<Friend> friends = lists[0];
-            IdentifierDerivation derive = new SHA256IdentifierDerivation();
-            SharingEncryption enc = new AESSharingEncryption();
-            Map<byte[], Friend> buffer = new HashMap<>();
-            List<byte[]> tokens = new LinkedList<>();
             // prepare connection and protocol instance
             Connection conn;
             try {
@@ -225,6 +221,24 @@ public class ShareManager {
             Protocol proto = new ProtobufProtocol();
             proto.connect(conn);
             // Iterate through friends
+            boolean rv = processFriends(friends, proto);
+            // Disconnect from the server
+            proto.disconnect();
+            return rv;
+        }
+
+
+        /**
+         * Helper function to query the server for updates for a List of friends
+         * @param friends A List of {@link Friend}s
+         * @param proto A connected {@link Protocol} object
+         * @return true if the update was successful, false otherwise
+         */
+        private boolean processFriends(List<Friend> friends, Protocol proto) {
+            IdentifierDerivation derive = new SHA256IdentifierDerivation();
+            SharingEncryption enc = new AESSharingEncryption();
+            Map<byte[], Friend> buffer = new HashMap<>();
+            List<byte[]> tokens = new LinkedList<>();
             for (Friend friend : friends) {
                 Log.d(TAG, "doInBackground: Checking for updates from " + friend.getName());
                 // get the keys for that friend
@@ -241,12 +255,14 @@ public class ShareManager {
             Map<byte[], byte[]> revoke = new HashMap<>();
             List<byte[]> retrieve = new LinkedList<>();
             Map<byte[], DataBlock> blocks = new HashMap<>();
+            // Create a List of friends which had updates, to check if further updates exist
+            List<Friend> requery = new LinkedList<>();
             // Process results
             for (byte[] ident : rv.keySet()) {
                 byte[] value = rv.get(ident);
                 if (value == Protocol.GET_FAIL_KEY_FMT || value == Protocol.GET_FAIL_NO_CONNECTION || value == Protocol.GET_FAIL_PROTOCOL_ERROR) {
                     Log.e(TAG, "doInBackground: Protocol error");
-                } else if (value == Protocol.GET_FAIL_KEY_NOT_TAKEN){
+                } else if (value == Protocol.GET_FAIL_KEY_NOT_TAKEN) {
                     // Key is not on the server, skip
                     Log.d(TAG, "doInBackground: No updates from " + buffer.get(ident).getName());
                 } else {
@@ -304,15 +320,16 @@ public class ShareManager {
                                 // Insert into database
                                 mBinder.addShareable(sh);
                             }
+                            // Schedule checking for more updates by that friend
+                            requery.add(block.getOwner());
                         } else {
                             Log.e(TAG, "doInBackground: Block was null - wtf? Skipping");
                         }
                     }
                 }
             }
-            // Disconnect from the server
-            proto.disconnect();
-            return true;
+            // If any friends need to be queried again, recursively perform the query. Otherwise, return true
+            return requery.size() == 0 || processFriends(friends, proto);
         }
 
         @Override
