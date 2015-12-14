@@ -73,9 +73,6 @@ public class ExerciseViewActivity extends AppCompatActivity implements ServiceCo
     private Marker mEndMarker;
     private Polyline mPolyline;
 
-    // This activity is also used to display data shared by others
-    // TODO Display owner name if owner != -1
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
