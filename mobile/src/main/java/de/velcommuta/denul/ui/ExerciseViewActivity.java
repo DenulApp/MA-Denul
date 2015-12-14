@@ -16,6 +16,7 @@ import android.util.Log;
 import android.util.SparseBooleanArray;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -64,12 +65,16 @@ public class ExerciseViewActivity extends AppCompatActivity implements ServiceCo
     private TextView mTrackTitle;
     private TextView mTrackDate;
     private TextView mTrackDistance;
+    private TextView mOwner;
     private ImageView mTrackMode;
     private GoogleMap mMap;
 
     private Marker mStartMarker;
     private Marker mEndMarker;
     private Polyline mPolyline;
+
+    // This activity is also used to display data shared by others
+    // TODO Display owner name if owner != -1
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -96,13 +101,18 @@ public class ExerciseViewActivity extends AppCompatActivity implements ServiceCo
         mTrackDate = (TextView) findViewById(R.id.exc_view_date);
         mTrackDistance = (TextView) findViewById(R.id.exc_view_distance);
         mTrackMode = (ImageView) findViewById(R.id.exc_view_mode);
+        mOwner = (TextView) findViewById(R.id.exc_view_owner);
     }
 
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.activity_exercise_view, menu);
+        if (mTrack.getOwner() == -1) {
+            getMenuInflater().inflate(R.menu.activity_exercise_view, menu);
+        } else {
+            getMenuInflater().inflate(R.menu.activity_exercise_view_shared, menu);
+        }
         return true;
     }
 
@@ -289,6 +299,10 @@ public class ExerciseViewActivity extends AppCompatActivity implements ServiceCo
                 mTrackMode.setImageDrawable(getResources().getDrawable(R.drawable.ic_running));
         }
         if (mMap != null) drawPath();
+        if (mTrack.getOwner() != -1) {
+            mOwner.setVisibility(View.VISIBLE);
+            mOwner.setText("Shared by: " + mDbBinder.getFriendById(mTrack.getOwner()).getName());
+        }
     }
 
     @Override
