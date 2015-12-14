@@ -1,9 +1,6 @@
 package de.velcommuta.denul.ui.adapter;
 
-import android.app.Activity;
 import android.app.Fragment;
-import android.app.FragmentManager;
-import android.app.FragmentTransaction;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.location.Location;
@@ -22,7 +19,6 @@ import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.GoogleMapOptions;
-import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
@@ -123,6 +119,19 @@ public class SocialStreamAdapter extends RecyclerView.Adapter<SocialStreamAdapte
          */
         private void displayGPSTrack(GPSTrack track) {
             mTrack = track;
+            // Prepare google map options
+            GoogleMapOptions options = new GoogleMapOptions().liteMode(true).mapToolbarEnabled(false);
+            // Initialize new MapView
+            MapView mapView = new MapView(mContext, options);
+            // Add the mapview to the layout
+            mIllustration.addView(mapView);
+            // Call through to the onCreate
+            mapView.onCreate(null);
+            // Initialize
+            mapView.getMapAsync(this);
+            // Set the mapview to not be clickable (to avoid opening google maps on click)
+            mapView.setClickable(false);
+            // Set up the title bar
             if (track.getOwner() != -1) {
                 mNameView.setText(mBinder.getFriendById(track.getOwner()).getName());
                 mNameViewTrailer.setText("shared '" + track.getSessionName() + "'");
@@ -130,6 +139,7 @@ public class SocialStreamAdapter extends RecyclerView.Adapter<SocialStreamAdapte
                 mNameView.setText("You");
                 mNameViewTrailer.setText("recorded '" + track.getSessionName() + "'");
             }
+            // Set up the mode of transportation icon
             switch (track.getModeOfTransportation()) {
                 case GPSTrack.VALUE_RUNNING:
                     mIconView.setImageDrawable(mContext.getResources().getDrawable(R.drawable.ic_running));
@@ -141,22 +151,15 @@ public class SocialStreamAdapter extends RecyclerView.Adapter<SocialStreamAdapte
                     Log.w("ViewHolder", "display: Unknown Mode of transportation");
                      mIconView.setImageDrawable(mContext.getResources().getDrawable(R.drawable.ic_running));
             }
+            // Set up the date
             mDateView.setText(DateTimeFormat.shortDateTime().print(new LocalDateTime(track.getTimestamp(), DateTimeZone.forID(track.getTimezone()))));
+            // Set up the distance
             float distance = track.getDistance();
             if (distance < 1000.0f) {
                 mFurtherInfoView.setText(String.format(mContext.getString(R.string.distance_m), (int) distance));
             } else {
                 mFurtherInfoView.setText(String.format(mContext.getString(R.string.distance_km), (int) distance / 1000.0f));
             }
-            GoogleMapOptions options = new GoogleMapOptions().liteMode(true).mapToolbarEnabled(false);
-            MapView mapView = new MapView(mContext, options);
-            mIllustration.addView(mapView);
-            mapView.onCreate(null);
-            mapView.getMapAsync(this);
-            // prepare google map fragment
-            //mMapView.onCreate(null);
-            // Launch map
-            // mMapView.getMapAsync(this);
         }
 
         @Override
