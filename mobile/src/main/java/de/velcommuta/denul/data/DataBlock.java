@@ -68,7 +68,7 @@ public class DataBlock {
      * @return The ciphertext
      */
     public byte[] getCiphertext() {
-        return Arrays.copyOf(mCiphertext, mCiphertext.length);
+        return mCiphertext;
     }
 
 
@@ -77,7 +77,7 @@ public class DataBlock {
      * @return The Identifier
      */
     public byte[] getIdentifier() {
-        return Arrays.copyOf(mIdentifier, mIdentifier.length);
+        return mIdentifier;
     }
 
 

@@ -296,12 +296,16 @@ public class ShareManager {
                         Log.d(TAG, "doInBackground: Got data block");
                         // Get data block from cache
                         DataBlock block = blocks.get(ident);
-                        block.setCiphertext(value);
-                        // Decrypt the data into a shareable
-                        Shareable sh = enc.decryptShareable(block);
-                        if (sh != null) {
-                            // Insert into database
-                            mBinder.addShareable(sh);
+                        if (block != null) {
+                            block.setCiphertext(value);
+                            // Decrypt the data into a shareable
+                            Shareable sh = enc.decryptShareable(block);
+                            if (sh != null) {
+                                // Insert into database
+                                mBinder.addShareable(sh);
+                            }
+                        } else {
+                            Log.e(TAG, "doInBackground: Block was null - wtf? Skipping");
                         }
                     }
                 }
