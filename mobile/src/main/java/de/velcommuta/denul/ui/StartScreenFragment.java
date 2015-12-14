@@ -42,6 +42,7 @@ public class StartScreenFragment extends Fragment implements ServiceConnection,
 
     private DatabaseServiceBinder mBinder;
     private EmptyRecyclerView mRecycler;
+    private SocialStreamAdapter mAdapter;
 
     /**
      * Use this factory method to create a new instance of
@@ -135,8 +136,8 @@ public class StartScreenFragment extends Fragment implements ServiceConnection,
         for (GPSTrack track : mBinder.getGPSTracks()) {
             tracks.add(track);
         }
-        RecyclerView.Adapter adapter = new SocialStreamAdapter(getActivity(), this, tracks, mBinder);
-        mRecycler.setAdapter(adapter);
+        mAdapter = new SocialStreamAdapter(getActivity(), this, tracks, mBinder);
+        mRecycler.setAdapter(mAdapter);
     }
 
     @Override
@@ -161,13 +162,16 @@ public class StartScreenFragment extends Fragment implements ServiceConnection,
 
     @Override
     public void onItemClicked(int position) {
-        Toast.makeText(getActivity(), "" + position, Toast.LENGTH_SHORT).show();
+        Intent i = new Intent(getActivity(), ExerciseViewActivity.class);
+        // TODO This will probably explode once other data types are added to the social stream
+        i.putExtra("track-id", mAdapter.getShareableAt(position).getID());
+        startActivity(i);
     }
 
 
     @Override
     public void onShareStatusUpdate(int status) {
-        Toast.makeText(getActivity(), "" + status, Toast.LENGTH_SHORT).show();
+        // Do nothing, we're not interested
     }
 
 
