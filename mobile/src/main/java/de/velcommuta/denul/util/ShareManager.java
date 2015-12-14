@@ -4,7 +4,6 @@ import android.os.AsyncTask;
 import android.util.Log;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -178,6 +177,14 @@ public class ShareManager {
             protected Friend friend;
             protected TokenPair tokens;
 
+
+            /**
+             * Constructor for DeferDB object
+             * @param ident Identifier
+             * @param keys KeySet
+             * @param f Friend
+             * @param sid share_id
+             */
             public DeferDB(TokenPair ident, KeySet keys, Friend f, int sid) {
                 tokens = ident;
                 keyset = keys;
