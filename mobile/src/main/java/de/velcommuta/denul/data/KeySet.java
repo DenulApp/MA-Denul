@@ -163,4 +163,14 @@ public class KeySet {
         }
         return output;
     }
+
+    public boolean equals(Object o) {
+        if (!(o instanceof KeySet)) return false;
+        KeySet k = (KeySet) o;
+        return Arrays.equals(getInboundCtr(), k.getInboundCtr())
+                && Arrays.equals(getOutboundCtr(), k.getOutboundCtr())
+                && Arrays.equals(getInboundKey(), k.getInboundKey())
+                && Arrays.equals(getOutboundKey(), k.getOutboundKey())
+                && getID() == k.getID();
+    }
 }

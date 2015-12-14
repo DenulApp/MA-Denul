@@ -86,4 +86,12 @@ public class Friend {
     public String toString() {
         return mName;
     }
+
+    public boolean equals(Object o) {
+        if (!(o instanceof Friend)) return false;
+        Friend f = (Friend) o;
+        return getName().equals(f.getName())
+                && getID() == f.getID()
+                && getVerified() == f.getVerified();
+    }
 }

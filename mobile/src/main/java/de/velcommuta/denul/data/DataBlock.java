@@ -97,4 +97,13 @@ public class DataBlock {
     public Friend getOwner() {
         return mOwner;
     }
+
+    public boolean equals(Object o) {
+        if (!(o instanceof DataBlock)) return false;
+        DataBlock d = (DataBlock) o;
+        return Arrays.equals(getCiphertext(), d.getCiphertext())
+                && Arrays.equals(getKey(), d.getKey())
+                && Arrays.equals(getIdentifier(), d.getIdentifier())
+                && getOwner().equals(d.getOwner());
+    }
 }

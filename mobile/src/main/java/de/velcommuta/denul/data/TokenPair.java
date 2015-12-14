@@ -40,4 +40,11 @@ public class TokenPair {
     public byte[] getRevocation() {
         return mRevocation;
     }
+
+    public boolean equals(Object o) {
+        if (!(o instanceof TokenPair)) return false;
+        TokenPair t = (TokenPair) o;
+        return Arrays.equals(getIdentifier(), t.getIdentifier())
+                && Arrays.equals(getRevocation(), t.getRevocation());
+    }
 }
