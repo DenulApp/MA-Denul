@@ -239,7 +239,6 @@ public class ExerciseViewActivity extends AppCompatActivity implements ServiceCo
                 if (rcpt.size() > 0) {
                     int granularity = granularitySpinner.getSelectedItemPosition();
                     // Prepare a ShareWithProgress AsyncTask with nested Callback
-                    // TODO Proper callback and progress bar?
                     ShareManager.ShareWithProgress m = new ShareManager().new ShareWithProgress(mDbBinder, new ShareManager.ShareManagerCallback() {
                         @Override
                         public void onShareStatusUpdate(int status) {

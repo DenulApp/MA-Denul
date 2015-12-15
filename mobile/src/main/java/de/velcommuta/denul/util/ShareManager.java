@@ -112,9 +112,15 @@ public class ShareManager {
                     // Shareable has already been shared, reuse existing Data block
                     data = mBinder.getShareData(s_id);
                 }
+                // Retrieve list of friends who have already received the share
+                List<Friend> received = mBinder.getShareRecipientsForShareable(shareable);
                 // Iterate through all recipients and prepare messages for them
                 for (Friend friend : friends) {
-                    // TODO Test if data has already been shared with this user
+                    // Check if the user has already received the share, and ignore if yes
+                    if (received.contains(friend)) {
+                        Log.d(TAG, "doInBackground: Friend already received share, skipping");
+                        continue;
+                    }
                     // Retrieve keys
                     KeySet keys = mBinder.getKeySetForFriend(friend);
                     // Generate identifier
