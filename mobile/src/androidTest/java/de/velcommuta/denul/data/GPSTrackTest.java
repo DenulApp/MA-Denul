@@ -32,11 +32,13 @@ public class GPSTrackTest extends TestCase {
         }
         String name = "test";
         int mode = GPSTrack.VALUE_RUNNING;
-        GPSTrack testtrack = new GPSTrack(loclist, name, mode, new Instant().getMillis(), "Europe/Berlin");
+        GPSTrack testtrack = new GPSTrack(loclist, name, mode, new Instant().getMillis(), new Instant().getMillis(), "Europe/Berlin");
+        testtrack.setDescription("This is a description. Fancy.");
         // test values
         assertEquals(testtrack.getSessionName(), name);
         assertEquals(testtrack.getModeOfTransportation(), mode);
         assertEquals(testtrack.getPosition(), loclist);
+        assertEquals(testtrack.getDescription(), "This is a description. Fancy.");
         // Test serialization
         byte[] serialized = testtrack.getByteRepresentation();
         // Deserialize into Wrapper
@@ -54,7 +56,10 @@ public class GPSTrackTest extends TestCase {
         assertEquals(testtrack.getSessionName(), testtrack2.getSessionName());
         assertEquals(testtrack.getType(), testtrack2.getType());
         assertEquals(testtrack.getTimestamp(), testtrack2.getTimestamp());
+        assertEquals(testtrack.getTimestampEnd(), testtrack2.getTimestampEnd());
         assertEquals(testtrack.getTimezone(), testtrack2.getTimezone());
+        assertEquals(testtrack.getDistance(), testtrack2.getDistance());
+        assertEquals(testtrack.getDescription(), testtrack2.getDescription());
         // Locations do not specify a non-stupid .equals(), so this is the only way to check :/
         for (Location cmploc : testtrack.getPosition()) {
             boolean rv = false;

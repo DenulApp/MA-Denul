@@ -50,7 +50,9 @@ public class SecureDbHelper extends SQLiteOpenHelper {
             LocationLoggingContract.LocationSessions.COLUMN_NAME_SESSION_START + TYPE_DATETIME + OPT_DEFAULT_NOW + OPT_NOT_NULL + COMMA_SEP +
             LocationLoggingContract.LocationSessions.COLUMN_NAME_SESSION_END + TYPE_DATETIME + OPT_NOT_NULL + COMMA_SEP +
             LocationLoggingContract.LocationSessions.COLUMN_NAME_TIMEZONE + TYPE_TEXT + OPT_NOT_NULL + COMMA_SEP +
+            LocationLoggingContract.LocationSessions.COLUMN_NAME_DISTANCE + TYPE_FLOAT + OPT_NOT_NULL + COMMA_SEP +
             LocationLoggingContract.LocationSessions.COLUMN_NAME_MODE + TYPE_INT + OPT_DEFAULT_ZERO + COMMA_SEP +
+            LocationLoggingContract.LocationSessions.COLUMN_NAME_DESCRIPTION + TYPE_TEXT + OPT_DEFAULT_NULL + COMMA_SEP +
             LocationLoggingContract.LocationSessions.COLUMN_NAME_SHARE_ID + TYPE_INT + OPT_DEFAULT_NULL + COMMA_SEP +
             FKEY_DECL + LocationLoggingContract.LocationSessions.COLUMN_NAME_SHARE_ID + FKEY_REFS +
                 SharingContract.DataShareLog.TABLE_NAME + "(" + SharingContract.DataShareLog._ID + ")" +
@@ -157,7 +159,7 @@ public class SecureDbHelper extends SQLiteOpenHelper {
 
     public static final String DATABASE_NAME = "location.db"; // TODO Update
 
-    public static final int DATABASE_VERSION = 12;
+    public static final int DATABASE_VERSION = 13;
 
 
     /**
@@ -197,7 +199,10 @@ public class SecureDbHelper extends SQLiteOpenHelper {
             onUpgrade(db, 10, 11);
             oldVersion = 11;
         }
-        if (oldVersion == 10 && newVersion == 11) {
+        if (oldVersion == 12 && newVersion == 13) {
+            db.execSQL("ALTER TABLE " + LocationLoggingContract.LocationSessions.TABLE_NAME + " ADD COLUMN " + LocationLoggingContract.LocationSessions.COLUMN_NAME_DESCRIPTION + TYPE_TEXT + OPT_DEFAULT_NULL + ";");
+            db.execSQL("ALTER TABLE " + LocationLoggingContract.LocationSessions.TABLE_NAME + " ADD COLUMN " + LocationLoggingContract.LocationSessions.COLUMN_NAME_DISTANCE + TYPE_FLOAT + OPT_NOT_NULL + OPT_DEFAULT_ZERO + ";");
+        } else if (oldVersion == 10 && newVersion == 11) {
             db.execSQL("ALTER TABLE " + StepLoggingContract.StepCountLog.TABLE_NAME + " ADD COLUMN " + StepLoggingContract.StepCountLog.COLUMN_OWNER + TYPE_INT + OPT_NOT_NULL + OPT_DEFAULT_MINUS_ONE + ";");
             db.execSQL("ALTER TABLE " + LocationLoggingContract.LocationSessions.TABLE_NAME + " ADD COLUMN " + LocationLoggingContract.LocationSessions.COLUMN_NAME_OWNER + TYPE_INT + OPT_NOT_NULL + OPT_DEFAULT_MINUS_ONE + ";");
         } else if (oldVersion == 11 && newVersion == 12) {

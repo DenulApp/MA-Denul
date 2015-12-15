@@ -2,8 +2,6 @@ package de.velcommuta.denul.data;
 
 import java.util.Arrays;
 
-import de.velcommuta.denul.util.FormatHelper;
-
 /**
  * Container class for pairs of identifier-revocation-tokens.
  */

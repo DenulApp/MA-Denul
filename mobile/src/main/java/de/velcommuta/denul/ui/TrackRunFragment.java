@@ -6,7 +6,6 @@ import android.animation.ArgbEvaluator;
 import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.app.ActivityManager;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -49,7 +48,6 @@ import java.util.List;
 
 import de.greenrobot.event.EventBus;
 import de.velcommuta.denul.R;
-import de.velcommuta.denul.db.LocationLoggingContract;
 import de.velcommuta.denul.event.DatabaseResultEvent;
 import de.velcommuta.denul.event.GPSLocationEvent;
 import de.velcommuta.denul.data.GPSTrack;
@@ -286,6 +284,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
                             mSessionName.getText().toString(),
                             mode,
                             gpsloc.getPosition().get(0).getTime(),
+                            gpsloc.getPosition().get(gpsloc.getPosition().size() -1).getTime(),
                             DateTimeZone.getDefault().toString());
                     EventBus.getDefault().post(ev);
                 }

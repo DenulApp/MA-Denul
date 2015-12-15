@@ -69,7 +69,7 @@ public class AESSharingEncryptionTest extends TestCase {
         }
         String name = "test";
         int mode = GPSTrack.VALUE_RUNNING;
-        GPSTrack testtrack = new GPSTrack(loclist, name, mode, new Instant().getMillis(), "Europe/Berlin");
+        GPSTrack testtrack = new GPSTrack(loclist, name, mode, new Instant().getMillis(), new Instant().getMillis(), "Europe/Berlin");
         // Get a derivation instance
         IdentifierDerivation d = new SHA256IdentifierDerivation();
         // Get a AESSharingEncryption instance

@@ -748,24 +748,33 @@ public final class DataContainer {
         int index);
 
     /**
-     * <code>required int64 timestamp = 4;</code>
+     * <code>required int64 timestamp_start = 4;</code>
      *
      * <pre>
-     * Timestamp of the beginning of the tracking
+     * Timestamp of the beginning and the end of the tracking
      * </pre>
      */
-    boolean hasTimestamp();
+    boolean hasTimestampStart();
     /**
-     * <code>required int64 timestamp = 4;</code>
+     * <code>required int64 timestamp_start = 4;</code>
      *
      * <pre>
-     * Timestamp of the beginning of the tracking
+     * Timestamp of the beginning and the end of the tracking
      * </pre>
      */
-    long getTimestamp();
+    long getTimestampStart();
 
     /**
-     * <code>required string timezone = 5;</code>
+     * <code>required int64 timestamp_end = 5;</code>
+     */
+    boolean hasTimestampEnd();
+    /**
+     * <code>required int64 timestamp_end = 5;</code>
+     */
+    long getTimestampEnd();
+
+    /**
+     * <code>required string timezone = 6;</code>
      *
      * <pre>
      * String representation of the used timezone
@@ -773,7 +782,7 @@ public final class DataContainer {
      */
     boolean hasTimezone();
     /**
-     * <code>required string timezone = 5;</code>
+     * <code>required string timezone = 6;</code>
      *
      * <pre>
      * String representation of the used timezone
@@ -781,7 +790,7 @@ public final class DataContainer {
      */
     java.lang.String getTimezone();
     /**
-     * <code>required string timezone = 5;</code>
+     * <code>required string timezone = 6;</code>
      *
      * <pre>
      * String representation of the used timezone
@@ -789,6 +798,49 @@ public final class DataContainer {
      */
     com.google.protobuf.ByteString
         getTimezoneBytes();
+
+    /**
+     * <code>required float distance = 7;</code>
+     *
+     * <pre>
+     * Distance run, in meters
+     * </pre>
+     */
+    boolean hasDistance();
+    /**
+     * <code>required float distance = 7;</code>
+     *
+     * <pre>
+     * Distance run, in meters
+     * </pre>
+     */
+    float getDistance();
+
+    /**
+     * <code>optional string description = 8;</code>
+     *
+     * <pre>
+     * Description (to be displayed in the social stream, optional)
+     * </pre>
+     */
+    boolean hasDescription();
+    /**
+     * <code>optional string description = 8;</code>
+     *
+     * <pre>
+     * Description (to be displayed in the social stream, optional)
+     * </pre>
+     */
+    java.lang.String getDescription();
+    /**
+     * <code>optional string description = 8;</code>
+     *
+     * <pre>
+     * Description (to be displayed in the social stream, optional)
+     * </pre>
+     */
+    com.google.protobuf.ByteString
+        getDescriptionBytes();
   }
   /**
    * Protobuf type {@code de.velcommuta.denul.data.proto.Track}
@@ -873,13 +925,29 @@ public final class DataContainer {
             }
             case 32: {
               bitField0_ |= 0x00000004;
-              timestamp_ = input.readInt64();
+              timestampStart_ = input.readInt64();
               break;
             }
-            case 42: {
-              com.google.protobuf.ByteString bs = input.readBytes();
+            case 40: {
               bitField0_ |= 0x00000008;
+              timestampEnd_ = input.readInt64();
+              break;
+            }
+            case 50: {
+              com.google.protobuf.ByteString bs = input.readBytes();
+              bitField0_ |= 0x00000010;
               timezone_ = bs;
+              break;
+            }
+            case 61: {
+              bitField0_ |= 0x00000020;
+              distance_ = input.readFloat();
+              break;
+            }
+            case 66: {
+              com.google.protobuf.ByteString bs = input.readBytes();
+              bitField0_ |= 0x00000040;
+              description_ = bs;
               break;
             }
           }
@@ -1728,43 +1796,58 @@ public final class DataContainer {
       return track_.get(index);
     }
 
-    public static final int TIMESTAMP_FIELD_NUMBER = 4;
-    private long timestamp_;
+    public static final int TIMESTAMP_START_FIELD_NUMBER = 4;
+    private long timestampStart_;
     /**
-     * <code>required int64 timestamp = 4;</code>
+     * <code>required int64 timestamp_start = 4;</code>
      *
      * <pre>
-     * Timestamp of the beginning of the tracking
+     * Timestamp of the beginning and the end of the tracking
      * </pre>
      */
-    public boolean hasTimestamp() {
+    public boolean hasTimestampStart() {
       return ((bitField0_ & 0x00000004) == 0x00000004);
     }
     /**
-     * <code>required int64 timestamp = 4;</code>
+     * <code>required int64 timestamp_start = 4;</code>
      *
      * <pre>
-     * Timestamp of the beginning of the tracking
+     * Timestamp of the beginning and the end of the tracking
      * </pre>
      */
-    public long getTimestamp() {
-      return timestamp_;
+    public long getTimestampStart() {
+      return timestampStart_;
     }
 
-    public static final int TIMEZONE_FIELD_NUMBER = 5;
+    public static final int TIMESTAMP_END_FIELD_NUMBER = 5;
+    private long timestampEnd_;
+    /**
+     * <code>required int64 timestamp_end = 5;</code>
+     */
+    public boolean hasTimestampEnd() {
+      return ((bitField0_ & 0x00000008) == 0x00000008);
+    }
+    /**
+     * <code>required int64 timestamp_end = 5;</code>
+     */
+    public long getTimestampEnd() {
+      return timestampEnd_;
+    }
+
+    public static final int TIMEZONE_FIELD_NUMBER = 6;
     private java.lang.Object timezone_;
     /**
-     * <code>required string timezone = 5;</code>
+     * <code>required string timezone = 6;</code>
      *
      * <pre>
      * String representation of the used timezone
      * </pre>
      */
     public boolean hasTimezone() {
-      return ((bitField0_ & 0x00000008) == 0x00000008);
+      return ((bitField0_ & 0x00000010) == 0x00000010);
     }
     /**
-     * <code>required string timezone = 5;</code>
+     * <code>required string timezone = 6;</code>
      *
      * <pre>
      * String representation of the used timezone
@@ -1785,7 +1868,7 @@ public final class DataContainer {
       }
     }
     /**
-     * <code>required string timezone = 5;</code>
+     * <code>required string timezone = 6;</code>
      *
      * <pre>
      * String representation of the used timezone
@@ -1805,12 +1888,92 @@ public final class DataContainer {
       }
     }
 
+    public static final int DISTANCE_FIELD_NUMBER = 7;
+    private float distance_;
+    /**
+     * <code>required float distance = 7;</code>
+     *
+     * <pre>
+     * Distance run, in meters
+     * </pre>
+     */
+    public boolean hasDistance() {
+      return ((bitField0_ & 0x00000020) == 0x00000020);
+    }
+    /**
+     * <code>required float distance = 7;</code>
+     *
+     * <pre>
+     * Distance run, in meters
+     * </pre>
+     */
+    public float getDistance() {
+      return distance_;
+    }
+
+    public static final int DESCRIPTION_FIELD_NUMBER = 8;
+    private java.lang.Object description_;
+    /**
+     * <code>optional string description = 8;</code>
+     *
+     * <pre>
+     * Description (to be displayed in the social stream, optional)
+     * </pre>
+     */
+    public boolean hasDescription() {
+      return ((bitField0_ & 0x00000040) == 0x00000040);
+    }
+    /**
+     * <code>optional string description = 8;</code>
+     *
+     * <pre>
+     * Description (to be displayed in the social stream, optional)
+     * </pre>
+     */
+    public java.lang.String getDescription() {
+      java.lang.Object ref = description_;
+      if (ref instanceof java.lang.String) {
+        return (java.lang.String) ref;
+      } else {
+        com.google.protobuf.ByteString bs = 
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        if (bs.isValidUtf8()) {
+          description_ = s;
+        }
+        return s;
+      }
+    }
+    /**
+     * <code>optional string description = 8;</code>
+     *
+     * <pre>
+     * Description (to be displayed in the social stream, optional)
+     * </pre>
+     */
+    public com.google.protobuf.ByteString
+        getDescriptionBytes() {
+      java.lang.Object ref = description_;
+      if (ref instanceof java.lang.String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        description_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+
     private void initFields() {
       name_ = "";
       mode_ = de.velcommuta.denul.data.proto.DataContainer.Track.ModeOfTransport.MODE_RUNNING;
       track_ = java.util.Collections.emptyList();
-      timestamp_ = 0L;
+      timestampStart_ = 0L;
+      timestampEnd_ = 0L;
       timezone_ = "";
+      distance_ = 0F;
+      description_ = "";
     }
     private byte memoizedIsInitialized = -1;
     public final boolean isInitialized() {
@@ -1826,11 +1989,19 @@ public final class DataContainer {
         memoizedIsInitialized = 0;
         return false;
       }
-      if (!hasTimestamp()) {
+      if (!hasTimestampStart()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      if (!hasTimestampEnd()) {
         memoizedIsInitialized = 0;
         return false;
       }
       if (!hasTimezone()) {
+        memoizedIsInitialized = 0;
+        return false;
+      }
+      if (!hasDistance()) {
         memoizedIsInitialized = 0;
         return false;
       }
@@ -1857,10 +2028,19 @@ public final class DataContainer {
         output.writeMessage(3, track_.get(i));
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
-        output.writeInt64(4, timestamp_);
+        output.writeInt64(4, timestampStart_);
       }
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
-        output.writeBytes(5, getTimezoneBytes());
+        output.writeInt64(5, timestampEnd_);
+      }
+      if (((bitField0_ & 0x00000010) == 0x00000010)) {
+        output.writeBytes(6, getTimezoneBytes());
+      }
+      if (((bitField0_ & 0x00000020) == 0x00000020)) {
+        output.writeFloat(7, distance_);
+      }
+      if (((bitField0_ & 0x00000040) == 0x00000040)) {
+        output.writeBytes(8, getDescriptionBytes());
       }
       getUnknownFields().writeTo(output);
     }
@@ -1885,11 +2065,23 @@ public final class DataContainer {
       }
       if (((bitField0_ & 0x00000004) == 0x00000004)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeInt64Size(4, timestamp_);
+          .computeInt64Size(4, timestampStart_);
       }
       if (((bitField0_ & 0x00000008) == 0x00000008)) {
         size += com.google.protobuf.CodedOutputStream
-          .computeBytesSize(5, getTimezoneBytes());
+          .computeInt64Size(5, timestampEnd_);
+      }
+      if (((bitField0_ & 0x00000010) == 0x00000010)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(6, getTimezoneBytes());
+      }
+      if (((bitField0_ & 0x00000020) == 0x00000020)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeFloatSize(7, distance_);
+      }
+      if (((bitField0_ & 0x00000040) == 0x00000040)) {
+        size += com.google.protobuf.CodedOutputStream
+          .computeBytesSize(8, getDescriptionBytes());
       }
       size += getUnknownFields().getSerializedSize();
       memoizedSerializedSize = size;
@@ -2023,10 +2215,16 @@ public final class DataContainer {
         } else {
           trackBuilder_.clear();
         }
-        timestamp_ = 0L;
+        timestampStart_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000008);
-        timezone_ = "";
+        timestampEnd_ = 0L;
         bitField0_ = (bitField0_ & ~0x00000010);
+        timezone_ = "";
+        bitField0_ = (bitField0_ & ~0x00000020);
+        distance_ = 0F;
+        bitField0_ = (bitField0_ & ~0x00000040);
+        description_ = "";
+        bitField0_ = (bitField0_ & ~0x00000080);
         return this;
       }
 
@@ -2075,11 +2273,23 @@ public final class DataContainer {
         if (((from_bitField0_ & 0x00000008) == 0x00000008)) {
           to_bitField0_ |= 0x00000004;
         }
-        result.timestamp_ = timestamp_;
+        result.timestampStart_ = timestampStart_;
         if (((from_bitField0_ & 0x00000010) == 0x00000010)) {
           to_bitField0_ |= 0x00000008;
         }
+        result.timestampEnd_ = timestampEnd_;
+        if (((from_bitField0_ & 0x00000020) == 0x00000020)) {
+          to_bitField0_ |= 0x00000010;
+        }
         result.timezone_ = timezone_;
+        if (((from_bitField0_ & 0x00000040) == 0x00000040)) {
+          to_bitField0_ |= 0x00000020;
+        }
+        result.distance_ = distance_;
+        if (((from_bitField0_ & 0x00000080) == 0x00000080)) {
+          to_bitField0_ |= 0x00000040;
+        }
+        result.description_ = description_;
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
@@ -2130,12 +2340,23 @@ public final class DataContainer {
             }
           }
         }
-        if (other.hasTimestamp()) {
-          setTimestamp(other.getTimestamp());
+        if (other.hasTimestampStart()) {
+          setTimestampStart(other.getTimestampStart());
+        }
+        if (other.hasTimestampEnd()) {
+          setTimestampEnd(other.getTimestampEnd());
         }
         if (other.hasTimezone()) {
-          bitField0_ |= 0x00000010;
+          bitField0_ |= 0x00000020;
           timezone_ = other.timezone_;
+          onChanged();
+        }
+        if (other.hasDistance()) {
+          setDistance(other.getDistance());
+        }
+        if (other.hasDescription()) {
+          bitField0_ |= 0x00000080;
+          description_ = other.description_;
           onChanged();
         }
         this.mergeUnknownFields(other.getUnknownFields());
@@ -2151,11 +2372,19 @@ public final class DataContainer {
           
           return false;
         }
-        if (!hasTimestamp()) {
+        if (!hasTimestampStart()) {
+          
+          return false;
+        }
+        if (!hasTimestampEnd()) {
           
           return false;
         }
         if (!hasTimezone()) {
+          
+          return false;
+        }
+        if (!hasDistance()) {
           
           return false;
         }
@@ -2650,67 +2879,99 @@ public final class DataContainer {
         return trackBuilder_;
       }
 
-      private long timestamp_ ;
+      private long timestampStart_ ;
       /**
-       * <code>required int64 timestamp = 4;</code>
+       * <code>required int64 timestamp_start = 4;</code>
        *
        * <pre>
-       * Timestamp of the beginning of the tracking
+       * Timestamp of the beginning and the end of the tracking
        * </pre>
        */
-      public boolean hasTimestamp() {
+      public boolean hasTimestampStart() {
         return ((bitField0_ & 0x00000008) == 0x00000008);
       }
       /**
-       * <code>required int64 timestamp = 4;</code>
+       * <code>required int64 timestamp_start = 4;</code>
        *
        * <pre>
-       * Timestamp of the beginning of the tracking
+       * Timestamp of the beginning and the end of the tracking
        * </pre>
        */
-      public long getTimestamp() {
-        return timestamp_;
+      public long getTimestampStart() {
+        return timestampStart_;
       }
       /**
-       * <code>required int64 timestamp = 4;</code>
+       * <code>required int64 timestamp_start = 4;</code>
        *
        * <pre>
-       * Timestamp of the beginning of the tracking
+       * Timestamp of the beginning and the end of the tracking
        * </pre>
        */
-      public Builder setTimestamp(long value) {
+      public Builder setTimestampStart(long value) {
         bitField0_ |= 0x00000008;
-        timestamp_ = value;
+        timestampStart_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>required int64 timestamp = 4;</code>
+       * <code>required int64 timestamp_start = 4;</code>
        *
        * <pre>
-       * Timestamp of the beginning of the tracking
+       * Timestamp of the beginning and the end of the tracking
        * </pre>
        */
-      public Builder clearTimestamp() {
+      public Builder clearTimestampStart() {
         bitField0_ = (bitField0_ & ~0x00000008);
-        timestamp_ = 0L;
+        timestampStart_ = 0L;
+        onChanged();
+        return this;
+      }
+
+      private long timestampEnd_ ;
+      /**
+       * <code>required int64 timestamp_end = 5;</code>
+       */
+      public boolean hasTimestampEnd() {
+        return ((bitField0_ & 0x00000010) == 0x00000010);
+      }
+      /**
+       * <code>required int64 timestamp_end = 5;</code>
+       */
+      public long getTimestampEnd() {
+        return timestampEnd_;
+      }
+      /**
+       * <code>required int64 timestamp_end = 5;</code>
+       */
+      public Builder setTimestampEnd(long value) {
+        bitField0_ |= 0x00000010;
+        timestampEnd_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required int64 timestamp_end = 5;</code>
+       */
+      public Builder clearTimestampEnd() {
+        bitField0_ = (bitField0_ & ~0x00000010);
+        timestampEnd_ = 0L;
         onChanged();
         return this;
       }
 
       private java.lang.Object timezone_ = "";
       /**
-       * <code>required string timezone = 5;</code>
+       * <code>required string timezone = 6;</code>
        *
        * <pre>
        * String representation of the used timezone
        * </pre>
        */
       public boolean hasTimezone() {
-        return ((bitField0_ & 0x00000010) == 0x00000010);
+        return ((bitField0_ & 0x00000020) == 0x00000020);
       }
       /**
-       * <code>required string timezone = 5;</code>
+       * <code>required string timezone = 6;</code>
        *
        * <pre>
        * String representation of the used timezone
@@ -2731,7 +2992,7 @@ public final class DataContainer {
         }
       }
       /**
-       * <code>required string timezone = 5;</code>
+       * <code>required string timezone = 6;</code>
        *
        * <pre>
        * String representation of the used timezone
@@ -2751,7 +3012,7 @@ public final class DataContainer {
         }
       }
       /**
-       * <code>required string timezone = 5;</code>
+       * <code>required string timezone = 6;</code>
        *
        * <pre>
        * String representation of the used timezone
@@ -2762,26 +3023,26 @@ public final class DataContainer {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField0_ |= 0x00000010;
+  bitField0_ |= 0x00000020;
         timezone_ = value;
         onChanged();
         return this;
       }
       /**
-       * <code>required string timezone = 5;</code>
+       * <code>required string timezone = 6;</code>
        *
        * <pre>
        * String representation of the used timezone
        * </pre>
        */
       public Builder clearTimezone() {
-        bitField0_ = (bitField0_ & ~0x00000010);
+        bitField0_ = (bitField0_ & ~0x00000020);
         timezone_ = getDefaultInstance().getTimezone();
         onChanged();
         return this;
       }
       /**
-       * <code>required string timezone = 5;</code>
+       * <code>required string timezone = 6;</code>
        *
        * <pre>
        * String representation of the used timezone
@@ -2792,8 +3053,156 @@ public final class DataContainer {
         if (value == null) {
     throw new NullPointerException();
   }
-  bitField0_ |= 0x00000010;
+  bitField0_ |= 0x00000020;
         timezone_ = value;
+        onChanged();
+        return this;
+      }
+
+      private float distance_ ;
+      /**
+       * <code>required float distance = 7;</code>
+       *
+       * <pre>
+       * Distance run, in meters
+       * </pre>
+       */
+      public boolean hasDistance() {
+        return ((bitField0_ & 0x00000040) == 0x00000040);
+      }
+      /**
+       * <code>required float distance = 7;</code>
+       *
+       * <pre>
+       * Distance run, in meters
+       * </pre>
+       */
+      public float getDistance() {
+        return distance_;
+      }
+      /**
+       * <code>required float distance = 7;</code>
+       *
+       * <pre>
+       * Distance run, in meters
+       * </pre>
+       */
+      public Builder setDistance(float value) {
+        bitField0_ |= 0x00000040;
+        distance_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>required float distance = 7;</code>
+       *
+       * <pre>
+       * Distance run, in meters
+       * </pre>
+       */
+      public Builder clearDistance() {
+        bitField0_ = (bitField0_ & ~0x00000040);
+        distance_ = 0F;
+        onChanged();
+        return this;
+      }
+
+      private java.lang.Object description_ = "";
+      /**
+       * <code>optional string description = 8;</code>
+       *
+       * <pre>
+       * Description (to be displayed in the social stream, optional)
+       * </pre>
+       */
+      public boolean hasDescription() {
+        return ((bitField0_ & 0x00000080) == 0x00000080);
+      }
+      /**
+       * <code>optional string description = 8;</code>
+       *
+       * <pre>
+       * Description (to be displayed in the social stream, optional)
+       * </pre>
+       */
+      public java.lang.String getDescription() {
+        java.lang.Object ref = description_;
+        if (!(ref instanceof java.lang.String)) {
+          com.google.protobuf.ByteString bs =
+              (com.google.protobuf.ByteString) ref;
+          java.lang.String s = bs.toStringUtf8();
+          if (bs.isValidUtf8()) {
+            description_ = s;
+          }
+          return s;
+        } else {
+          return (java.lang.String) ref;
+        }
+      }
+      /**
+       * <code>optional string description = 8;</code>
+       *
+       * <pre>
+       * Description (to be displayed in the social stream, optional)
+       * </pre>
+       */
+      public com.google.protobuf.ByteString
+          getDescriptionBytes() {
+        java.lang.Object ref = description_;
+        if (ref instanceof String) {
+          com.google.protobuf.ByteString b = 
+              com.google.protobuf.ByteString.copyFromUtf8(
+                  (java.lang.String) ref);
+          description_ = b;
+          return b;
+        } else {
+          return (com.google.protobuf.ByteString) ref;
+        }
+      }
+      /**
+       * <code>optional string description = 8;</code>
+       *
+       * <pre>
+       * Description (to be displayed in the social stream, optional)
+       * </pre>
+       */
+      public Builder setDescription(
+          java.lang.String value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000080;
+        description_ = value;
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string description = 8;</code>
+       *
+       * <pre>
+       * Description (to be displayed in the social stream, optional)
+       * </pre>
+       */
+      public Builder clearDescription() {
+        bitField0_ = (bitField0_ & ~0x00000080);
+        description_ = getDefaultInstance().getDescription();
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>optional string description = 8;</code>
+       *
+       * <pre>
+       * Description (to be displayed in the social stream, optional)
+       * </pre>
+       */
+      public Builder setDescriptionBytes(
+          com.google.protobuf.ByteString value) {
+        if (value == null) {
+    throw new NullPointerException();
+  }
+  bitField0_ |= 0x00000080;
+        description_ = value;
         onChanged();
         return this;
       }
@@ -2836,14 +3245,16 @@ public final class DataContainer {
       "\n\023dataContainer.proto\022\036de.velcommuta.den" +
       "ul.data.proto\"N\n\007Wrapper\0226\n\005track\030\001 \001(\0132" +
       "%.de.velcommuta.denul.data.proto.TrackH\000" +
-      "B\013\n\tshareable\"\250\002\n\005Track\022\014\n\004name\030\001 \002(\t\022C\n" +
+      "B\013\n\tshareable\"\354\002\n\005Track\022\014\n\004name\030\001 \002(\t\022C\n" +
       "\004mode\030\002 \002(\01625.de.velcommuta.denul.data.p" +
       "roto.Track.ModeOfTransport\022:\n\005track\030\003 \003(" +
       "\0132+.de.velcommuta.denul.data.proto.Track" +
-      ".Entry\022\021\n\ttimestamp\030\004 \002(\003\022\020\n\010timezone\030\005 " +
-      "\002(\t\0324\n\005Entry\022\021\n\ttimestamp\030\001 \002(\003\022\013\n\003lat\030\002" +
-      " \002(\001\022\013\n\003lng\030\003 \002(\001\"5\n\017ModeOfTransport\022\020\n\014",
-      "MODE_RUNNING\020\000\022\020\n\014MODE_CYCLING\020\001"
+      ".Entry\022\027\n\017timestamp_start\030\004 \002(\003\022\025\n\rtimes" +
+      "tamp_end\030\005 \002(\003\022\020\n\010timezone\030\006 \002(\t\022\020\n\010dist" +
+      "ance\030\007 \002(\002\022\023\n\013description\030\010 \001(\t\0324\n\005Entry",
+      "\022\021\n\ttimestamp\030\001 \002(\003\022\013\n\003lat\030\002 \002(\001\022\013\n\003lng\030" +
+      "\003 \002(\001\"5\n\017ModeOfTransport\022\020\n\014MODE_RUNNING" +
+      "\020\000\022\020\n\014MODE_CYCLING\020\001"
     };
     com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner =
         new com.google.protobuf.Descriptors.FileDescriptor.    InternalDescriptorAssigner() {
@@ -2868,7 +3279,7 @@ public final class DataContainer {
     internal_static_de_velcommuta_denul_data_proto_Track_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessage.FieldAccessorTable(
         internal_static_de_velcommuta_denul_data_proto_Track_descriptor,
-        new java.lang.String[] { "Name", "Mode", "Track", "Timestamp", "Timezone", });
+        new java.lang.String[] { "Name", "Mode", "Track", "TimestampStart", "TimestampEnd", "Timezone", "Distance", "Description", });
     internal_static_de_velcommuta_denul_data_proto_Track_Entry_descriptor =
       internal_static_de_velcommuta_denul_data_proto_Track_descriptor.getNestedTypes().get(0);
     internal_static_de_velcommuta_denul_data_proto_Track_Entry_fieldAccessorTable = new

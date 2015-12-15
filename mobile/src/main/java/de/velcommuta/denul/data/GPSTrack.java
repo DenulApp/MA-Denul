@@ -19,10 +19,12 @@ public class GPSTrack implements Shareable {
     private List<Location> mPosition;
     private String mSessionName;
     private int mModeOfTransportation;
-    private long mTimestamp;
+    private long mTimestampStart;
+    private long mTimestampEnd;
     private String mTimezone;
     private int mId = -1;
     private int mOwner;
+    private String mDescription;
 
     private float mDistance = 0.0f;
 
@@ -35,16 +37,42 @@ public class GPSTrack implements Shareable {
      * @param pos List of positions
      * @param name Name of Session
      * @param mode Code for mode of transportation, as defined in LocationLoggingContract.LocationSessions
-     * @param timestamp Timestamp of the time at the beginning of the tracking
+     * @param timestampStart Timestamp of the time at the beginning of the tracking
+     * @param timestampEnd Timestamp of the time at the end of the tracking
      * @param timezone The String representation of the timezone, as returned by {@link DateTimeZone#toString()}
      */
-    public GPSTrack(List<Location> pos, String name, int mode, long timestamp, String timezone) {
+    public GPSTrack(List<Location> pos, String name, int mode, long timestampStart, long timestampEnd, String timezone) {
         mPosition = pos;
         mSessionName = name;
         mModeOfTransportation = mode;
-        mTimestamp = timestamp;
+        mTimestampStart = timestampStart;
+        mTimestampEnd = timestampEnd;
         mTimezone = timezone;
         mOwner = -1;
+    }
+
+
+    /**
+     * Constructor to pass a list of positions, a name, and a mode of transportation (defined in
+     * LocationLoggingContract.LocationSessions) to the subscriber
+     * @param pos List of positions
+     * @param name Name of Session
+     * @param mode Code for mode of transportation, as defined in LocationLoggingContract.LocationSessions
+     * @param timestampStart Timestamp of the time at the beginning of the tracking
+     * @param timestampEnd Timestamp of the time at the end of the tracking
+     * @param timezone The String representation of the timezone, as returned by {@link DateTimeZone#toString()}
+     * @param distance The distance that was run / cycled. If more than one Location was provided in the pos parameter,
+     *                 this should be equivalent to the calculated distance between those locations.
+     */
+    public GPSTrack(List<Location> pos, String name, int mode, long timestampStart, long timestampEnd, String timezone, float distance) {
+        mPosition = pos;
+        mSessionName = name;
+        mModeOfTransportation = mode;
+        mTimestampStart = timestampStart;
+        mTimestampEnd = timestampEnd;
+        mTimezone = timezone;
+        mOwner = -1;
+        mDistance = distance;
     }
 
     /**
@@ -53,17 +81,44 @@ public class GPSTrack implements Shareable {
      * @param pos List of positions
      * @param name Name of Session
      * @param mode Code for mode of transportation, as defined in LocationLoggingContract.LocationSessions
-     * @param timestamp Timestamp of the time at the beginning of the tracking
+     * @param timestampStart Timestamp of the time at the beginning of the tracking
+     * @param timestampEnd Timestamp of the time at the end of the tracking
      * @param timezone The String representation of the timezone, as returned by {@link DateTimeZone#toString()}
      * @param owner The ID of the owner of this track
      */
-    public GPSTrack(List<Location> pos, String name, int mode, long timestamp, String timezone, int owner) {
+    public GPSTrack(List<Location> pos, String name, int mode, long timestampStart, long timestampEnd, String timezone, int owner) {
         mPosition = pos;
         mSessionName = name;
         mModeOfTransportation = mode;
-        mTimestamp = timestamp;
+        mTimestampStart = timestampStart;
+        mTimestampEnd = timestampEnd;
         mTimezone = timezone;
         mOwner = owner;
+    }
+
+
+    /**
+     * Constructor to pass a list of positions, a name, and a mode of transportation (defined in
+     * LocationLoggingContract.LocationSessions) to the subscriber
+     * @param pos List of positions
+     * @param name Name of Session
+     * @param mode Code for mode of transportation, as defined in LocationLoggingContract.LocationSessions
+     * @param timestampStart Timestamp of the time at the beginning of the tracking
+     * @param timestampEnd Timestamp of the time at the end of the tracking
+     * @param timezone The String representation of the timezone, as returned by {@link DateTimeZone#toString()}
+     * @param owner The ID of the owner of this track
+     * @param distance The distance that was run / cycled. If more than one Location was provided in the pos parameter,
+     *                 this should be equivalent to the calculated distance between those locations.
+     */
+    public GPSTrack(List<Location> pos, String name, int mode, long timestampStart, long timestampEnd, String timezone, int owner, float distance) {
+        mPosition = pos;
+        mSessionName = name;
+        mModeOfTransportation = mode;
+        mTimestampStart = timestampStart;
+        mTimestampEnd = timestampEnd;
+        mTimezone = timezone;
+        mOwner = owner;
+        mDistance = distance;
     }
 
 
@@ -100,7 +155,16 @@ public class GPSTrack implements Shareable {
      * @return The timestamp
      */
     public long getTimestamp() {
-        return mTimestamp;
+        return mTimestampStart;
+    }
+
+
+    /**
+     * Get the timestamp of the end of the tracking
+     * @return The timestamp
+     */
+    public long getTimestampEnd() {
+        return mTimestampEnd;
     }
 
 
@@ -133,6 +197,18 @@ public class GPSTrack implements Shareable {
     }
 
 
+    @Override
+    public void setDescription(String description) {
+        mDescription = description;
+    }
+
+
+    @Override
+    public String getDescription() {
+        return mDescription;
+    }
+
+
     /**
      * Set the database ID for this GPSTrack
      * @param id The database ID
@@ -142,7 +218,6 @@ public class GPSTrack implements Shareable {
     }
 
 
-    @Override
     public byte[] getByteRepresentation() {
         // Get wrapper and Track builders
         DataContainer.Wrapper.Builder wrapper = DataContainer.Wrapper.newBuilder();
@@ -150,7 +225,9 @@ public class GPSTrack implements Shareable {
         // Set the name
         track.setName(mSessionName);
         // Set timestamp and timezone
-        track.setTimestamp(mTimestamp);
+        track.setTimestampStart(mTimestampStart);
+        track.setTimestampEnd(mTimestampEnd);
+        track.setDistance(getDistance());
         track.setTimezone(mTimezone);
         // Set the mode of transportation
         switch (mModeOfTransportation) {
@@ -173,10 +250,24 @@ public class GPSTrack implements Shareable {
             entry.setLng(cLoc.getLongitude());
             track.addTrack(entry);
         }
+        // Add description
+        if (getDescription() != null) {
+            track.setDescription(getDescription());
+        }
         // Pack in wrapper
         wrapper.setTrack(track);
         // Build, serialize and return wrapper
         return wrapper.build().toByteArray();
+    }
+
+
+    @Override
+    public int getOwner() {
+        return mOwner;
+    }
+
+    public void setOwner(int owner) {
+        mOwner = owner;
     }
 
 
@@ -208,7 +299,9 @@ public class GPSTrack implements Shareable {
             Log.e(TAG, "fromProtobuf: Unknown Mode of transport, defaulting to running");
             mode = VALUE_RUNNING;
         }
-        return new GPSTrack(locList, track.getName(), mode, track.getTimestamp(), track.getTimezone());
+        GPSTrack rv = new GPSTrack(locList, track.getName(), mode, track.getTimestampStart(), track.getTimestampEnd(), track.getTimezone(), track.getDistance());
+        rv.setDescription(track.getDescription());
+        return rv;
     }
 
 
@@ -228,7 +321,9 @@ public class GPSTrack implements Shareable {
         if (!(cmptrack.getSessionName().equals(getSessionName()) &&
               cmptrack.getModeOfTransportation() == getModeOfTransportation() &&
               cmptrack.getTimestamp() == getTimestamp() &&
-              cmptrack.getTimezone().equals(getTimezone()))) return false;
+              cmptrack.getTimestampEnd() == getTimestampEnd() &&
+              cmptrack.getTimezone().equals(getTimezone()) &&
+              cmptrack.getDescription().equals(getDescription()))) return false;
         // Check if the location lists have the same length
         if (cmptrack.getPosition().size() != getPosition().size()) return false;
         // Check if the locations match
@@ -245,14 +340,5 @@ public class GPSTrack implements Shareable {
             if (!rv) return false;
         }
         return true;
-    }
-
-    @Override
-    public int getOwner() {
-        return mOwner;
-    }
-
-    public void setOwner(int owner) {
-        mOwner = owner;
     }
 }

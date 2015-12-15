@@ -42,8 +42,13 @@ public class LocationLoggingContract  {
         public static final String COLUMN_NAME_SESSION_END = "session_end";
         public static final String COLUMN_NAME_TIMEZONE = "timezone";
 
+        // Distance
+        public static final String COLUMN_NAME_DISTANCE = "distance";
+
         // Mode of transportation
         public static final String COLUMN_NAME_MODE = "modeoftransport";
 
+        // Description
+        public static final String COLUMN_NAME_DESCRIPTION = "description";
     }
 }

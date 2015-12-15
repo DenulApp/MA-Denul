@@ -519,21 +519,21 @@ public class DatabaseService extends Service {
             // Write new database entry with metadata for the track
             ContentValues metadata = new ContentValues();
 
-            metadata.put(LocationLoggingContract.LocationSessions.COLUMN_NAME_SESSION_START, track.getPosition().get(0).getTime());
-            metadata.put(LocationLoggingContract.LocationSessions.COLUMN_NAME_SESSION_END, track.getPosition().get(track.getPosition().size() - 1).getTime());
+            metadata.put(LocationLoggingContract.LocationSessions.COLUMN_NAME_SESSION_START, track.getTimestamp());
+            metadata.put(LocationLoggingContract.LocationSessions.COLUMN_NAME_SESSION_END, track.getTimestampEnd());
             metadata.put(LocationLoggingContract.LocationSessions.COLUMN_NAME_NAME, track.getSessionName());
             metadata.put(LocationLoggingContract.LocationSessions.COLUMN_NAME_MODE, track.getModeOfTransportation());
             metadata.put(LocationLoggingContract.LocationSessions.COLUMN_NAME_TIMEZONE, track.getTimezone());
+            metadata.put(LocationLoggingContract.LocationSessions.COLUMN_NAME_DESCRIPTION, track.getDescription());
+            metadata.put(LocationLoggingContract.LocationSessions.COLUMN_NAME_DISTANCE, track.getDistance());
             metadata.put(LocationLoggingContract.LocationSessions.COLUMN_NAME_OWNER, ownerid);
 
             long rowid = insert(LocationLoggingContract.LocationSessions.TABLE_NAME, null, metadata);
 
             // Write the individual steps in the track
-            for (int i = 0; i < track.getPosition().size(); i++) {
+            for (Location cLoc : track.getPosition()) {
                 // Prepare ContentValues object
                 ContentValues entry = new ContentValues();
-                // Get Location object
-                Location cLoc = track.getPosition().get(i);
                 // Set values for ContentValues
                 entry.put(LocationLoggingContract.LocationLog.COLUMN_NAME_SESSION, rowid);
                 entry.put(LocationLoggingContract.LocationLog.COLUMN_NAME_LAT, cLoc.getLatitude());
@@ -651,12 +651,15 @@ public class DatabaseService extends Service {
                 locs.close();
                 // Create the GPSTrack object
                 track = new GPSTrack(locList,
-                        session.getString(session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions.COLUMN_NAME_NAME)),
-                        session.getInt(session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions.COLUMN_NAME_MODE)),
-                        session.getLong(session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions.COLUMN_NAME_SESSION_START)),
-                        session.getString(session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions.COLUMN_NAME_TIMEZONE)),
-                        session.getInt(session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions.COLUMN_NAME_OWNER)));
+                        session.getString (session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions.COLUMN_NAME_NAME)),
+                        session.getInt    (session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions.COLUMN_NAME_MODE)),
+                        session.getLong   (session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions.COLUMN_NAME_SESSION_START)),
+                        session.getLong   (session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions.COLUMN_NAME_SESSION_END)),
+                        session.getString (session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions.COLUMN_NAME_TIMEZONE)),
+                        session.getInt    (session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions.COLUMN_NAME_OWNER)),
+                        session.getFloat  (session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions.COLUMN_NAME_DISTANCE)));
                 track.setID(session.getInt(session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions._ID)));
+                track.setDescription(session.getString(session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions.COLUMN_NAME_DESCRIPTION)));
             }
             session.close();
             return track;
