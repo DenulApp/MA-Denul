@@ -74,6 +74,7 @@ public class SocialStreamAdapter extends RecyclerView.Adapter<SocialStreamAdapte
         private TextView mFurtherInfoView;
         private TextView mShareCount;
         private ImageView mShareIcon;
+        private TextView mDescription;
 
         // instance variables for track fragments with map
         private GPSTrack mTrack;
@@ -99,6 +100,7 @@ public class SocialStreamAdapter extends RecyclerView.Adapter<SocialStreamAdapte
             mFurtherInfoView = (TextView) itemView.findViewById(R.id.stream_moreinfo);
             mShareCount = (TextView) itemView.findViewById(R.id.stream_share_count);
             mShareIcon = (ImageView) itemView.findViewById(R.id.stream_share_icon);
+            mDescription = (TextView) itemView.findViewById(R.id.stream_description);
             mHeldView.setOnCreateContextMenuListener(this);
         }
 
@@ -168,6 +170,14 @@ public class SocialStreamAdapter extends RecyclerView.Adapter<SocialStreamAdapte
             } else {
                 mFurtherInfoView.setText(String.format(mContext.getString(R.string.distance_km), (int) distance / 1000.0f));
             }
+            // Set up the description
+            if (track.getDescription() != null && !track.getDescription().equals("")) {
+                mDescription.setText(track.getDescription());
+                mDescription.setVisibility(View.VISIBLE);
+            } else {
+                mDescription.setVisibility(View.GONE);
+            }
+            // Set up the share count
             int shares = mBinder.getShareRecipientsForShareable(mTrack).size();
             if (shares > 0) {
                 mShareIcon.setVisibility(View.VISIBLE);

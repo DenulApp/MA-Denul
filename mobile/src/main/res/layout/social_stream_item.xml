@@ -92,8 +92,19 @@
             android:layout_height="wrap_content"
             android:textAppearance="?android:attr/textAppearanceMedium"
             android:text="Medium Text"
-            android:id="@+id/stream_date"
+            android:id="@+id/stream_description"
             android:layout_below="@+id/stream_illustration"
+            android:layout_alignParentStart="true"
+            android:visibility="gone"
+            android:textStyle="italic"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:text="Medium Text"
+            android:id="@+id/stream_date"
+            android:layout_below="@+id/stream_description"
             android:layout_alignParentStart="true"/>
 
         <TextView
@@ -102,7 +113,7 @@
             android:textAppearance="?android:attr/textAppearanceMedium"
             android:text="Medium Text"
             android:id="@+id/stream_moreinfo"
-            android:layout_below="@+id/stream_illustration"
+            android:layout_below="@+id/stream_description"
             android:layout_alignParentEnd="true"/>
 
     </RelativeLayout>
