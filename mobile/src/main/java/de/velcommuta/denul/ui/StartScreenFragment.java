@@ -69,11 +69,11 @@ public class StartScreenFragment extends Fragment implements ServiceConnection,
         // Inflate the layout for this fragment
         View v = inflater.inflate(R.layout.fragment_start_screen, container, false);
         setHasOptionsMenu(true);
+        // TODO Set up emptyView
         mRecycler = (EmptyRecyclerView) v.findViewById(R.id.socialstream_recycler);
         RecyclerView.LayoutManager mLayoutManager = new LinearLayoutManager(getActivity());
         ((LinearLayoutManager) mLayoutManager).setOrientation(LinearLayoutManager.VERTICAL);
         mRecycler.setLayoutManager(mLayoutManager);
-        mBinder = ((MainActivity) getActivity()).getDbBinder();
         registerForContextMenu(mRecycler);
         return v;
     }
