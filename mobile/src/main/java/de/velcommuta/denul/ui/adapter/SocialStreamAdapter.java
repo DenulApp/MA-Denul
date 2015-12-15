@@ -123,18 +123,22 @@ public class SocialStreamAdapter extends RecyclerView.Adapter<SocialStreamAdapte
          */
         private void displayGPSTrack(GPSTrack track) {
             mTrack = track;
-            // Prepare google map options
-            GoogleMapOptions options = new GoogleMapOptions().liteMode(true).mapToolbarEnabled(false);
-            // Initialize new MapView
-            MapView mapView = new MapView(mContext, options);
-            // Add the mapview to the layout
-            mIllustration.addView(mapView);
-            // Call through to the onCreate
-            mapView.onCreate(null);
-            // Initialize
-            mapView.getMapAsync(this);
-            // Set the mapview to not be clickable (to avoid opening google maps on click)
-            mapView.setClickable(false);
+            if (track.getPosition().size() != 0) {
+                // Prepare google map options
+                GoogleMapOptions options = new GoogleMapOptions().liteMode(true).mapToolbarEnabled(false);
+                // Initialize new MapView
+                MapView mapView = new MapView(mContext, options);
+                // Add the mapview to the layout
+                mIllustration.addView(mapView);
+                // Call through to the onCreate
+                mapView.onCreate(null);
+                // Initialize
+                mapView.getMapAsync(this);
+                // Set the mapview to not be clickable (to avoid opening google maps on click)
+                mapView.setClickable(false);
+            } else {
+                // TODO Set up something for the mIllustration
+            }
             // Set up the title bar
             if (track.getOwner() != -1) {
                 mNameView.setText(mBinder.getFriendById(track.getOwner()).getName());
@@ -196,7 +200,7 @@ public class SocialStreamAdapter extends RecyclerView.Adapter<SocialStreamAdapte
          */
         private void drawPath() {
             // if the map has already been drawn to, just return
-            if (mStartMarker != null && mEndMarker != null && mPolyline != null) return;
+            if ((mStartMarker != null && mEndMarker != null && mPolyline != null) || mTrack.getPosition().size() == 0) return;
             // Draw start marker
             Location start = mTrack.getPosition().get(0);
             // Set icon for start of route

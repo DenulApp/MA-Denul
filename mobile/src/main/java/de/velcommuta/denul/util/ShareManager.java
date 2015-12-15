@@ -38,14 +38,16 @@ public class ShareManager {
         private Shareable[] mShareableList;
         private DatabaseServiceBinder mBinder;
         private ShareManagerCallback mCallback;
+        private int mGranularity;
 
         /**
          * Constructor
-         * @param sh The shareable to share
          * @param binder A database binder
          * @param callback A callback that should be notified on status updates
+         * @param granularity The granularity in which the data should be shared
+         * @param sh The shareable to share
          */
-        public ShareWithProgress(DatabaseServiceBinder binder, ShareManagerCallback callback, Shareable... sh) {
+        public ShareWithProgress(DatabaseServiceBinder binder, ShareManagerCallback callback, int granularity, Shareable... sh) {
             if (sh == null || binder == null || !binder.isDatabaseOpen())
                 throw new IllegalArgumentException("Shareable and Binder must not be null, database must be open");
             mShareableList = sh;
@@ -54,6 +56,7 @@ public class ShareManager {
             }
             mBinder = binder;
             mCallback = callback;
+            mGranularity = granularity;
         }
 
         @Override
@@ -86,13 +89,14 @@ public class ShareManager {
             for (Shareable shareable : mShareableList) {
                 DataBlock data;
                 // Check if the data has already been shared
+                // TODO check if it has been shared __with this granularity__
                 int s_id = mBinder.getShareID(shareable);
                 if (s_id == -1) {
                     // Shareable has not been shared before
                     // Generate a random identifier and revocation token
                     TokenPair data_identifier = deriv.generateRandomIdentifier();
                     // Encrypt the shareable
-                    data = enc.encryptShareable(shareable, data_identifier);
+                    data = enc.encryptShareable(shareable, mGranularity, data_identifier);
                     // Submit to the server
                     int rv = proto.put(data_identifier.getIdentifier(), data.getCiphertext());
                     if (rv == Protocol.PUT_OK) {

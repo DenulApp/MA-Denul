@@ -1085,6 +1085,40 @@ public class DatabaseService extends Service {
         }
 
 
+        @Override
+        public void updateShareableDescription(Shareable shareable) {
+            switch (shareable.getType()) {
+                case Shareable.SHAREABLE_TRACK:
+                    updateGPSTrackDescription((GPSTrack) shareable);
+                    break;
+                default:
+                    throw new IllegalArgumentException("Bad shareable - unknown type");
+            }
+        }
+
+
+        /**
+         * Private helper function to update the description of a GPS track in the database
+         * @param track The updated GPS track
+         */
+        private void updateGPSTrackDescription(GPSTrack track) {
+            assertOpen();
+            // Ensure object is sane
+            if (track == null || track.getID() == -1) throw new IllegalArgumentException("Bad GPS track");
+            // Prepare contentvalues
+            ContentValues description = new ContentValues();
+            description.put(LocationLoggingContract.LocationSessions.COLUMN_NAME_DESCRIPTION, track.getDescription());
+            // Prepare and perform update
+            String[] whereArgs = {String.valueOf(track.getID())};
+            beginTransaction();
+            update(LocationLoggingContract.LocationSessions.TABLE_NAME,
+                    description,
+                    LocationLoggingContract.LocationSessions._ID + " LIKE ?",
+                    whereArgs);
+            commit();
+        }
+
+
         ///// Utility functions
         /**
          * Assert that the database is open, or throw an exception

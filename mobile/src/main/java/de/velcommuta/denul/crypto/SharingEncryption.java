@@ -13,11 +13,12 @@ public interface SharingEncryption {
      * Encrypt a {@link Shareable} object with a random key and IV and return the result as a
      * {@link DataBlock}.
      * @param shareable The {@link Shareable} to encrypt
+     * @param granularity The granularity, as one of the GRANULARITY_* constants defined in the {@link Shareable} interface
      * @param tokens The {@link TokenPair} containing the identifier under which the data will be shared
      * @return A {@link DataBlock} containing the encrypted and authenticated {@link Shareable},
      *         cryptographically bound to the identifier in the {@link TokenPair}.
      */
-    DataBlock encryptShareable(Shareable shareable, TokenPair tokens);
+    DataBlock encryptShareable(Shareable shareable, int granularity, TokenPair tokens);
 
     /**
      * Encrypt the keys and identifier of a {@link DataBlock}.

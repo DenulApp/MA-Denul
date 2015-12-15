@@ -1,5 +1,7 @@
 package de.velcommuta.denul.data;
 
+import android.location.Address;
+import android.location.Geocoder;
 import android.location.Location;
 import android.util.Log;
 
@@ -8,6 +10,7 @@ import org.joda.time.DateTimeZone;
 import java.util.LinkedList;
 import java.util.List;
 
+import de.velcommuta.denul.R;
 import de.velcommuta.denul.data.proto.DataContainer;
 
 /**
@@ -209,6 +212,12 @@ public class GPSTrack implements Shareable {
     }
 
 
+    @Override
+    public int getGranularityDescriptor() {
+        return R.array.granularity_gpstrack;
+    }
+
+
     /**
      * Set the database ID for this GPSTrack
      * @param id The database ID
@@ -218,7 +227,10 @@ public class GPSTrack implements Shareable {
     }
 
 
-    public byte[] getByteRepresentation() {
+    @Override
+    public byte[] getByteRepresentation(int granularity) {
+        if (granularity != GRANULARITY_FINE && granularity != GRANULARITY_COARSE && granularity != GRANULARITY_VERY_COARSE)
+            throw new IllegalArgumentException("Bad granularity level");
         // Get wrapper and Track builders
         DataContainer.Wrapper.Builder wrapper = DataContainer.Wrapper.newBuilder();
         DataContainer.Track.Builder track = DataContainer.Track.newBuilder();
@@ -242,13 +254,15 @@ public class GPSTrack implements Shareable {
                 track.setMode(DataContainer.Track.ModeOfTransport.MODE_RUNNING);
                 break;
         }
-        // Add the location entries
-        for (Location cLoc : mPosition) {
-            DataContainer.Track.Entry.Builder entry = DataContainer.Track.Entry.newBuilder();
-            entry.setTimestamp(cLoc.getTime());
-            entry.setLat(cLoc.getLatitude());
-            entry.setLng(cLoc.getLongitude());
-            track.addTrack(entry);
+        if (granularity == GRANULARITY_FINE) {
+            // Add the location entries
+            for (Location cLoc : mPosition) {
+                DataContainer.Track.Entry.Builder entry = DataContainer.Track.Entry.newBuilder();
+                entry.setTimestamp(cLoc.getTime());
+                entry.setLat(cLoc.getLatitude());
+                entry.setLng(cLoc.getLongitude());
+                track.addTrack(entry);
+            }
         }
         // Add description
         if (getDescription() != null) {
@@ -300,7 +314,8 @@ public class GPSTrack implements Shareable {
             mode = VALUE_RUNNING;
         }
         GPSTrack rv = new GPSTrack(locList, track.getName(), mode, track.getTimestampStart(), track.getTimestampEnd(), track.getTimezone(), track.getDistance());
-        rv.setDescription(track.getDescription());
+        if (!(track.getDescription() == null || track.getDescription().equals("")))
+            rv.setDescription(track.getDescription());
         return rv;
     }
 
@@ -322,8 +337,12 @@ public class GPSTrack implements Shareable {
               cmptrack.getModeOfTransportation() == getModeOfTransportation() &&
               cmptrack.getTimestamp() == getTimestamp() &&
               cmptrack.getTimestampEnd() == getTimestampEnd() &&
-              cmptrack.getTimezone().equals(getTimezone()) &&
-              cmptrack.getDescription().equals(getDescription()))) return false;
+              cmptrack.getTimezone().equals(getTimezone()))) return false;
+        if (cmptrack.getDescription() == null) {
+            if (getDescription() != null) return false;
+        } else {
+            if (!(getDescription().equals(cmptrack.getDescription()))) return false;
+        }
         // Check if the location lists have the same length
         if (cmptrack.getPosition().size() != getPosition().size()) return false;
         // Check if the locations match

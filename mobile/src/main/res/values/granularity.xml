@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="granularity_gpstrack">
+        <item>@string/shareable_track_granularity_fine</item>
+        <item>@string/shareable_track_granularity_coarse</item>
+    </string-array>
+</resources>

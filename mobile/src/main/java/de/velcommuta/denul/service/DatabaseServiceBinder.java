@@ -247,4 +247,10 @@ public interface DatabaseServiceBinder {
      * @param shareable The shareable to add
      */
     void addShareable(Shareable shareable);
+
+    /**
+     * Update the description of a shareable in the database
+     * @param shareable The shareable object with the new description returned by {@link Shareable#getDescription()}
+     */
+    void updateShareableDescription(Shareable shareable);
 }

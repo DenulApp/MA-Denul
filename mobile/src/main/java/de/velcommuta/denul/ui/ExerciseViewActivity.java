@@ -21,6 +21,7 @@ import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -81,10 +82,6 @@ public class ExerciseViewActivity extends AppCompatActivity implements ServiceCo
         setSupportActionBar(myToolbar);
         ActionBar ab = getSupportActionBar();
         ab.setDisplayHomeAsUpEnabled(true);
-
-        // Get a reference to the Map fragment and perform an async. initialization
-        MapFragment mapFragment = (MapFragment) getFragmentManager().findFragmentById(R.id.exc_view_gmap);
-        mapFragment.getMapAsync(this);
 
         requestDatabaseBinder();
         Bundle b = getIntent().getExtras();
@@ -192,21 +189,36 @@ public class ExerciseViewActivity extends AppCompatActivity implements ServiceCo
         // Create an AlertDialog builder
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         // Create a ListView to display the Friendlist
-        final ListView lv = new ListView(this);
+        View dialog = getLayoutInflater().inflate(R.layout.dialog_share, null);
+        final ListView lv = (ListView) dialog.findViewById(R.id.share_menu_friendlist);
         // Set the ListView to allow multiple selections
         lv.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
         // Load the friend list from the database
         final List<Friend> friendlist = mDbBinder.getFriends();
         // Set up the adapter
         lv.setAdapter(new ArrayAdapter<Friend>(this, android.R.layout.simple_list_item_multiple_choice, friendlist));
+        // Populate the list of share granularity options
+        final Spinner granularitySpinner = (Spinner) dialog.findViewById(R.id.share_menu_granularity);
+        final ArrayAdapter<CharSequence> granularityAdapter = ArrayAdapter.createFromResource(this, mTrack.getGranularityDescriptor(), android.R.layout.simple_list_item_1);
+        granularitySpinner.setAdapter(granularityAdapter);
+        final EditText description = (EditText) dialog.findViewById(R.id.share_menu_description);
+        if (mTrack.getDescription() != null) {
+            description.setText(mTrack.getDescription());
+            if (mDbBinder.getShareID(mTrack) != -1) {
+                description.setEnabled(false);
+            }
+        }
         // Set the finished List as the view of the AlertDialog
-        builder.setView(lv);
+        builder.setView(dialog);
         // Set title
         builder.setTitle("Select a friend:");
         // Set "OK" button with callback
         builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialogInterface, int selected) {
+                // Apply the description
+                mTrack.setDescription(description.getText().toString().trim());
+                mDbBinder.updateShareableDescription(mTrack);
                 // Read out which friends have been selected
                 SparseBooleanArray checked = lv.getCheckedItemPositions();
                 List<Friend> rcpt = new LinkedList<>();
@@ -216,6 +228,7 @@ public class ExerciseViewActivity extends AppCompatActivity implements ServiceCo
                 }
                 // Check if any have been selected
                 if (rcpt.size() > 0) {
+                    int granularity = granularitySpinner.getSelectedItemPosition();
                     // Prepare a ShareWithProgress AsyncTask with nested Callback
                     // TODO Proper callback and progress bar?
                     ShareManager.ShareWithProgress m = new ShareManager().new ShareWithProgress(mDbBinder, new ShareManager.ShareManagerCallback() {
@@ -232,7 +245,7 @@ public class ExerciseViewActivity extends AppCompatActivity implements ServiceCo
                             else
                                 Toast.makeText(ExerciseViewActivity.this, "Failed", Toast.LENGTH_SHORT).show();
                         }
-                    }, mTrack);
+                    }, granularity, mTrack);
                     m.execute(rcpt);
                 } else {
                     Toast.makeText(ExerciseViewActivity.this, "No one selected", Toast.LENGTH_SHORT).show();
@@ -274,6 +287,13 @@ public class ExerciseViewActivity extends AppCompatActivity implements ServiceCo
     private void loadTrackInformation() {
         // Load track
         mTrack = mDbBinder.getGPSTrackById(mTrackId);
+        if (mTrack.getPosition().size() != 0) {
+            // Get a reference to the Map fragment and perform an async. initialization
+            MapFragment mapFragment = (MapFragment) getFragmentManager().findFragmentById(R.id.exc_view_gmap);
+            mapFragment.getMapAsync(this);
+        } else {
+            // TODO Choose a different background instead of loading the map, as we do not have a path to display
+        }
         // Set title
         mTrackTitle.setText(mTrack.getSessionName());
         // Set date
@@ -335,7 +355,7 @@ public class ExerciseViewActivity extends AppCompatActivity implements ServiceCo
      */
     private void drawPath() {
         // if the map has already been drawn to, just return
-        if (mStartMarker != null && mEndMarker != null && mPolyline != null) return;
+        if ((mStartMarker != null && mEndMarker != null && mPolyline != null) || mTrack.getPosition().size() == 0) return;
         // Draw start marker
         Location start = mTrack.getPosition().get(0);
         // Set icon for start of route

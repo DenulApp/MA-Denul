@@ -76,7 +76,7 @@ public class AESSharingEncryptionTest extends TestCase {
         AESSharingEncryption enc = new AESSharingEncryption();
         // Encrypt Shareable with random identifier
         TokenPair rand = d.generateRandomIdentifier();
-        DataBlock block = enc.encryptShareable(testtrack, rand);
+        DataBlock block = enc.encryptShareable(testtrack, Shareable.GRANULARITY_FINE, rand);
         // Encrypt identifier and key of the block for the second keyset
         byte[] encrypted = enc.encryptKeysAndIdentifier(block, ks1);
         // Decrypt identifier and key of the block using the second keyset

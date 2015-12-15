@@ -19,9 +19,9 @@ import de.velcommuta.denul.data.proto.DataContainer;
 public class AESSharingEncryption implements SharingEncryption {
     private static final String TAG = "AES-SE";
     @Override
-    public DataBlock encryptShareable(Shareable shareable, TokenPair tokens) {
+    public DataBlock encryptShareable(Shareable shareable, int granularity, TokenPair tokens) {
         // Serialize shareable to byte[]
-        byte[] plaintext = shareable.getByteRepresentation();
+        byte[] plaintext = shareable.getByteRepresentation(granularity);
         // Generate AES256-key
         byte[] key = AES.generateAES256Key();
         // Encrypt plaintext with the key, using the identifier as associated data

@@ -3,12 +3,16 @@ package de.velcommuta.denul.data;
 /**
  * Interface implemented by all sharable objects (e.g. run tracks, heart rates, ...).
  * Each implementing class SHOULD also have a static fromByteRepresentation function taking a byte[]
- * as returned from {@link Shareable#getByteRepresentation()} and returning a {@link Shareable}
+ * as returned from {@link Shareable#getByteRepresentation(int granularity)} and returning a {@link Shareable}
  * object that contains the data from the byte[] representation.
  */
 public interface Shareable {
-    int SHAREABLE_TRACK = 0;
+    int SHAREABLE_TRACK     = 0;
     int SHAREABLE_STEPCOUNT = 1;
+
+    int GRANULARITY_FINE        = 0;
+    int GRANULARITY_COARSE      = 1;
+    int GRANULARITY_VERY_COARSE = 2;
 
     /**
      * Function to indicate which type the implementing class is. One of the SHAREABLE_* constants
@@ -16,15 +20,6 @@ public interface Shareable {
      * @return One of the SHAREABLE_* constants indicating which type the object is of
      */
     int getType();
-
-    /**
-     * Generate and return a byte[]-representation of the object. It should be the correct protobuf
-     * type from the proto package, wrapped in a {@link de.velcommuta.denul.data.proto.DataContainer.Wrapper}
-     * object.
-     * @return A byte[]-representation of the object
-     */
-    byte[] getByteRepresentation();
-
 
     /**
      * Getter for the ID of the owner. Will be set to the database ID of a {@link Friend}, or -1 if
@@ -57,4 +52,20 @@ public interface Shareable {
      * @return The description as a String, or null if it is not set
      */
     String getDescription();
+
+    /**
+     * Generate and return a byte[]-representation of the object. It should be the correct protobuf
+     * type from the proto package, wrapped in a {@link de.velcommuta.denul.data.proto.DataContainer.Wrapper}
+     * object.
+     * @param granularity One of the GRANULARITY_* constants defined in the {@link Shareable} interface
+     *                    to indicate how much data should be included in the serialized object
+     * @return A byte[]-representation of the object
+     */
+    byte[] getByteRepresentation(int granularity);
+
+    /**
+     * Get a short description for a specific granularity level, as an R.string.* resource ID
+     * @return A resource identifier for a String resource file
+     */
+    int getGranularityDescriptor();
 }
