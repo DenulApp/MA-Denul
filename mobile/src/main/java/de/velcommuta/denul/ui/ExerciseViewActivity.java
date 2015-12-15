@@ -197,16 +197,25 @@ public class ExerciseViewActivity extends AppCompatActivity implements ServiceCo
         final List<Friend> friendlist = mDbBinder.getFriends();
         // Set up the adapter
         lv.setAdapter(new ArrayAdapter<Friend>(this, android.R.layout.simple_list_item_multiple_choice, friendlist));
+        // Pre-check those friends that have already received the share
+        List<Friend> sharedFriends = mDbBinder.getShareRecipientsForShareable(mTrack);
+        for (Friend f : sharedFriends) {
+            lv.setItemChecked(sharedFriends.indexOf(f), true);
+        }
         // Populate the list of share granularity options
         final Spinner granularitySpinner = (Spinner) dialog.findViewById(R.id.share_menu_granularity);
         final ArrayAdapter<CharSequence> granularityAdapter = ArrayAdapter.createFromResource(this, mTrack.getGranularityDescriptor(), android.R.layout.simple_list_item_1);
         granularitySpinner.setAdapter(granularityAdapter);
+        // Set the description
         final EditText description = (EditText) dialog.findViewById(R.id.share_menu_description);
         if (mTrack.getDescription() != null) {
             description.setText(mTrack.getDescription());
-            if (mDbBinder.getShareID(mTrack) != -1) {
-                description.setEnabled(false);
-            }
+        }
+        int granularity = mDbBinder.getShareGranularity(mTrack);
+        if (granularity != -1) {
+            granularitySpinner.setSelection(granularity);
+            granularitySpinner.setEnabled(false);
+            description.setEnabled(false);
         }
         // Set the finished List as the view of the AlertDialog
         builder.setView(dialog);

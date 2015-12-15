@@ -203,6 +203,13 @@ public interface DatabaseServiceBinder {
     int getShareID(Shareable sh);
 
     /**
+     * Determine the granularity with which a Shareable was shared.
+     * @param sh The Shareable (with {@link Shareable#getID()} != -1)
+     * @return The share granularity, or -1 if the Shareable was not shared yet
+     */
+    int getShareGranularity(Shareable sh);
+
+    /**
      * Add information about a shared {@link DataBlock} to the database
      * @param sh The {@link Shareable} represented by the DataBlock
      * @param pair The TokenPair containing identifier and revocation token for the Data block

@@ -113,7 +113,8 @@ public class SecureDbHelper extends SQLiteOpenHelper {
             SharingContract.DataShareLog._ID + TYPE_INT + OPT_PRIMARY_KEY + COMMA_SEP +
             SharingContract.DataShareLog.COLUMN_IDENTIFIER + TYPE_BLOB + OPT_NOT_NULL + COMMA_SEP +
             SharingContract.DataShareLog.COLUMN_REVOCATION_TOKEN + TYPE_BLOB + OPT_NOT_NULL + COMMA_SEP +
-            SharingContract.DataShareLog.COLUMN_KEY + TYPE_BLOB + OPT_NOT_NULL +
+            SharingContract.DataShareLog.COLUMN_KEY + TYPE_BLOB + OPT_NOT_NULL + COMMA_SEP +
+            SharingContract.DataShareLog.COLUMN_GRANULARITY + TYPE_INT + OPT_NOT_NULL + OPT_DEFAULT_ZERO +
             ");";
 
     private static final String SQL_CREATE_ENTRIES_FRIENDSHAREDLOG
@@ -159,7 +160,7 @@ public class SecureDbHelper extends SQLiteOpenHelper {
 
     public static final String DATABASE_NAME = "location.db"; // TODO Update
 
-    public static final int DATABASE_VERSION = 13;
+    public static final int DATABASE_VERSION = 14;
 
 
     /**
@@ -199,7 +200,9 @@ public class SecureDbHelper extends SQLiteOpenHelper {
             onUpgrade(db, 10, 11);
             oldVersion = 11;
         }
-        if (oldVersion == 12 && newVersion == 13) {
+        if (oldVersion == 13 && newVersion == 14) {
+            db.execSQL("ALTER TABLE " + SharingContract.DataShareLog.TABLE_NAME + " ADD COLUMN " + SharingContract.DataShareLog.COLUMN_GRANULARITY + TYPE_INT + OPT_NOT_NULL + OPT_DEFAULT_ZERO + ";");
+        } else if (oldVersion == 12 && newVersion == 13) {
             db.execSQL("ALTER TABLE " + LocationLoggingContract.LocationSessions.TABLE_NAME + " ADD COLUMN " + LocationLoggingContract.LocationSessions.COLUMN_NAME_DESCRIPTION + TYPE_TEXT + OPT_DEFAULT_NULL + ";");
             db.execSQL("ALTER TABLE " + LocationLoggingContract.LocationSessions.TABLE_NAME + " ADD COLUMN " + LocationLoggingContract.LocationSessions.COLUMN_NAME_DISTANCE + TYPE_FLOAT + OPT_NOT_NULL + OPT_DEFAULT_ZERO + ";");
         } else if (oldVersion == 10 && newVersion == 11) {

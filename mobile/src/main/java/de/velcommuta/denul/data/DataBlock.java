@@ -14,6 +14,7 @@ public class DataBlock {
     private byte[] mIdentifier;
     private byte[] mCiphertext;
     private Friend mOwner;
+    private int mGranularity;
 
 
     /**
@@ -26,6 +27,20 @@ public class DataBlock {
         mKey = Arrays.copyOf(key, key.length);
         mCiphertext = Arrays.copyOf(ciphertext, ciphertext.length);
         mIdentifier = Arrays.copyOf(identifier, identifier.length);
+    }
+
+    /**
+     * Constructor for data object
+     * @param key The key used to encrypt the data
+     * @param ciphertext The encrypted data
+     * @param identifier The identifier associated with this data
+     * @param granularity The granularity
+     */
+    public DataBlock(byte[] key, byte[] ciphertext, byte[] identifier, int granularity) {
+        mKey = Arrays.copyOf(key, key.length);
+        mCiphertext = Arrays.copyOf(ciphertext, ciphertext.length);
+        mIdentifier = Arrays.copyOf(identifier, identifier.length);
+        mGranularity = granularity;
     }
 
 
@@ -87,6 +102,24 @@ public class DataBlock {
      */
     public void setOwner(Friend owner) {
         mOwner = owner;
+    }
+
+
+    /**
+     * Set the granularity level of this datablock
+     * @param granularity One of the GRANULARITY_* constants defined in the {@link Shareable} interface
+     */
+    public void setGranularity(int granularity) {
+        mGranularity = granularity;
+    }
+
+
+    /**
+     * Getter for the granularity
+     * @return The granularity level
+     */
+    public int getGranularity() {
+        return mGranularity;
     }
 
 

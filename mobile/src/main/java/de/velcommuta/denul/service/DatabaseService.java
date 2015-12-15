@@ -947,6 +947,36 @@ public class DatabaseService extends Service {
             return rv;
         }
 
+
+        @Override
+        public int getShareGranularity(Shareable sh) {
+            assertOpen();
+            // Retrieve ID
+            int id = getShareID(sh);
+            // If ID is -1, the item is not shared => return -1
+            if (id == -1) return -1;
+            // Prepare and execute query
+            String[] whereArgs = {String.valueOf(id)};
+            String[] columns = {SharingContract.DataShareLog.COLUMN_GRANULARITY};
+            Cursor c = query(SharingContract.DataShareLog.TABLE_NAME,
+                    columns,
+                    SharingContract.DataShareLog._ID + " LIKE ?",
+                    whereArgs,
+                    null,
+                    null,
+                    null);
+            // Prepare return value
+            int rv = -1;
+            // Grab return value from cursor
+            if (c.moveToFirst()) {
+                rv = c.getInt(c.getColumnIndexOrThrow(SharingContract.DataShareLog.COLUMN_GRANULARITY));
+            }
+            // Close cursor and return
+            c.close();
+            return rv;
+        }
+
+
         @Override
         public int addShare(Shareable sh, TokenPair pair, DataBlock block) {
             assertOpen();
@@ -960,6 +990,7 @@ public class DatabaseService extends Service {
             data.put(SharingContract.DataShareLog.COLUMN_KEY, block.getKey());
             data.put(SharingContract.DataShareLog.COLUMN_IDENTIFIER, pair.getIdentifier());
             data.put(SharingContract.DataShareLog.COLUMN_REVOCATION_TOKEN, pair.getRevocation());
+            data.put(SharingContract.DataShareLog.COLUMN_GRANULARITY, block.getGranularity());
             // Insert
             int dataid = (int) insert(SharingContract.DataShareLog.TABLE_NAME, null, data);
 

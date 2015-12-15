@@ -16,6 +16,7 @@ public class SharingContract {
         public static final String COLUMN_IDENTIFIER = "identifier";
         public static final String COLUMN_REVOCATION_TOKEN = "revocation_token";
         public static final String COLUMN_KEY = "encryption_key";
+        public static final String COLUMN_GRANULARITY = "granularity";
     }
 
     public static abstract class FriendShareLog implements BaseColumns {

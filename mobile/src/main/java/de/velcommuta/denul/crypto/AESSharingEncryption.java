@@ -27,7 +27,7 @@ public class AESSharingEncryption implements SharingEncryption {
         // Encrypt plaintext with the key, using the identifier as associated data
         byte[] ciphertext = AES.encryptAES(plaintext, key, tokens.getIdentifier());
         // Generate and return DataBlock object
-        return new DataBlock(key, ciphertext, tokens.getIdentifier());
+        return new DataBlock(key, ciphertext, tokens.getIdentifier(), granularity);
     }
 
 
