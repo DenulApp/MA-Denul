@@ -235,6 +235,30 @@ public interface DatabaseServiceBinder {
     List<Friend> getShareRecipientsForShareable(Shareable shareable);
 
     /**
+     * Get a list of all tokens associated with a shareable. This includes the tokens used to store
+     * the shareable itself, and all tokens of data referring to the shareable.
+     * @param shareable The shareable. MUST NOT return -1 on a call to {@link Shareable#getID()}.
+     * @return A List of {@link TokenPair} objects containing identifiers and revocation information
+     *         for the shareable. The List may be empty if the Shareable has not been shared yet
+     */
+    List<TokenPair> getTokensForShareable(Shareable shareable);
+
+    /**
+     * Get a List of all TokenPairs sharing data to a specific Friend.
+     * @param friend The {@link Friend} to check for. MUST NOT return -1 on a call to {@link Friend#getID()}
+     * @return A List of {@link TokenPair}s
+     */
+    List<TokenPair> getTokensForSharesToFriend(Friend friend);
+
+    /**
+     * Get the token used to share a specific {@link Shareable} to a specific {@link Friend}
+     * @param shareable The shareable. MUST NOT return -1 on {@link Shareable#getID()}
+     * @param friend The Friend. MUST NOT return -1 on {@link Friend#getID()}
+     * @return The {@link TokenPair} associated with the share
+     */
+    TokenPair getTokenForShareToFriend(Shareable shareable, Friend friend);
+
+    /**
      * Retrieve the share data from the database
      * @param shareid The ID of the entry in the share database
      * @return A {@link DataBlock} with the Identifier and Key properties set
@@ -244,6 +268,7 @@ public interface DatabaseServiceBinder {
     /**
      * Find a {@link TokenPair} in the database and delete it
      * @param tokenPair The TokenPair
+     * @return True if the deletion succeeded, false otherwise
      */
     boolean deleteShareByToken(TokenPair tokenPair);
 

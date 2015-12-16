@@ -1122,6 +1122,138 @@ public class DatabaseService extends Service {
 
 
         @Override
+        public List<TokenPair> getTokensForShareable(Shareable shareable) {
+            assertOpen();
+            // Prepare return list
+            List<TokenPair> rv = new LinkedList<>();
+            // Get the share ID for the shareable
+            int share_id = getShareID(shareable);
+            // Check if it is set
+            if (share_id == -1) return rv;
+            // Retrieve identifier
+            TokenPair data = getTokenPairForShareID(share_id);
+            if (data != null) {
+                rv.add(data);
+            }
+            // Retrieve TokenPairs of all KeyBlocks referring to the data share
+            rv.addAll(getFriendShareTokenPairsForShareID(share_id));
+            // Return
+            return rv;
+        }
+
+        @Override
+        public List<TokenPair> getTokensForSharesToFriend(Friend friend) {
+            assertOpen();
+            // Prepare return List
+            List<TokenPair> rv = new LinkedList<>();
+            if (friend.getID() == -1) return rv;
+            // Prepare query
+            String[] whereArgs = {String.valueOf(friend.getID())};
+            String[] columns = {SharingContract.FriendShareLog.COLUMN_IDENTIFIER, SharingContract.FriendShareLog.COLUMN_REVOCATION_TOKEN};
+            Cursor c = query(SharingContract.FriendShareLog.TABLE_NAME,
+                    columns,
+                    SharingContract.FriendShareLog.COLUMN_FRIEND_ID + " LIKE ?",
+                    whereArgs,
+                    null,
+                    null,
+                    null);
+            // Read out results
+            while (c.moveToNext()) {
+                rv.add(new TokenPair(c.getBlob(c.getColumnIndexOrThrow(SharingContract.FriendShareLog.COLUMN_IDENTIFIER)),
+                                     c.getBlob(c.getColumnIndexOrThrow(SharingContract.FriendShareLog.COLUMN_REVOCATION_TOKEN))));
+            }
+            // Close cursor
+            c.close();
+            return rv;
+        }
+
+        @Override
+        public TokenPair getTokenForShareToFriend(Shareable shareable, Friend friend) {
+            TokenPair rv = null;
+            if (shareable.getID() == -1 || friend.getID() == -1) return null;
+            int share_id = getShareID(shareable);
+            if (share_id == -1) return null;
+            // Prepare query
+            String[] whereArgs = {String.valueOf(share_id), String.valueOf(friend.getID())};
+            String[] columns = {SharingContract.FriendShareLog.COLUMN_IDENTIFIER, SharingContract.FriendShareLog.COLUMN_REVOCATION_TOKEN};
+            Cursor c = query(SharingContract.FriendShareLog.TABLE_NAME,
+                    columns,
+                    SharingContract.FriendShareLog.COLUMN_DATASHARE_ID + " LIKE ? AND " + SharingContract.FriendShareLog.COLUMN_FRIEND_ID + " LIKE ?",
+                    whereArgs,
+                    null,
+                    null,
+                    null);
+            // Read results
+            if (c.moveToFirst()) {
+                rv = new TokenPair(c.getBlob(c.getColumnIndexOrThrow(SharingContract.FriendShareLog.COLUMN_IDENTIFIER)),
+                                   c.getBlob(c.getColumnIndexOrThrow(SharingContract.FriendShareLog.COLUMN_REVOCATION_TOKEN)));
+            }
+            // Close cursor
+            c.close();
+            return rv;
+        }
+
+
+        /**
+         * Retrieve the TokenPair associated with a specific shareID in the DataShareLog table
+         * @param shareid The ShareID in the DataShareLog table
+         * @return The TokenPair, or null if none exists
+         */
+        private TokenPair getTokenPairForShareID(int shareid) {
+            if (shareid == -1) return null;
+            // Prepare query
+            String[] whereArgs = {String.valueOf(shareid)};
+            String[] columns = {SharingContract.DataShareLog.COLUMN_IDENTIFIER, SharingContract.DataShareLog.COLUMN_REVOCATION_TOKEN};
+            Cursor c = query(SharingContract.DataShareLog.TABLE_NAME,
+                    columns,
+                    SharingContract.DataShareLog._ID + " LIKE ?",
+                    whereArgs,
+                    null,
+                    null,
+                    null);
+            // Read out result
+            TokenPair rv = null;
+            if (c.moveToFirst()) {
+                rv = new TokenPair(c.getBlob(c.getColumnIndexOrThrow(SharingContract.DataShareLog.COLUMN_IDENTIFIER)),
+                                   c.getBlob(c.getColumnIndexOrThrow(SharingContract.DataShareLog.COLUMN_REVOCATION_TOKEN)));
+            }
+            // Close cursor
+            c.close();
+            return rv;
+        }
+
+
+        /**
+         * Retrieve all TokenPairs associated with a specific ShareID from the FriendShareLog table
+         * @param shareid The ShareID (referring to an entry in the DataShareLog table)
+         * @return A List of {@link TokenPair}s of entries referring to the shareID
+         */
+        private List<TokenPair> getFriendShareTokenPairsForShareID(int shareid) {
+            // Prepare return value
+            List<TokenPair> rv = new LinkedList<>();
+            if (shareid == -1) return rv;
+            // Prepare query
+            String[] whereArgs = {String.valueOf(shareid)};
+            String[] columns = {SharingContract.FriendShareLog.COLUMN_IDENTIFIER, SharingContract.FriendShareLog.COLUMN_REVOCATION_TOKEN};
+            Cursor c = query(SharingContract.FriendShareLog.TABLE_NAME,
+                    columns,
+                    SharingContract.FriendShareLog.COLUMN_DATASHARE_ID + " LIKE ?",
+                    whereArgs,
+                    null,
+                    null,
+                    null);
+            // Iterate through results and create TokenPairs
+            while (c.moveToNext()) {
+                rv.add(new TokenPair(c.getBlob(c.getColumnIndexOrThrow(SharingContract.FriendShareLog.COLUMN_IDENTIFIER)),
+                                     c.getBlob(c.getColumnIndexOrThrow(SharingContract.FriendShareLog.COLUMN_REVOCATION_TOKEN))));
+            }
+            // Close cursor
+            c.close();
+            return rv;
+        }
+
+
+        @Override
         public void addShareable(Shareable shareable) {
             assertOpen();
             if (shareable == null) return;
