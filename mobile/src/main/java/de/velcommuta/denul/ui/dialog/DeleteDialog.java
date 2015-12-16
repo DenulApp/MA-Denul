@@ -5,8 +5,10 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.widget.Toast;
 
+import de.velcommuta.denul.data.Friend;
 import de.velcommuta.denul.data.Shareable;
 import de.velcommuta.denul.service.DatabaseServiceBinder;
+import de.velcommuta.denul.util.FriendManager;
 
 /**
  * Helper class to display a dialog for deleting items from the database
@@ -45,6 +47,44 @@ public class DeleteDialog {
      */
     public static void showDeleteDialog(final Activity act, final DatabaseServiceBinder binder, final Shareable shareable) {
         showDeleteDialog(act, binder, shareable, null);
+    }
+
+
+    /**
+     * Show a deletion dialog for a {@link Friend}
+     * @param act The calling activity
+     * @param binder An open {@link DatabaseServiceBinder}
+     * @param friend The {@link Friend} to delete
+     * @param callback The Callback to notify on successful deletion
+     */
+    public static void showDeleteDialog(final Activity act, final DatabaseServiceBinder binder, final Friend friend, final OnDeleteCallback callback) {
+        // Prepare a builder
+        AlertDialog.Builder builder = new AlertDialog.Builder(act);
+        // Set the values, build and show the dialog
+        builder.setMessage("Delete this contact?")
+                .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        FriendManager.deleteFriend(friend, binder);
+                        Toast.makeText(act, "Contact deleted", Toast.LENGTH_SHORT).show();
+                        if (callback != null) {
+                            callback.onDeleted();
+                        }
+                    }
+                })
+                .setNegativeButton("No", null)
+                .create().show();
+    }
+
+
+    /**
+     * Show a deletion dialog for a {@link Friend}
+     * @param act The calling activity
+     * @param binder An open {@link DatabaseServiceBinder}
+     * @param friend The {@link Friend} to delete
+     */
+    public static void showDeleteDialog(final Activity act, final DatabaseServiceBinder binder, final Friend friend) {
+        showDeleteDialog(act, binder, friend, null);
     }
 
     public interface OnDeleteCallback {

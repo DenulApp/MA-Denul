@@ -34,12 +34,14 @@ import de.velcommuta.denul.data.KeySet;
 import de.velcommuta.denul.service.DatabaseService;
 import de.velcommuta.denul.service.DatabaseServiceBinder;
 import de.velcommuta.denul.data.Friend;
+import de.velcommuta.denul.ui.dialog.DeleteDialog;
 import de.velcommuta.denul.util.FriendManager;
 
 /**
  * Activity to show details about a specific user
  */
-public class FriendViewActivity extends AppCompatActivity implements ServiceConnection {
+public class FriendViewActivity extends AppCompatActivity implements ServiceConnection,
+                                                                     DeleteDialog.OnDeleteCallback {
     private static final String TAG = "FriendViewActivity";
 
     private DatabaseServiceBinder mDbBinder;
@@ -60,7 +62,9 @@ public class FriendViewActivity extends AppCompatActivity implements ServiceConn
         setSupportActionBar(myToolbar);
 
         ActionBar ab = getSupportActionBar();
-        ab.setDisplayHomeAsUpEnabled(true);
+        if (ab != null) {
+            ab.setDisplayHomeAsUpEnabled(true);
+        }
 
         requestDatabaseBinder();
         Bundle b = getIntent().getExtras();
@@ -204,20 +208,7 @@ public class FriendViewActivity extends AppCompatActivity implements ServiceConn
      * Ask the user to confirm the deletion request, and perform the deletion if it was confirmed
      */
     private void askDeleteConfirm() {
-        // Prepare a builder
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        // Set the values, build and show the dialog
-        builder.setMessage("Delete this contact?")
-                .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-                        FriendManager.deleteFriend(mFriend, mDbBinder);
-                        Toast.makeText(FriendViewActivity.this, "Contact deleted", Toast.LENGTH_SHORT).show();
-                        finish();
-                    }
-                })
-                .setNegativeButton("No", null)
-                .create().show();
+        DeleteDialog.showDeleteDialog(this, mDbBinder, mFriend, this);
     }
 
     @Override
@@ -293,5 +284,11 @@ public class FriendViewActivity extends AppCompatActivity implements ServiceConn
         builder.setNegativeButton("Cancel", null);
         // Create and show the dialog
         builder.create().show();
+    }
+
+
+    @Override
+    public void onDeleted() {
+        finish();
     }
 }
