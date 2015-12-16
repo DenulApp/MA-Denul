@@ -322,7 +322,7 @@ public class ProtobufProtocol implements Protocol {
     public int revoke(TokenPair pair) {
         int rv = del(pair);
         if (rv == DEL_OK) {
-            put(new DataBlock(new byte[] {0x00}, new byte[] {0x00}, pair.getIdentifier()));
+            put(new DataBlock(new byte[] {0x42}, new byte[] {0x42}, pair.getIdentifier()));
             return REV_OK;
         } else {
             return rv;  // The values of the DEL_* constants semantically match the REV_* constants

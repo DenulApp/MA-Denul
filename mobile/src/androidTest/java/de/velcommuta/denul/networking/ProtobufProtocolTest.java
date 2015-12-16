@@ -241,7 +241,7 @@ public class ProtobufProtocolTest extends TestCase {
             // Revoke the key on th server
             assertEquals(p.revoke(tokens), Protocol.REV_OK);
             // Ensure that the replacement worked
-            assertTrue(Arrays.equals(p.get(tokens), new byte[] {0x00}));
+            assertTrue(Arrays.equals(p.get(tokens), new byte[] {0x42}));
             // Delete the key from the server and ensure it worked
             assertEquals(p.del(tokens), Protocol.DEL_OK);
             // Disconnect

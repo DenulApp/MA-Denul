@@ -4,6 +4,7 @@ import android.os.AsyncTask;
 import android.util.Log;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -89,7 +90,6 @@ public class ShareManager {
             for (Shareable shareable : mShareableList) {
                 DataBlock data;
                 // Check if the data has already been shared
-                // TODO check if it has been shared __with this granularity__
                 int s_id = mBinder.getShareID(shareable);
                 if (s_id == -1) {
                     // Shareable has not been shared before
@@ -292,6 +292,12 @@ public class ShareManager {
                     Friend friend = buffer.get(ident);
                     // Retrieve the matching keys from the database
                     KeySet keys = mBinder.getKeySetForFriend(friend);
+                    if (Arrays.equals(value, new byte[] {0x42})) {
+                        Log.i(TAG, "doInBackground: Found revocation. Incrementing and skipping");
+                        keys = derive.notifyInboundIdentifierUsed(keys);
+                        mBinder.updateKeySet(keys);
+                        continue;
+                    }
                     // Decrypt the data
                     DataBlock data = enc.decryptKeysAndIdentifier(value, keys);
                     if (data == null) {
