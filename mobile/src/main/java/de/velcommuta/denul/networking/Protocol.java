@@ -48,6 +48,20 @@ public interface Protocol {
     // Deletion failed, protocol error
     int DEL_FAIL_PROTOCOL_ERROR = 5;
 
+    // Return values for the revocation function
+    // Revocation succeeded
+    int REV_OK = 0;
+    // Revocation failed, underlying connection not open
+    int REV_FAIL_NO_CONNECTION = 1;
+    // Revocation failed, key is not present on the server
+    int REV_FAIL_KEY_NOT_TAKEN = 2;
+    // Revocation failed, bad key format
+    int REV_FAIL_KEY_FMT = 3;
+    // Revocation failed, authentication token was incorrect
+    int REV_FAIL_AUTH_INCORRECT = 4;
+    // Revocation failed, protocol error
+    int REV_FAIL_PROTOCOL_ERROR = 5;
+
     // Return values for the Get function in case of errors
     // Get failed, key not taken
     byte[] GET_FAIL_KEY_NOT_TAKEN = null;
@@ -120,4 +134,25 @@ public interface Protocol {
      * indicating the result of the operation
      */
     Map<TokenPair, Integer> delMany(List<TokenPair> records);
+
+    /**
+     * Revoke a share identified by the TokenPair. The difference to the delete operation is that in
+     * this case, the implementation MUST make sure that the deletion does not impact the protocol
+     * stability if the recipient has not yet retrieved the data.
+     * @param pair The {@link TokenPair} containing identifier and revocation authenticator
+     * @return One of the REV_* constants defined by the interface, indicating the result of the
+     * operation
+     */
+    int revoke(TokenPair pair);
+
+    /**
+     * Delete a number of keys from the database of the server, authenticating each operation by
+     * whatever means the protocol requires. The difference to the delete operation is that in
+     * this case, the implementation MUST make sure that the deletion does not impact the protocol
+     * stability if the recipient has not yet retrieved the data.
+     * @param pairs A List of {@link TokenPair}s containing identifiers and revocation authenticators
+     * @return A dictionary mapping the {@link TokenPair}s to one of the REV_* constants defined by
+     * the interface, indicating the result of the operation
+     */
+    Map<TokenPair, Integer> revokeMany(List<TokenPair> pairs);
 }

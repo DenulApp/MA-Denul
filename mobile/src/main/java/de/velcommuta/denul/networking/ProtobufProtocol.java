@@ -249,6 +249,11 @@ public class ProtobufProtocol implements Protocol {
             Log.e(TAG, "del: Bad key or authenticator format");
             return DEL_FAIL_KEY_FMT;
         }
+        if (!mVICBF.query(token.getIdentifier())) {
+            // Key is not on the server
+            Log.i(TAG, "del: Deletion failed, key not on the server");
+            return DEL_FAIL_KEY_NOT_TAKEN;
+        }
         // Get a wrapper message with the key-value-pair
         MetaMessage.Wrapper delete = getDeleteMessage(key, auth);
         // Transceive and get reply
@@ -281,7 +286,7 @@ public class ProtobufProtocol implements Protocol {
             return DEL_OK;
         } else if (deleteReply.getOpcode() == C2S.DeleteReply.DeleteReplyCode.DELETE_FAIL_NOT_FOUND) {
             // Server replied that no such key is stored on it
-            Log.e(TAG, "del: Deletion failed, no such key");
+            Log.w(TAG, "del: Deletion failed, no such key");
             return DEL_FAIL_KEY_NOT_TAKEN;
         } else if (deleteReply.getOpcode() == C2S.DeleteReply.DeleteReplyCode.DELETE_FAIL_KEY_FMT) {
             // Server complained about the key format
@@ -308,6 +313,30 @@ public class ProtobufProtocol implements Protocol {
         // Send deletes for all key-authenticator-pairs in the input dictionary
         for (TokenPair key : records) {
             rv.put(key, del(key));
+        }
+        return rv;
+    }
+
+
+    @Override
+    public int revoke(TokenPair pair) {
+        int rv = del(pair);
+        if (rv == DEL_OK) {
+            put(new DataBlock(new byte[] {0x00}, new byte[] {0x00}, pair.getIdentifier()));
+            return REV_OK;
+        } else {
+            return rv;  // The values of the DEL_* constants semantically match the REV_* constants
+        }
+    }
+
+
+    @Override
+    public Map<TokenPair, Integer> revokeMany(List<TokenPair> pairs) {
+        // Prepare return-hashtable
+        Map<TokenPair, Integer> rv = new HashMap<>();
+        // Send deletes for all key-authenticator-pairs in the input dictionary
+        for (TokenPair key : pairs) {
+            rv.put(key, revoke(key));
         }
         return rv;
     }

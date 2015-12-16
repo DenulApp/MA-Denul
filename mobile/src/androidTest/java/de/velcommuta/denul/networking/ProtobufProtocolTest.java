@@ -216,6 +216,50 @@ public class ProtobufProtocolTest extends TestCase {
 
 
     /**
+     * Test the put functions, get the value, and delete it afterwards
+     */
+    public void testPutGetRevokeDelete() {
+        try {
+            // Establish a TLS connection
+            Connection c = new TLSConnection(host, port);
+            // Protocol object
+            Protocol p = new ProtobufProtocol();
+            // Connect
+            p.connect(c);
+            // Get a random key and value
+            byte[] auth = new byte[32];
+            new Random().nextBytes(auth);
+            byte[] key = authToKey(auth);
+            TokenPair tokens = new TokenPair(key, auth);
+            DataBlock data = new DataBlock(key, auth, key);
+            // Put it on the server
+            assertEquals(p.put(data), Protocol.PUT_OK);
+            // Retrieve the value
+            byte[] stored = p.get(tokens);
+            // Test if the returned value is equal to the one we stored
+            assertTrue(Arrays.equals(auth, stored));
+            // Revoke the key on th server
+            assertEquals(p.revoke(tokens), Protocol.REV_OK);
+            // Ensure that the replacement worked
+            assertTrue(Arrays.equals(p.get(tokens), new byte[] {0x00}));
+            // Delete the key from the server and ensure it worked
+            assertEquals(p.del(tokens), Protocol.DEL_OK);
+            // Disconnect
+            p.disconnect();
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+            fail("UnknownHostException - please make sure the host variable is set correctly");
+        } catch (SSLHandshakeException e) {
+            e.printStackTrace();
+            fail("SSLHandshale failed - are you sure the certificate is valid?");
+        } catch (IOException e) {
+            e.printStackTrace();
+            fail("IOException - are you sure the server is running?");
+        }
+    }
+
+
+    /**
      * Test putting a bad key on the server
      */
     public void testPutBadKey() {
