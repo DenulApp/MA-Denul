@@ -1116,6 +1116,21 @@ public class DatabaseService extends Service {
 
 
         @Override
+        public void deleteShareable(Shareable shareable) {
+            assertOpen();
+            if (shareable == null || shareable.getID() == -1) throw new IllegalArgumentException("Bad shareable");
+            switch (shareable.getType()) {
+                case Shareable.SHAREABLE_TRACK:
+                    deleteGPSTrack((GPSTrack) shareable);
+                    break;
+                // TODO Add new Shareables here
+                default:
+                    Log.e(TAG, "deleteShareable: Unknown shareable type");
+            }
+        }
+
+
+        @Override
         public void updateShareableDescription(Shareable shareable) {
             switch (shareable.getType()) {
                 case Shareable.SHAREABLE_TRACK:

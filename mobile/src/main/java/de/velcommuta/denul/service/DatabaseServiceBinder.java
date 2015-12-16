@@ -256,6 +256,13 @@ public interface DatabaseServiceBinder {
     void addShareable(Shareable shareable);
 
     /**
+     * Delete a shareable from the database
+     * @param shareable The shareable to delete. The object MUST NOT return -1 on a call to
+     *                  {@link Shareable#getID}
+     */
+    void deleteShareable(Shareable shareable);
+
+    /**
      * Update the description of a shareable in the database
      * @param shareable The shareable object with the new description returned by {@link Shareable#getDescription()}
      */
