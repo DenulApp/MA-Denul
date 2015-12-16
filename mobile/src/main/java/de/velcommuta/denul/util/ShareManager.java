@@ -60,8 +60,9 @@ public class ShareManager {
             mGranularity = granularity;
         }
 
+        @SafeVarargs
         @Override
-        protected Boolean doInBackground(List<Friend>... friendslist) {
+        protected final Boolean doInBackground(List<Friend>... friendslist) {
             // TODO Add status updates at sensible positions
             // Establish a connection to the server (if this fails, we can avoid spending time encrypting stuff)
             Connection conn;
@@ -227,8 +228,9 @@ public class ShareManager {
             mBinder = binder;
         }
 
+        @SafeVarargs
         @Override
-        protected Boolean doInBackground(List<Friend>... lists) {
+        protected final Boolean doInBackground(List<Friend>... lists) {
             List<Friend> friends = lists[0];
             // prepare connection and protocol instance
             Connection conn;
@@ -373,7 +375,6 @@ public class ShareManager {
 
         private DatabaseServiceBinder mBinder;
 
-
         /**
          * Constructor
          * @param binder An open {@link DatabaseServiceBinder}
@@ -383,8 +384,9 @@ public class ShareManager {
         }
 
 
+        @SafeVarargs
         @Override
-        protected Boolean doInBackground(List<TokenPair>... lists) {
+        protected final Boolean doInBackground(List<TokenPair>... lists) {
             // Ensure we got sane parameters
             if (lists == null || lists.length == 0 || lists[0].size() == 0) return true;
             // Grab the first sublist, as it is the only one we will ever use
@@ -426,8 +428,14 @@ public class ShareManager {
      * @param sh The shareable
      * @param binder An open DatabaseServiceBinder
      */
+    @SuppressWarnings("unchecked")
     public static void revokeShareable(Shareable sh, DatabaseServiceBinder binder) {
-        // TODO
+        // Retrieve List of tokens
+        List<TokenPair> tokens = binder.getTokensForShareable(sh);
+        // Ensure the list contains at least one item
+        if (tokens.size() == 0) return;
+        // Perform the revocation in an AsyncTask
+        new ShareManager().new Revoke(binder).execute(tokens);
     }
 
 
@@ -436,8 +444,14 @@ public class ShareManager {
      * @param friend The friend
      * @param binder An open DatabaseServiceBinder
      */
+    @SuppressWarnings("unchecked")
     public static void revokeAllForFriend(Friend friend, DatabaseServiceBinder binder) {
-        // TODO
+        // Retrieve List of tokens
+        List<TokenPair> tokens = binder.getTokensForSharesToFriend(friend);
+        // Ensure the List contains at least one item
+        if (tokens.size() == 0) return;
+        // Perform revocation in AsyncTask
+        new ShareManager().new Revoke(binder).execute(tokens);
     }
 
 
@@ -447,8 +461,16 @@ public class ShareManager {
      * @param friend The friend
      * @param binder An open DatabaseServiceBinder
      */
+    @SuppressWarnings("unchecked")
     public static void revokeShareableForFriend(Shareable sh, Friend friend, DatabaseServiceBinder binder) {
-        // TODO
+        // Retrieve token
+        TokenPair token = binder.getTokenForShareToFriend(sh, friend);
+        // Ensure a token exists
+        if (token == null) return;
+        // Perform revocation
+        List<TokenPair> tokens = new LinkedList<>();
+        tokens.add(token);
+        new ShareManager().new Revoke(binder).execute(tokens);
     }
 
 
