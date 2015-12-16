@@ -26,7 +26,8 @@ public class SharingContract {
         public static final String COLUMN_DATASHARE_ID = "datashare_id";
         // Foreign key referencing FriendList
         public static final String COLUMN_FRIEND_ID = "friend_id";
-        // revocation token (identifier is not needed, key is the regular key of the friend)
+        // revocation token and identifier (key is the regular key of the friend)
+        public static final String COLUMN_IDENTIFIER = "identifier";
         public static final String COLUMN_REVOCATION_TOKEN = "revocation_token";
     }
 }

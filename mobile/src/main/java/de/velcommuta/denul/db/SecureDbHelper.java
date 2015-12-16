@@ -122,6 +122,7 @@ public class SecureDbHelper extends SQLiteOpenHelper {
             SharingContract.FriendShareLog._ID + TYPE_INT + OPT_PRIMARY_KEY + COMMA_SEP +
             SharingContract.FriendShareLog.COLUMN_DATASHARE_ID + TYPE_INT + OPT_NOT_NULL + COMMA_SEP +
             SharingContract.FriendShareLog.COLUMN_FRIEND_ID + TYPE_INT + OPT_NOT_NULL + COMMA_SEP +
+            SharingContract.FriendShareLog.COLUMN_IDENTIFIER + TYPE_BLOB + OPT_NOT_NULL + COMMA_SEP +
             SharingContract.FriendShareLog.COLUMN_REVOCATION_TOKEN + TYPE_BLOB + OPT_NOT_NULL + COMMA_SEP +
             FKEY_DECL + SharingContract.FriendShareLog.COLUMN_DATASHARE_ID + FKEY_REFS +
                 SharingContract.DataShareLog.TABLE_NAME + "(" + SharingContract.DataShareLog._ID + ")" +
@@ -160,7 +161,7 @@ public class SecureDbHelper extends SQLiteOpenHelper {
 
     public static final String DATABASE_NAME = "location.db"; // TODO Update
 
-    public static final int DATABASE_VERSION = 14;
+    public static final int DATABASE_VERSION = 15;
 
 
     /**
@@ -196,25 +197,11 @@ public class SecureDbHelper extends SQLiteOpenHelper {
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         Log.d(TAG, "onUpgrade: Old = " + oldVersion + " new = " + newVersion);
-        if (oldVersion == 10 && newVersion == 12) {
-            onUpgrade(db, 10, 11);
-            oldVersion = 11;
-        }
-        if (oldVersion == 13 && newVersion == 14) {
-            db.execSQL("ALTER TABLE " + SharingContract.DataShareLog.TABLE_NAME + " ADD COLUMN " + SharingContract.DataShareLog.COLUMN_GRANULARITY + TYPE_INT + OPT_NOT_NULL + OPT_DEFAULT_ZERO + ";");
-        } else if (oldVersion == 12 && newVersion == 13) {
-            db.execSQL("ALTER TABLE " + LocationLoggingContract.LocationSessions.TABLE_NAME + " ADD COLUMN " + LocationLoggingContract.LocationSessions.COLUMN_NAME_DESCRIPTION + TYPE_TEXT + OPT_DEFAULT_NULL + ";");
-            db.execSQL("ALTER TABLE " + LocationLoggingContract.LocationSessions.TABLE_NAME + " ADD COLUMN " + LocationLoggingContract.LocationSessions.COLUMN_NAME_DISTANCE + TYPE_FLOAT + OPT_NOT_NULL + OPT_DEFAULT_ZERO + ";");
-        } else if (oldVersion == 10 && newVersion == 11) {
-            db.execSQL("ALTER TABLE " + StepLoggingContract.StepCountLog.TABLE_NAME + " ADD COLUMN " + StepLoggingContract.StepCountLog.COLUMN_OWNER + TYPE_INT + OPT_NOT_NULL + OPT_DEFAULT_MINUS_ONE + ";");
-            db.execSQL("ALTER TABLE " + LocationLoggingContract.LocationSessions.TABLE_NAME + " ADD COLUMN " + LocationLoggingContract.LocationSessions.COLUMN_NAME_OWNER + TYPE_INT + OPT_NOT_NULL + OPT_DEFAULT_MINUS_ONE + ";");
-        } else if (oldVersion == 11 && newVersion == 12) {
+        if (oldVersion == 14 && newVersion == 15) {
+            db.execSQL(SQL_DROP_DATASHARELOG);
+            db.execSQL(SQL_DROP_FRIENDSHARELOG);
             db.execSQL(SQL_CREATE_ENTRIES_DATASHARELOG);
             db.execSQL(SQL_CREATE_ENTRIES_FRIENDSHAREDLOG);
-            db.execSQL("ALTER TABLE " + StepLoggingContract.StepCountLog.TABLE_NAME + " ADD COLUMN " + StepLoggingContract.StepCountLog.COLUMN_SHARE_ID + TYPE_INT + OPT_DEFAULT_NULL +
-                    " REFERENCES " + SharingContract.DataShareLog.TABLE_NAME + "(" + SharingContract.DataShareLog._ID + ")" + FKEY_ONDELETE_NULL + ";");
-            db.execSQL("ALTER TABLE " + LocationLoggingContract.LocationSessions.TABLE_NAME + " ADD COLUMN " + LocationLoggingContract.LocationSessions.COLUMN_NAME_SHARE_ID + TYPE_INT + OPT_DEFAULT_NULL +
-                    " REFERENCES " + SharingContract.DataShareLog.TABLE_NAME + "(" + SharingContract.DataShareLog._ID + ")" + FKEY_ONDELETE_NULL + ";");
         } else {
             db.execSQL(SQL_DROP_LOCATIONLOG);
             db.execSQL(SQL_DROP_LOCATIONSESSIONS);

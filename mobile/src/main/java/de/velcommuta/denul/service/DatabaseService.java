@@ -1027,6 +1027,7 @@ public class DatabaseService extends Service {
             ContentValues share = new ContentValues();
             share.put(SharingContract.FriendShareLog.COLUMN_DATASHARE_ID, datashareid);
             share.put(SharingContract.FriendShareLog.COLUMN_FRIEND_ID, friend.getID());
+            share.put(SharingContract.FriendShareLog.COLUMN_IDENTIFIER, pair.getIdentifier());
             share.put(SharingContract.FriendShareLog.COLUMN_REVOCATION_TOKEN, pair.getRevocation());
             // Perform insert
             beginTransaction();
@@ -1091,9 +1092,9 @@ public class DatabaseService extends Service {
         @Override
         public boolean deleteShareByToken(TokenPair tokenPair) {
             assertOpen();
-            String[] whereArgsFriends = {FormatHelper.bytesToHex(tokenPair.getRevocation())};
+            String[] whereArgsFriends = {FormatHelper.bytesToHex(tokenPair.getRevocation()), FormatHelper.bytesToHex(tokenPair.getIdentifier())};
             int deleted = delete(SharingContract.FriendShareLog.TABLE_NAME,
-                    SharingContract.FriendShareLog.COLUMN_REVOCATION_TOKEN + " LIKE x'?'",
+                    SharingContract.FriendShareLog.COLUMN_REVOCATION_TOKEN + " LIKE x'?' AND " + SharingContract.FriendShareLog.COLUMN_IDENTIFIER + " LIKE x'?'",
                     whereArgsFriends);
             if (deleted == 0) {
                 String[] whereArgsData = {FormatHelper.bytesToHex(tokenPair.getIdentifier()), FormatHelper.bytesToHex(tokenPair.getRevocation())};
