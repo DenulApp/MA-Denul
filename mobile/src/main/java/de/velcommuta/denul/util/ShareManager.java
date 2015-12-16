@@ -394,22 +394,55 @@ public class ShareManager {
                 return false;
             }
             // Iterate through all TokenPairs
-            Map<TokenPair, Integer> result = proto.delMany(tokens);
+            Map<TokenPair, Integer> result = proto.revokeMany(tokens);
             for (TokenPair token : tokens) {
                 int rescode = result.get(token);
-                if (rescode == Protocol.DEL_OK) {
+                if (rescode == Protocol.REV_OK) {
                     Log.d(TAG, "doInBackground: Deletion OK");
                     mBinder.deleteShareByToken(token);
-                } else if (rescode == Protocol.DEL_FAIL_AUTH_INCORRECT) {
+                } else if (rescode == Protocol.REV_FAIL_AUTH_INCORRECT) {
                     Log.e(TAG, "doInBackground: Bad authenticator");
-                } else if (rescode == Protocol.DEL_FAIL_NO_CONNECTION) {
+                } else if (rescode == Protocol.REV_FAIL_NO_CONNECTION) {
                     Log.e(TAG, "doInBackground: No connection");
+                } else if (rescode == Protocol.REV_FAIL_KEY_NOT_TAKEN) {
+                    Log.i(TAG, "doInBackground: Key not on server");
                 } else {
                     Log.e(TAG, "doInBackground: An error occured during deletion :(");
                 }
             }
             return true;
         }
+    }
+
+
+    /**
+     * Revoke all shares of a specific shareable
+     * @param sh The shareable
+     * @param binder An open DatabaseServiceBinder
+     */
+    public static void revokeShareable(Shareable sh, DatabaseServiceBinder binder) {
+        // TODO
+    }
+
+
+    /**
+     * Revoke all shares to a specific friend
+     * @param friend The friend
+     * @param binder An open DatabaseServiceBinder
+     */
+    public static void revokeAllForFriend(Friend friend, DatabaseServiceBinder binder) {
+        // TODO
+    }
+
+
+    /**
+     * Revoke a specific shareable for a specific friend
+     * @param sh The shareable
+     * @param friend The friend
+     * @param binder An open DatabaseServiceBinder
+     */
+    public static void revokeShareableForFriend(Shareable sh, Friend friend, DatabaseServiceBinder binder) {
+        // TODO
     }
 
 
