@@ -242,6 +242,12 @@ public interface DatabaseServiceBinder {
     DataBlock getShareData(int shareid);
 
     /**
+     * Find a {@link TokenPair} in the database and delete it
+     * @param tokenPair The TokenPair
+     */
+    boolean deleteShareByToken(TokenPair tokenPair);
+
+    /**
      * Delete all data that has been shared by a specific user
      * @param friend The friend owning the data. The object MUST NOT return -1 on the
      *               {@link Friend#getID()} call.

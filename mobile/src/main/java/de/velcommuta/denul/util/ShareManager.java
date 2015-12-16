@@ -362,6 +362,57 @@ public class ShareManager {
     }
 
 
+    private class Revoke extends AsyncTask<List<TokenPair>, Void, Boolean> {
+        private static final String TAG = "Revoke";
+
+        private DatabaseServiceBinder mBinder;
+
+
+        /**
+         * Constructor
+         * @param binder An open {@link DatabaseServiceBinder}
+         */
+        public Revoke(DatabaseServiceBinder binder) {
+            mBinder = binder;
+        }
+
+
+        @Override
+        protected Boolean doInBackground(List<TokenPair>... lists) {
+            // Ensure we got sane parameters
+            if (lists == null || lists.length == 0 || lists[0].size() == 0) return true;
+            // Grab the first sublist, as it is the only one we will ever use
+            List<TokenPair> tokens = lists[0];
+            // Establish a connection
+            Protocol proto;
+            try {
+                Connection conn = new TLSConnection(host, port);
+                proto = new ProtobufProtocol();
+                proto.connect(conn);
+            } catch (IOException e) {
+                Log.e(TAG, "doInBackground: Exception during connection establishment: ", e);
+                return false;
+            }
+            // Iterate through all TokenPairs
+            Map<TokenPair, Integer> result = proto.delMany(tokens);
+            for (TokenPair token : tokens) {
+                int rescode = result.get(token);
+                if (rescode == Protocol.DEL_OK) {
+                    Log.d(TAG, "doInBackground: Deletion OK");
+                    mBinder.deleteShareByToken(token);
+                } else if (rescode == Protocol.DEL_FAIL_AUTH_INCORRECT) {
+                    Log.e(TAG, "doInBackground: Bad authenticator");
+                } else if (rescode == Protocol.DEL_FAIL_NO_CONNECTION) {
+                    Log.e(TAG, "doInBackground: No connection");
+                } else {
+                    Log.e(TAG, "doInBackground: An error occured during deletion :(");
+                }
+            }
+            return true;
+        }
+    }
+
+
     /**
      * Callback interface for receiving status updates
      */

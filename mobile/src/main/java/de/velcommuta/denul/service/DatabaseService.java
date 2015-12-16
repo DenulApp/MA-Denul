@@ -40,6 +40,7 @@ import de.velcommuta.denul.db.StepLoggingContract;
 import de.velcommuta.denul.db.VaultContract;
 import de.velcommuta.denul.event.DatabaseAvailabilityEvent;
 import de.velcommuta.denul.data.Friend;
+import de.velcommuta.denul.util.FormatHelper;
 
 /**
  * Database service to hold a handle on the protected database and close it after a certain time of
@@ -1084,6 +1085,26 @@ public class DatabaseService extends Service {
             }
             c.close();
             return rv;
+        }
+
+
+        @Override
+        public boolean deleteShareByToken(TokenPair tokenPair) {
+            assertOpen();
+            String[] whereArgsFriends = {FormatHelper.bytesToHex(tokenPair.getRevocation())};
+            int deleted = delete(SharingContract.FriendShareLog.TABLE_NAME,
+                    SharingContract.FriendShareLog.COLUMN_REVOCATION_TOKEN + " LIKE x'?'",
+                    whereArgsFriends);
+            if (deleted == 0) {
+                String[] whereArgsData = {FormatHelper.bytesToHex(tokenPair.getIdentifier()), FormatHelper.bytesToHex(tokenPair.getRevocation())};
+                deleted = delete(SharingContract.DataShareLog.TABLE_NAME,
+                        SharingContract.DataShareLog.COLUMN_IDENTIFIER + " LIKE x'?' AND " + SharingContract.DataShareLog.COLUMN_REVOCATION_TOKEN + " LIKE x'?'",
+                        whereArgsData);
+                if (deleted == 0) {
+                    return false;
+                }
+            }
+            return true;
         }
 
 
