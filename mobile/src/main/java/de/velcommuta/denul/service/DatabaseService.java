@@ -284,7 +284,6 @@ public class DatabaseService extends Service {
          */
         private Cursor query(String table, String[] columns, String selection, String[] selectionArgs, String groupBy, String having, String orderBy) throws SQLiteException {
             assertOpen();
-            Log.d(TAG, "query: Running query");
             return mSQLiteHandler.query(table, columns, selection, selectionArgs, groupBy, having, orderBy);
         }
 

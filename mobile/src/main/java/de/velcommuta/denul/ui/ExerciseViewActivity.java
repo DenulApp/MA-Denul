@@ -51,6 +51,7 @@ import de.velcommuta.denul.data.Friend;
 import de.velcommuta.denul.data.GPSTrack;
 import de.velcommuta.denul.service.DatabaseService;
 import de.velcommuta.denul.service.DatabaseServiceBinder;
+import de.velcommuta.denul.ui.dialog.ShareDialog;
 import de.velcommuta.denul.util.ShareManager;
 
 /**
@@ -186,84 +187,7 @@ public class ExerciseViewActivity extends AppCompatActivity implements ServiceCo
      * Ask the user with whom he wants to share the data, and perform the actual sharing
      */
     private void performShare() {
-        // Create an AlertDialog builder
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        // Create a ListView to display the Friendlist
-        View dialog = getLayoutInflater().inflate(R.layout.dialog_share, null);
-        final ListView lv = (ListView) dialog.findViewById(R.id.share_menu_friendlist);
-        // Set the ListView to allow multiple selections
-        lv.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
-        // Load the friend list from the database
-        final List<Friend> friendlist = mDbBinder.getFriends();
-        // Set up the adapter
-        lv.setAdapter(new ArrayAdapter<Friend>(this, android.R.layout.simple_list_item_multiple_choice, friendlist));
-        // Pre-check those friends that have already received the share
-        List<Friend> sharedFriends = mDbBinder.getShareRecipientsForShareable(mTrack);
-        for (Friend f : sharedFriends) {
-            lv.setItemChecked(sharedFriends.indexOf(f), true);
-        }
-        // Populate the list of share granularity options
-        final Spinner granularitySpinner = (Spinner) dialog.findViewById(R.id.share_menu_granularity);
-        final ArrayAdapter<CharSequence> granularityAdapter = ArrayAdapter.createFromResource(this, mTrack.getGranularityDescriptor(), android.R.layout.simple_list_item_1);
-        granularitySpinner.setAdapter(granularityAdapter);
-        // Set the description
-        final EditText description = (EditText) dialog.findViewById(R.id.share_menu_description);
-        if (mTrack.getDescription() != null) {
-            description.setText(mTrack.getDescription());
-        }
-        int granularity = mDbBinder.getShareGranularity(mTrack);
-        if (granularity != -1) {
-            granularitySpinner.setSelection(granularity);
-            granularitySpinner.setEnabled(false);
-            description.setEnabled(false);
-        }
-        // Set the finished List as the view of the AlertDialog
-        builder.setView(dialog);
-        // Set title
-        builder.setTitle("Select a friend:");
-        // Set "OK" button with callback
-        builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialogInterface, int selected) {
-                // Apply the description
-                mTrack.setDescription(description.getText().toString().trim());
-                mDbBinder.updateShareableDescription(mTrack);
-                // Read out which friends have been selected
-                SparseBooleanArray checked = lv.getCheckedItemPositions();
-                List<Friend> rcpt = new LinkedList<>();
-                for (int i = 0; i<checked.size(); i++) {
-                    if (checked.valueAt(i))
-                        rcpt.add(friendlist.get(checked.keyAt(i)));
-                }
-                // Check if any have been selected
-                if (rcpt.size() > 0) {
-                    int granularity = granularitySpinner.getSelectedItemPosition();
-                    // Prepare a ShareWithProgress AsyncTask with nested Callback
-                    ShareManager.ShareWithProgress m = new ShareManager().new ShareWithProgress(mDbBinder, new ShareManager.ShareManagerCallback() {
-                        @Override
-                        public void onShareStatusUpdate(int status) {
-                            // Toast.makeText(ExerciseViewActivity.this, ""+status, Toast.LENGTH_SHORT).show();
-                        }
-
-
-                        @Override
-                        public void onShareFinished(boolean success) {
-                            if (success)
-                                Toast.makeText(ExerciseViewActivity.this, "Done", Toast.LENGTH_SHORT).show();
-                            else
-                                Toast.makeText(ExerciseViewActivity.this, "Failed", Toast.LENGTH_SHORT).show();
-                        }
-                    }, granularity, mTrack);
-                    m.execute(rcpt);
-                } else {
-                    Toast.makeText(ExerciseViewActivity.this, "No one selected", Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
-        // Set cancel buttel
-        builder.setNegativeButton("Cancel", null);
-        // Create and show the dialog
-        builder.create().show();
+        ShareDialog.showShareDialog(this, mDbBinder, mTrack);
     }
 
 
