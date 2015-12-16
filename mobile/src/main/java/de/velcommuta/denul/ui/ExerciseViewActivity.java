@@ -51,13 +51,16 @@ import de.velcommuta.denul.data.Friend;
 import de.velcommuta.denul.data.GPSTrack;
 import de.velcommuta.denul.service.DatabaseService;
 import de.velcommuta.denul.service.DatabaseServiceBinder;
+import de.velcommuta.denul.ui.dialog.DeleteDialog;
 import de.velcommuta.denul.ui.dialog.ShareDialog;
 import de.velcommuta.denul.util.ShareManager;
 
 /**
  * Activity to show details about a specific track
  */
-public class ExerciseViewActivity extends AppCompatActivity implements ServiceConnection, OnMapReadyCallback {
+public class ExerciseViewActivity extends AppCompatActivity implements ServiceConnection,
+                                                                       OnMapReadyCallback,
+                                                                       DeleteDialog.OnDeleteCallback {
     private static final String TAG = "ExerciseViewActivity";
 
     private DatabaseServiceBinder mDbBinder;
@@ -134,20 +137,7 @@ public class ExerciseViewActivity extends AppCompatActivity implements ServiceCo
      * Ask the user to confirm the deletion request, and perform the deletion if it was confirmed
      */
     private void askDeleteConfirm() {
-        // Prepare a builder
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        // Set the values, build and show the dialog
-        builder.setMessage("Delete this exercise?")
-                .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-                        mDbBinder.deleteGPSTrack(mTrack);
-                        Toast.makeText(ExerciseViewActivity.this, "Exercise deleted", Toast.LENGTH_SHORT).show();
-                        finish();
-                    }
-                })
-                .setNegativeButton("No", null)
-                .create().show();
+        DeleteDialog.showDeleteDialog(this, mDbBinder, mTrack, this);
     }
 
 
@@ -327,5 +317,11 @@ public class ExerciseViewActivity extends AppCompatActivity implements ServiceCo
                 mMap.animateCamera(cu);
             }
         });
+    }
+
+
+    @Override
+    public void onDeleted() {
+        finish();
     }
 }

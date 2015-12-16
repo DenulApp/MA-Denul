@@ -23,6 +23,7 @@ import de.velcommuta.denul.data.GPSTrack;
 import de.velcommuta.denul.service.DatabaseService;
 import de.velcommuta.denul.service.DatabaseServiceBinder;
 import de.velcommuta.denul.ui.adapter.ExerciseListAdapter;
+import de.velcommuta.denul.ui.dialog.DeleteDialog;
 import de.velcommuta.denul.ui.dialog.ShareDialog;
 import de.velcommuta.denul.ui.view.EmptyRecyclerView;
 
@@ -31,7 +32,8 @@ import de.velcommuta.denul.ui.view.EmptyRecyclerView;
  * Fragment to display the technology chooser for the Add Friend activity
  */
 public class ExerciseHistoryFragment extends Fragment implements ServiceConnection,
-                                                                 ExerciseListAdapter.OnItemClickListener {
+                                                                 ExerciseListAdapter.OnItemClickListener,
+                                                                 DeleteDialog.OnDeleteCallback{
     private static final String TAG = "ExercHist";
 
     private EmptyRecyclerView mRecyclerView;
@@ -103,7 +105,7 @@ public class ExerciseHistoryFragment extends Fragment implements ServiceConnecti
         int position = mAdapter.getPosition();
         switch (item.getItemId()) {
             case R.id.exercise_remove:
-                Toast.makeText(getActivity(), "NotImplemented", Toast.LENGTH_SHORT).show();
+                DeleteDialog.showDeleteDialog(getActivity(), mDbBinder, mAdapter.getTrackAt(position), this);
                 return true;
             case R.id.exercise_share:
                 ShareDialog.showShareDialog(getActivity(), mDbBinder, mAdapter.getTrackAt(position));
@@ -177,5 +179,11 @@ public class ExerciseHistoryFragment extends Fragment implements ServiceConnecti
         Intent i = new Intent(getActivity(), ExerciseViewActivity.class);
         i.putExtra("track-id", mAdapter.getTrackAt(position).getID());
         startActivity(i);
+    }
+
+
+    @Override
+    public void onDeleted() {
+        populateExerciseHistory();
     }
 }
