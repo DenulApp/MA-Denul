@@ -17,6 +17,8 @@ import java.util.Map;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
+import de.velcommuta.denul.data.DataBlock;
+import de.velcommuta.denul.data.TokenPair;
 import de.velcommuta.denul.networking.protobuf.c2s.C2S;
 import de.velcommuta.denul.networking.protobuf.meta.MetaMessage;
 import de.velcommuta.denul.util.FormatHelper;
@@ -92,8 +94,9 @@ public class ProtobufProtocol implements Protocol {
 
     @Nullable
     @Override
-    public byte[] get(byte[] key) {
+    public byte[] get(TokenPair token) {
         // Check if the Connection is still open
+        byte[] key = token.getIdentifier();
         if (!mConnection.isOpen()) {
             Log.e(TAG, "get: Underlying Connection not connected");
             return GET_FAIL_NO_CONNECTION;
@@ -158,9 +161,9 @@ public class ProtobufProtocol implements Protocol {
 
 
     @Override
-    public Map<byte[], byte[]> getMany(List<byte[]> keys) {
-        Map<byte[], byte[]> rv = new HashMap<>();
-        for (byte[] key : keys) {
+    public Map<TokenPair, byte[]> getMany(List<TokenPair> keys) {
+        Map<TokenPair, byte[]> rv = new HashMap<>();
+        for (TokenPair key : keys) {
             rv.put(key, get(key));
         }
         return rv;
@@ -168,7 +171,9 @@ public class ProtobufProtocol implements Protocol {
 
 
     @Override
-    public int put(byte[] key, byte[] value) {
+    public int put(DataBlock data) {
+        byte[] key = data.getIdentifier();
+        byte[] value = data.getCiphertext();
         // Check if the Connection is still open
         if (!mConnection.isOpen()) {
             Log.e(TAG, "put: Underlying Connection not connected");
@@ -221,19 +226,21 @@ public class ProtobufProtocol implements Protocol {
 
 
     @Override
-    public Map<byte[], Integer> putMany(Map<byte[], byte[]> records) {
+    public Map<DataBlock, Integer> putMany(List<DataBlock> records) {
         // Prepare return-hashtable
-        Map<byte[], Integer> rv = new HashMap<>();
+        Map<DataBlock, Integer> rv = new HashMap<>();
         // Send inserts for all values in the input dictionary
-        for (byte[] key : records.keySet()) {
-            rv.put(key, put(key, records.get(key)));
+        for (DataBlock key : records) {
+            rv.put(key, put(key));
         }
         return rv;
     }
 
 
     @Override
-    public int del(byte[] key, byte[] auth) {
+    public int del(TokenPair token) {
+        byte[] key = token.getIdentifier();
+        byte[] auth = token.getRevocation();
         // Check if the Connection is still open
         if (!mConnection.isOpen()) {
             Log.e(TAG, "del: Underlying Connection not connected");
@@ -295,12 +302,12 @@ public class ProtobufProtocol implements Protocol {
 
 
     @Override
-    public Map<byte[], Integer> delMany(Map<byte[], byte[]> records) {
+    public Map<TokenPair, Integer> delMany(List<TokenPair> records) {
         // Prepare return-hashtable
-        Map<byte[], Integer> rv = new HashMap<>();
+        Map<TokenPair, Integer> rv = new HashMap<>();
         // Send deletes for all key-authenticator-pairs in the input dictionary
-        for (byte[] key : records.keySet()) {
-            rv.put(key, del(key, records.get(key)));
+        for (TokenPair key : records) {
+            rv.put(key, del(key));
         }
         return rv;
     }

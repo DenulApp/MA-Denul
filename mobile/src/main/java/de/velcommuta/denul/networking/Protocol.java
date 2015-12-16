@@ -5,6 +5,9 @@ import android.support.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 
+import de.velcommuta.denul.data.DataBlock;
+import de.velcommuta.denul.data.TokenPair;
+
 /**
  * Interface for communication protocol implementations
  */
@@ -69,52 +72,52 @@ public interface Protocol {
 
     /**
      * Retrieve a key saved under a specific value from the server.
-     * @param key The key to check for
-     * @return The value saved under that key, or null if the key is not set
+     * @param tokens The {@link TokenPair} with the Identifier that should be retrieved
+     * @return The value saved under that identifier, null if the identifier is not used on the server,
+     *         or one of the GET_* constants if an error occured
      */
     @Nullable
-    byte[] get(byte[] key);
+    byte[] get(TokenPair tokens);
 
     /**
      * Retrieve all values stored under a List of keys from the server
-     * @param keys The List of keys
-     * @return A dictionary mapping the key Strings to the byte[] values, or null if they are not
-     * on the server
+     * @param tokens The List of {@link TokenPair}s that should be retrieved
+     * @return A dictionary mapping the Identifiers to the byte[] values, null if they are not
+     *         on the server, or one of the GET_* constants if an error occured
      */
-    Map<byte[], byte[]> getMany(List<byte[]> keys);
+    Map<TokenPair, byte[]> getMany(List<TokenPair> tokens);
 
     /**
      * Insert a value into the database of the server
-     * @param key The key under which the data should be inserted
-     * @param value The value that should be inserted
+     * @param data A {@link DataBlock} representing the identifier and value that should be saved
      * @return One of the PUT_* constants defined by the interface, indicating the result of the
      * operation
      */
-    int put(byte[] key, byte[] value);
+    int put(DataBlock data);
 
     /**
      * Insert a number of key-value-pairs into the database of the server
-     * @param records A Dictionary mapping keys to values that should be inserted
-     * @return A Dictionary mapping the keys to PUT_* constants defined by the interface, indicating
-     * the individual results of the put operations
+     * @param values A List of {@link DataBlock} objects mapping Identifiers and values that should
+     *               be saved on the server
+     * @return A Dictionary mapping the DataBlocks to PUT_* constants defined by the interface,
+     *         indicating the individual results of the put operations
      */
-    Map<byte[], Integer> putMany(Map<byte[], byte[]> records);
+    Map<DataBlock, Integer> putMany(List<DataBlock> values);
 
     /**
      * Delete a key from the database of the server, authenticating the deletion operation by
      * whatever means the protocol requires
-     * @param key The key to be deleted
-     * @param authenticator The authenticator for the operation
+     * @param tokens A {@link TokenPair} containing the identifier and the revocation token
      * @return One of the DEL_* constants defined by the interface, indicating the result
      */
-    int del(byte[] key, byte[] authenticator);
+    int del(TokenPair tokens);
 
     /**
      * Delete a number of keys from the database of the server, authenticating each operation by
      * whatever means the protocol requires
-     * @param records A Dictionary mapping the keys to delete to their authenticators
-     * @return A dictionary mapping the keys to one of the DEL_* constants defined in the interface,
+     * @param records A List of {@link TokenPair}s containing identifier and revocation tokens
+     * @return A dictionary mapping the TokenPairs to one of the DEL_* constants defined in the interface,
      * indicating the result of the operation
      */
-    Map<byte[], Integer> delMany(Map<byte[], byte[]> records);
+    Map<TokenPair, Integer> delMany(List<TokenPair> records);
 }

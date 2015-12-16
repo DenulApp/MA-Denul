@@ -15,6 +15,8 @@ import java.util.Random;
 
 import javax.net.ssl.SSLHandshakeException;
 
+import de.velcommuta.denul.data.DataBlock;
+import de.velcommuta.denul.data.TokenPair;
 import de.velcommuta.denul.util.FormatHelper;
 
 /**
@@ -64,7 +66,7 @@ public class ProtobufProtocolTest extends TestCase {
             // Connect to the server
             p.connect(c);
             // Try a Get for a bad key
-            byte[] reply = p.get("abadkey".getBytes());
+            byte[] reply = p.get(new TokenPair("abadkey".getBytes(), "abadrevocation".getBytes()));
             // make sure the reply is GET_FAIL_KEY_FMT
             assertEquals(reply, Protocol.GET_FAIL_KEY_FMT);
             // Disconnect from the server
@@ -96,7 +98,7 @@ public class ProtobufProtocolTest extends TestCase {
             // Try a Get for a nonexistant key
             byte[] missingkey = new byte[32];
             new Random().nextBytes(missingkey);
-            byte[] reply = p.get(missingkey);
+            byte[] reply = p.get(new TokenPair(missingkey, missingkey));
             // make sure the reply is null
             assertNull(reply);
             // Disconnect from the server
@@ -129,14 +131,16 @@ public class ProtobufProtocolTest extends TestCase {
             byte[] auth = new byte[32];
             new Random().nextBytes(auth);
             byte[] key = authToKey(auth);
+            TokenPair tokens = new TokenPair(key, auth);
+            DataBlock data = new DataBlock(key, auth, key);
             // Put it on the server
-            assertEquals(p.put(key, auth), Protocol.PUT_OK);
+            assertEquals(p.put(data), Protocol.PUT_OK);
             // Retrieve the value
-            byte[] stored = p.get(key);
+            byte[] stored = p.get(tokens);
             // Test if the returned value is equal to the one we stored
             assertTrue(Arrays.equals(auth, stored));
             // Delete the key from the server and ensure it worked
-            assertEquals(p.del(key, auth), Protocol.DEL_OK);
+            assertEquals(p.del(tokens), Protocol.DEL_OK);
             // Disconnect
             p.disconnect();
         } catch (UnknownHostException e) {
@@ -164,33 +168,36 @@ public class ProtobufProtocolTest extends TestCase {
             // Connect
             p.connect(c);
             // Prepare five sets of keys- values and authenticators
-            Map<byte[], byte[]> keyvalue = new HashMap<>();
-            List<byte[]> keys = new LinkedList<>();
-            Map<byte[], byte[]> keyauth = new HashMap<>();
+            List<DataBlock> keyvalue = new LinkedList<>();
+            List<TokenPair> keypairs = new LinkedList<>();
+            Map<TokenPair, DataBlock> kv = new HashMap<>();
             for (int i = 0; i < 5; i++) {
                 byte[] value = new byte[32];
                 new Random().nextBytes(value);
                 byte[] key = authToKey(value);
-                keyvalue.put(key, value);
-                keys.add(key);
-                keyauth.put(key, value);
+                TokenPair pair = new TokenPair(key, value);
+                DataBlock data = new DataBlock(key, value, key);
+                keyvalue.add(data);
+                keypairs.add(pair);
+                kv.put(pair, data);
             }
             // Insert all key-value-pairs
-            Map<byte[], Integer> insert_return = p.putMany(keyvalue);
+            Map<DataBlock, Integer> insert_return = p.putMany(keyvalue);
             // Make sure it worked
-            for (byte[] key : keyvalue.keySet()) {
+            for (DataBlock key : keyvalue) {
                 assertEquals((int) insert_return.get(key), Protocol.PUT_OK);
             }
             // Query all key-value-pairs
-            Map<byte[], byte[]> get_return = p.getMany(keys);
+            Map<TokenPair, byte[]> get_return = p.getMany(keypairs);
             // Make sure it worked
-            for (byte[] key : keyvalue.keySet()) {
-                assertTrue(Arrays.equals(keyvalue.get(key), get_return.get(key)));
+            for (TokenPair key : kv.keySet()) {
+                assertTrue(FormatHelper.bytesToHex(kv.get(key).getCiphertext()) + " != " + FormatHelper.bytesToHex(get_return.get(key)),
+                        Arrays.equals(kv.get(key).getCiphertext(), get_return.get(key)));
             }
             // Delete all key-value-pairs
-            Map<byte[], Integer> del_return = p.delMany(keyauth);
+            Map<TokenPair, Integer> del_return = p.delMany(keypairs);
             // Make sure it worked
-            for (byte[] key : keyvalue.keySet()) {
+            for (TokenPair key : keypairs) {
                 assertEquals((int) del_return.get(key), Protocol.DEL_OK);
             }
             // Close connection
@@ -224,9 +231,9 @@ public class ProtobufProtocolTest extends TestCase {
             new Random().nextBytes(value);
             byte[] key = value;
             // Put it on the server
-            assertEquals(p.put(key, value), Protocol.PUT_FAIL_KEY_FMT);
+            assertEquals(p.put(new DataBlock(key, value, key)), Protocol.PUT_FAIL_KEY_FMT);
             // Retrieve the value
-            byte[] stored = p.get(key);
+            byte[] stored = p.get(new TokenPair(key, value));
             // Test if the returned value is equal to the one we stored
             assertTrue(Arrays.equals(stored, Protocol.GET_FAIL_KEY_FMT));
             // Disconnect

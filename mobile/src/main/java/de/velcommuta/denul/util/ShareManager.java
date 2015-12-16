@@ -82,9 +82,9 @@ public class ShareManager {
             // IdentifierDerivation instance for identifer generation
             IdentifierDerivation deriv = new SHA256IdentifierDerivation();
             // Map mapping identifiers to data that is to be saved on the server
-            Map<byte[], byte[]> outbox = new HashMap<>();
+            List<DataBlock> outbox = new LinkedList<>();
             // Map mapping identifiers to deferred database operations
-            Map<byte[], DeferDB> defer = new HashMap<>();
+            Map<DataBlock, DeferDB> defer = new HashMap<>();
             // Iterate through provided shareables
             for (Shareable shareable : mShareableList) {
                 DataBlock data;
@@ -98,7 +98,7 @@ public class ShareManager {
                     // Encrypt the shareable
                     data = enc.encryptShareable(shareable, mGranularity, data_identifier);
                     // Submit to the server
-                    int rv = proto.put(data_identifier.getIdentifier(), data.getCiphertext());
+                    int rv = proto.put(data);
                     if (rv == Protocol.PUT_OK) {
                         // Save to database
                         s_id = mBinder.addShare(shareable, data_identifier, data);
@@ -125,12 +125,15 @@ public class ShareManager {
                     KeySet keys = mBinder.getKeySetForFriend(friend);
                     // Generate identifier
                     TokenPair ident = deriv.generateOutboundIdentifier(keys);
+                    // Create matching DataBlock
+                    byte[] ciphertext = enc.encryptKeysAndIdentifier(data, keys);
+                    DataBlock keyblock = new DataBlock(ident.getIdentifier(), ciphertext, ident.getIdentifier());
                     // Encrypt identifier and key of data block and add to outbox
-                    outbox.put(ident.getIdentifier(), enc.encryptKeysAndIdentifier(data, keys));
+                    outbox.add(keyblock);
                     // Mark the counter value as used
                     keys = deriv.notifyOutboundIdentifierUsed(keys);
                     // Schedule a deferred database update
-                    defer.put(ident.getIdentifier(), new DeferDB(ident, keys, friend, s_id));
+                    defer.put(keyblock, new DeferDB(ident, keys, friend, s_id));
                     // mBinder.updateKeySet(keys);
                     // Add information about the share to the database
                     // mBinder.addShareRecipient(s_id, friend, ident);
@@ -141,8 +144,8 @@ public class ShareManager {
             // Notify that encryption finished
             publishProgress(2);
             // Send ALL THE store messages
-            Map<byte[], Integer> rv = proto.putMany(outbox);
-            for (byte[] ident : outbox.keySet()) {
+            Map<DataBlock, Integer> rv = proto.putMany(outbox);
+            for (DataBlock ident : outbox) {
                 switch (rv.get(ident)) {
                     case Protocol.PUT_OK:
                         DeferDB d = defer.get(ident);
@@ -204,7 +207,7 @@ public class ShareManager {
         }
     }
 
-    // TODO Modify to automatically request the next identifier in line if an identifier is detected on the server
+
     // TODO Add "dirty marking" of the VICBF to avoid re-querying the same false positive VICBF entry every time
     public class RetrieveWithProgress extends AsyncTask<List<Friend>, Integer, Boolean> {
         private static final String TAG = "RetrWP";
@@ -254,8 +257,8 @@ public class ShareManager {
         private boolean processFriends(List<Friend> friends, Protocol proto) {
             IdentifierDerivation derive = new SHA256IdentifierDerivation();
             SharingEncryption enc = new AESSharingEncryption();
-            Map<byte[], Friend> buffer = new HashMap<>();
-            List<byte[]> tokens = new LinkedList<>();
+            Map<TokenPair, Friend> buffer = new HashMap<>();
+            List<TokenPair> tokens = new LinkedList<>();
             for (Friend friend : friends) {
                 Log.d(TAG, "doInBackground: Checking for updates from " + friend.getName());
                 // get the keys for that friend
@@ -263,19 +266,19 @@ public class ShareManager {
                 // Derive the expected identifier
                 TokenPair pair = derive.generateInboundIdentifier(keys);
                 // Put the identifier in the buffer for later use
-                buffer.put(pair.getIdentifier(), friend);
-                tokens.add(pair.getIdentifier());
+                buffer.put(pair, friend);
+                tokens.add(pair);
             }
             // Send the bundled GET requests
-            Map<byte[], byte[]> rv = proto.getMany(tokens);
+            Map<TokenPair, byte[]> rv = proto.getMany(tokens);
             // Prepare a list of revocation tokens, to delete any retrieved values from the server
-            Map<byte[], byte[]> revoke = new HashMap<>();
-            List<byte[]> retrieve = new LinkedList<>();
-            Map<byte[], DataBlock> blocks = new HashMap<>();
+            List<TokenPair> revoke = new LinkedList<>();
+            List<TokenPair> retrieve = new LinkedList<>();
+            Map<TokenPair, DataBlock> blocks = new HashMap<>();
             // Create a List of friends which had updates, to check if further updates exist
             List<Friend> requery = new LinkedList<>();
             // Process results
-            for (byte[] ident : rv.keySet()) {
+            for (TokenPair ident : rv.keySet()) {
                 byte[] value = rv.get(ident);
                 if (value == Protocol.GET_FAIL_KEY_FMT || value == Protocol.GET_FAIL_NO_CONNECTION || value == Protocol.GET_FAIL_PROTOCOL_ERROR) {
                     Log.e(TAG, "doInBackground: Protocol error");
@@ -300,17 +303,20 @@ public class ShareManager {
                     // Associate this DataBlock with its owner (the person who shared it with us)
                     data.setOwner(friend);
                     // Derive the identifier pair again, so we can get access to the revocation token
-                    TokenPair pair = derive.generateInboundIdentifier(keys);
+                    TokenPair pair_keyblock = derive.generateInboundIdentifier(keys);
                     // Update the counter
                     keys = derive.notifyInboundIdentifierUsed(keys);
                     // Update the keyset in the database
                     mBinder.updateKeySet(keys);
                     // Prepare to delete the retrieved value from the server
-                    revoke.put(pair.getIdentifier(), pair.getRevocation());
+                    revoke.add(pair_keyblock);
                     // Prepare to retrieve the new identifier from the server
-                    retrieve.add(data.getIdentifier());
+                    // We create a new TokenPair to match the API, but we do not know the correct revocation token,
+                    // So we use the identification token twice.
+                    TokenPair pair_datablock = new TokenPair(data.getIdentifier(), data.getIdentifier());
+                    retrieve.add(pair_datablock);
                     // Also save the data object, as it contains the key and the owner
-                    blocks.put(data.getIdentifier(), data);
+                    blocks.put(pair_datablock, data);
                 }
             }
             // If there are any revocations, perform them
@@ -319,7 +325,7 @@ public class ShareManager {
             if (retrieve.size() > 0) {
                 Log.d(TAG, "doInBackground: Retrieving data blocks");
                 rv = proto.getMany(retrieve);
-                for (byte[] ident : rv.keySet()) {
+                for (TokenPair ident : rv.keySet()) {
                     byte[] value = rv.get(ident);
                     if (value == Protocol.GET_FAIL_KEY_FMT || value == Protocol.GET_FAIL_NO_CONNECTION || value == Protocol.GET_FAIL_PROTOCOL_ERROR) {
                         Log.e(TAG, "doInBackground: Protocol error");
