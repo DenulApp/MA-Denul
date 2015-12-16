@@ -30,9 +30,10 @@ public class FriendManager {
      * @param binder The {@link DatabaseServiceBinder} to use
      */
     public static void deleteFriend(Friend friend, DatabaseServiceBinder binder) {
-        // TODO Delete from server?
         // Delete all data shared by that friend
         binder.deleteSharesByFriend(friend);
+        // Delete all data shared TO the friend
+        ShareManager.revokeAllForFriend(friend, binder);
         // Delete the friend itself
         binder.deleteFriend(friend);
     }
