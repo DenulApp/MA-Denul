@@ -23,6 +23,7 @@ import de.velcommuta.denul.data.GPSTrack;
 import de.velcommuta.denul.service.DatabaseService;
 import de.velcommuta.denul.service.DatabaseServiceBinder;
 import de.velcommuta.denul.ui.adapter.ExerciseListAdapter;
+import de.velcommuta.denul.ui.dialog.ShareDialog;
 import de.velcommuta.denul.ui.view.EmptyRecyclerView;
 
 
@@ -105,7 +106,7 @@ public class ExerciseHistoryFragment extends Fragment implements ServiceConnecti
                 Toast.makeText(getActivity(), "NotImplemented", Toast.LENGTH_SHORT).show();
                 return true;
             case R.id.exercise_share:
-                Toast.makeText(getActivity(), "NotImplemented", Toast.LENGTH_SHORT).show();
+                ShareDialog.showShareDialog(getActivity(), mDbBinder, mAdapter.getTrackAt(position));
                 return true;
         }
         return false;
