@@ -6,9 +6,8 @@ import android.graphics.Bitmap;
 import android.location.Location;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
-import android.view.ContextMenu;
+import android.view.Gravity;
 import android.view.LayoutInflater;
-import android.view.MenuInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
@@ -37,6 +36,7 @@ import org.joda.time.format.DateTimeFormat;
 import java.util.List;
 
 import de.velcommuta.denul.R;
+import de.velcommuta.denul.data.Friend;
 import de.velcommuta.denul.data.GPSTrack;
 import de.velcommuta.denul.data.Shareable;
 import de.velcommuta.denul.service.DatabaseServiceBinder;
@@ -122,10 +122,15 @@ public class SocialStreamAdapter extends RecyclerView.Adapter<SocialStreamAdapte
          */
         private void displayGPSTrack(GPSTrack track) {
             mTrack = track;
+            Friend friend = null;
+            if (track.getOwner() != -1) {
+                friend = mBinder.getFriendById(track.getOwner());
+            }
             if (track.getPosition().size() != 0) {
                 if (mMap != null) {
                     drawPath();
                 } else {
+                    mIllustration.removeAllViews();
                     // Prepare google map options
                     GoogleMapOptions options = new GoogleMapOptions().liteMode(true).mapToolbarEnabled(false);
                     // Initialize new MapView
@@ -140,16 +145,27 @@ public class SocialStreamAdapter extends RecyclerView.Adapter<SocialStreamAdapte
                     mapView.setClickable(false);
                 }
             } else {
+                // No location data was shared. Add a notice saying as much
                 mIllustration.removeAllViews();
                 mMap = null;
+                TextView textNotice = new TextView(mContext);
+                if (friend != null) {
+                    textNotice.setText(String.format(mContext.getString(R.string.social_stream_no_location_shared), friend.getName()));
+                } else {
+                    textNotice.setText(mContext.getString(R.string.social_stream_no_location_available));
+                }
+                FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams( FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT );
+                lp.gravity = Gravity.CENTER;
+                textNotice.setLayoutParams(lp);
+                mIllustration.addView(textNotice);
             }
             // Set up the title bar
-            if (track.getOwner() != -1) {
-                mNameView.setText(mBinder.getFriendById(track.getOwner()).getName());
-                mNameViewTrailer.setText("shared '" + track.getSessionName() + "'");
+            if (friend != null) {
+                mNameView.setText(friend.getName());
+                mNameViewTrailer.setText(String.format(mContext.getString(R.string.social_stream_shared_name), mTrack.getSessionName()));
             } else {
-                mNameView.setText("You");
-                mNameViewTrailer.setText("recorded '" + track.getSessionName() + "'");
+                mNameView.setText(R.string.social_stream_you);
+                mNameViewTrailer.setText(String.format(mContext.getString(R.string.social_stream_recorded_name), mTrack.getSessionName()));
             }
             // Set up the mode of transportation icon
             switch (track.getModeOfTransportation()) {

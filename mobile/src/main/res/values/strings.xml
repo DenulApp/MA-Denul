@@ -73,6 +73,13 @@
     <!-- Exercise List strings -->
     <string name="exercise_list_empty">Nothing to see here</string>
     <string name="exercise_list_empty_expl">Want to go running?</string>
+    
+    <!-- Social stream strings -->
+    <string name="social_stream_no_location_shared">%s did not share any location data :(</string>
+    <string name="social_stream_no_location_available">No location data available :(</string>
+    <string name="social_stream_shared_name">shared \'%s\'</string>
+    <string name="social_stream_recorded_name">recorded \'%s\'</string>
+    <string name="social_stream_you">You</string>
 
     <!-- Exercise List context menu -->
     <string name="exercise_ctx_remove">Delete</string>
