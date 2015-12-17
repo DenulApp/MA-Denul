@@ -93,6 +93,7 @@ public class ShareManager {
                 // Check if the data has already been shared
                 int s_id = mBinder.getShareID(shareable);
                 if (s_id == -1) {
+                    Log.d(TAG, "doInBackground: Shareable not shared before, creating new DataBlock");
                     // Shareable has not been shared before
                     // Generate a random identifier and revocation token
                     TokenPair data_identifier = deriv.generateRandomIdentifier();
@@ -110,8 +111,10 @@ public class ShareManager {
                         continue;
                     }
                 } else {
+                    Log.d(TAG, "doInBackground: Shareable found under ID " + s_id);
                     // Shareable has already been shared, reuse existing Data block
                     data = mBinder.getShareData(s_id);
+                    Log.d(TAG, "doInBackground: Shareable found under ID " + s_id + ": " + String.valueOf(data));
                 }
                 // Retrieve list of friends who have already received the share
                 List<Friend> received = mBinder.getShareRecipientsForShareable(shareable);

@@ -161,7 +161,7 @@ public class SecureDbHelper extends SQLiteOpenHelper {
 
     public static final String DATABASE_NAME = "location.db"; // TODO Update
 
-    public static final int DATABASE_VERSION = 15;
+    public static final int DATABASE_VERSION = 16;
 
 
     /**
@@ -197,9 +197,20 @@ public class SecureDbHelper extends SQLiteOpenHelper {
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         Log.d(TAG, "onUpgrade: Old = " + oldVersion + " new = " + newVersion);
-        if (oldVersion == 14 && newVersion == 15) {
-            db.execSQL(SQL_DROP_DATASHARELOG);
+        if (oldVersion == 15 && newVersion == 16) {
+            // Rebuild everything except KeyStore and StepCounter
+            db.execSQL(SQL_DROP_LOCATIONLOG);
+            db.execSQL(SQL_DROP_LOCATIONSESSIONS);
+            db.execSQL(SQL_DROP_SEQUENCE_NUMBERS);
+            db.execSQL(SQL_DROP_FRIENDLIST);
+            db.execSQL(SQL_DROP_FRIENDKEYS);
             db.execSQL(SQL_DROP_FRIENDSHARELOG);
+            db.execSQL(SQL_DROP_DATASHARELOG);
+            db.execSQL(SQL_CREATE_ENTRIES_LOCATIONSESSIONS);
+            db.execSQL(SQL_CREATE_ENTRIES_LOCATIONLOG);
+            db.execSQL(SQL_CREATE_ENTRIES_SEQUENCE_NUMBERS);
+            db.execSQL(SQL_CREATE_ENTRIES_FRIENDLIST);
+            db.execSQL(SQL_CREATE_ENTRIES_FRIENDKEYS);
             db.execSQL(SQL_CREATE_ENTRIES_DATASHARELOG);
             db.execSQL(SQL_CREATE_ENTRIES_FRIENDSHAREDLOG);
         } else {
