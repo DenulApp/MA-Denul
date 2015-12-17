@@ -64,7 +64,7 @@ public class SocialStreamAdapter extends RecyclerView.Adapter<SocialStreamAdapte
         void onItemClicked(int position);
     }
 
-    public class ViewHolder extends RecyclerView.ViewHolder implements View.OnCreateContextMenuListener, OnMapReadyCallback{
+    public class ViewHolder extends RecyclerView.ViewHolder implements OnMapReadyCallback{
         protected View mHeldView;
         private TextView mNameView;
         private TextView mNameViewTrailer;
@@ -79,7 +79,6 @@ public class SocialStreamAdapter extends RecyclerView.Adapter<SocialStreamAdapte
         // instance variables for track fragments with map
         private GPSTrack mTrack;
         private GoogleMap mMap;
-        private MapView mMapView;
         private Marker mStartMarker;
         private Marker mEndMarker;
         private Polyline mPolyline;
@@ -94,14 +93,12 @@ public class SocialStreamAdapter extends RecyclerView.Adapter<SocialStreamAdapte
             mNameView = (TextView) itemView.findViewById(R.id.stream_name);
             mNameViewTrailer = (TextView) itemView.findViewById(R.id.stream_name_trailer);
             mIconView = (ImageView) itemView.findViewById(R.id.stream_icon);
-            // mMapView = (MapView) itemView.findViewById(R.id.map);
             mIllustration = (FrameLayout) itemView.findViewById(R.id.stream_illustration);
             mDateView = (TextView) itemView.findViewById(R.id.stream_date);
             mFurtherInfoView = (TextView) itemView.findViewById(R.id.stream_moreinfo);
             mShareCount = (TextView) itemView.findViewById(R.id.stream_share_count);
             mShareIcon = (ImageView) itemView.findViewById(R.id.stream_share_icon);
             mDescription = (TextView) itemView.findViewById(R.id.stream_description);
-            mHeldView.setOnCreateContextMenuListener(this);
         }
 
 
@@ -126,20 +123,25 @@ public class SocialStreamAdapter extends RecyclerView.Adapter<SocialStreamAdapte
         private void displayGPSTrack(GPSTrack track) {
             mTrack = track;
             if (track.getPosition().size() != 0) {
-                // Prepare google map options
-                GoogleMapOptions options = new GoogleMapOptions().liteMode(true).mapToolbarEnabled(false);
-                // Initialize new MapView
-                MapView mapView = new MapView(mContext, options);
-                // Add the mapview to the layout
-                mIllustration.addView(mapView);
-                // Call through to the onCreate
-                mapView.onCreate(null);
-                // Initialize
-                mapView.getMapAsync(this);
-                // Set the mapview to not be clickable (to avoid opening google maps on click)
-                mapView.setClickable(false);
+                if (mMap != null) {
+                    drawPath();
+                } else {
+                    // Prepare google map options
+                    GoogleMapOptions options = new GoogleMapOptions().liteMode(true).mapToolbarEnabled(false);
+                    // Initialize new MapView
+                    MapView mapView = new MapView(mContext, options);
+                    // Add the mapview to the layout
+                    mIllustration.addView(mapView);
+                    // Call through to the onCreate
+                    mapView.onCreate(null);
+                    // Initialize
+                    mapView.getMapAsync(this);
+                    // Set the mapview to not be clickable (to avoid opening google maps on click)
+                    mapView.setClickable(false);
+                }
             } else {
-                // TODO Set up something for the mIllustration
+                mIllustration.removeAllViews();
+                mMap = null;
             }
             // Set up the title bar
             if (track.getOwner() != -1) {
@@ -187,15 +189,6 @@ public class SocialStreamAdapter extends RecyclerView.Adapter<SocialStreamAdapte
                 mShareCount.setVisibility(View.GONE);
                 mShareIcon.setVisibility(View.GONE);
             }
-        }
-
-        @Override
-        public void onCreateContextMenu(ContextMenu contextMenu, View view, ContextMenu.ContextMenuInfo contextMenuInfo) {
-            Log.d("ViewHolder", "onCreateContextMenu");
-            MenuInflater inflater = new MenuInflater(mContext);
-            inflater.inflate(R.menu.context_friendlist, contextMenu);
-            // TODO Switch out context menu - do I even need one?
-            // MenuInfo is null
         }
 
 
