@@ -1,5 +1,7 @@
 package de.velcommuta.denul.crypto;
 
+import de.velcommuta.denul.data.KeySet;
+
 /**
  * Interface for key expansion implementations. They are used to expand a small secret (e.g. the
  * result of a {@link KeyExchange}) into multiple secure symmetric keys and counters, as required

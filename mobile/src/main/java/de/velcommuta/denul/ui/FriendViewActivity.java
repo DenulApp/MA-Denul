@@ -30,16 +30,18 @@ import com.google.zxing.integration.android.IntentResult;
 import com.google.zxing.qrcode.QRCodeWriter;
 
 import de.velcommuta.denul.R;
-import de.velcommuta.denul.crypto.KeySet;
+import de.velcommuta.denul.data.KeySet;
 import de.velcommuta.denul.service.DatabaseService;
 import de.velcommuta.denul.service.DatabaseServiceBinder;
-import de.velcommuta.denul.ui.adapter.Friend;
-import de.velcommuta.denul.util.FriendManagement;
+import de.velcommuta.denul.data.Friend;
+import de.velcommuta.denul.ui.dialog.DeleteDialog;
+import de.velcommuta.denul.util.FriendManager;
 
 /**
  * Activity to show details about a specific user
  */
-public class FriendViewActivity extends AppCompatActivity implements ServiceConnection {
+public class FriendViewActivity extends AppCompatActivity implements ServiceConnection,
+                                                                     DeleteDialog.OnDeleteCallback {
     private static final String TAG = "FriendViewActivity";
 
     private DatabaseServiceBinder mDbBinder;
@@ -60,7 +62,9 @@ public class FriendViewActivity extends AppCompatActivity implements ServiceConn
         setSupportActionBar(myToolbar);
 
         ActionBar ab = getSupportActionBar();
-        ab.setDisplayHomeAsUpEnabled(true);
+        if (ab != null) {
+            ab.setDisplayHomeAsUpEnabled(true);
+        }
 
         requestDatabaseBinder();
         Bundle b = getIntent().getExtras();
@@ -88,8 +92,8 @@ public class FriendViewActivity extends AppCompatActivity implements ServiceConn
      * Load the information about the friend from the database and display it
      */
     private void loadFriendInformation() {
-        mFriend = FriendManagement.getFriendById(mFriendId, mDbBinder);
-        mKeyset = FriendManagement.getKeySetForFriend(mFriend, mDbBinder);
+        mFriend = FriendManager.getFriendById(mFriendId, mDbBinder);
+        mKeyset = FriendManager.getKeySetForFriend(mFriend, mDbBinder);
         mFriendName.setText(mFriend.getName());
         switch (mFriend.getVerified()) {
             case Friend.VERIFIED_OK:
@@ -204,20 +208,7 @@ public class FriendViewActivity extends AppCompatActivity implements ServiceConn
      * Ask the user to confirm the deletion request, and perform the deletion if it was confirmed
      */
     private void askDeleteConfirm() {
-        // Prepare a builder
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        // Set the values, build and show the dialog
-        builder.setMessage("Delete this contact?")
-                .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-                        FriendManagement.deleteFriend(mFriend, mDbBinder);
-                        Toast.makeText(FriendViewActivity.this, "Contact deleted", Toast.LENGTH_SHORT).show();
-                        finish();
-                    }
-                })
-                .setNegativeButton("No", null)
-                .create().show();
+        DeleteDialog.showDeleteDialog(this, mDbBinder, mFriend, this);
     }
 
     @Override
@@ -251,7 +242,7 @@ public class FriendViewActivity extends AppCompatActivity implements ServiceConn
             Toast.makeText(FriendViewActivity.this, "Verification failed", Toast.LENGTH_SHORT).show();
         }
         // Perform update in the database
-        FriendManagement.updateFriend(mFriend, mDbBinder);
+        FriendManager.updateFriend(mFriend, mDbBinder);
         // Reload friend
         loadFriendInformation();
     }
@@ -277,11 +268,11 @@ public class FriendViewActivity extends AppCompatActivity implements ServiceConn
                 // if the name has not changed, do nothing
                 if (selectedName.equals(mFriend.getName())) return;
                 // check if the name is available
-                if (FriendManagement.isNameAvailable(selectedName, mDbBinder)) {
+                if (FriendManager.isNameAvailable(selectedName, mDbBinder)) {
                     // Name is available. Update Friend object
                     mFriend.setName(selectedName);
                     // Update database
-                    FriendManagement.updateFriend(mFriend, mDbBinder);
+                    FriendManager.updateFriend(mFriend, mDbBinder);
                     // Reload
                     loadFriendInformation();
                 } else {
@@ -293,5 +284,11 @@ public class FriendViewActivity extends AppCompatActivity implements ServiceConn
         builder.setNegativeButton("Cancel", null);
         // Create and show the dialog
         builder.create().show();
+    }
+
+
+    @Override
+    public void onDeleted() {
+        finish();
     }
 }

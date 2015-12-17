@@ -20,11 +20,11 @@ import de.velcommuta.denul.R;
 import de.velcommuta.denul.crypto.ECDHKeyExchange;
 import de.velcommuta.denul.crypto.HKDFKeyExpansion;
 import de.velcommuta.denul.crypto.KeyExchange;
-import de.velcommuta.denul.crypto.KeySet;
+import de.velcommuta.denul.data.KeySet;
 import de.velcommuta.denul.service.DatabaseService;
 import de.velcommuta.denul.service.DatabaseServiceBinder;
-import de.velcommuta.denul.ui.adapter.Friend;
-import de.velcommuta.denul.util.FriendManagement;
+import de.velcommuta.denul.data.Friend;
+import de.velcommuta.denul.util.FriendManager;
 
 import net.sqlcipher.database.SQLiteException;
 
@@ -196,7 +196,7 @@ public class FriendAddActivity extends AppCompatActivity implements
         if (mDbBinder != null && mDbBinder.isDatabaseOpen() && mFriend != null && mKeyset != null) {
             try {
                 // Insert into database
-                FriendManagement.addFriend(mFriend, mKeyset, mDbBinder);
+                FriendManager.addFriend(mFriend, mKeyset, mDbBinder);
                 // Log
                 Log.d(TAG, "saveContactToDatabase: Saved.");
                 // Stop activity, return to friendlist

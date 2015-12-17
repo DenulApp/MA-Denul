@@ -7,6 +7,8 @@ import org.spongycastle.crypto.params.HKDFParameters;
 
 import java.security.Security;
 
+import de.velcommuta.denul.data.KeySet;
+
 /**
  * {@link KeyExpansion} based on the HKDF function defined in RFC 5869.
  */

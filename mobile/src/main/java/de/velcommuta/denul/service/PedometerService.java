@@ -5,7 +5,6 @@ import android.app.ActivityManager;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -22,11 +21,8 @@ import android.os.IBinder;
 import android.os.SystemClock;
 import android.util.Log;
 
-import net.sqlcipher.Cursor;
-
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
-import org.joda.time.format.DateTimeFormat;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -54,8 +50,6 @@ import javax.crypto.IllegalBlockSizeException;
 
 import de.greenrobot.event.EventBus;
 import de.velcommuta.denul.R;
-import de.velcommuta.denul.db.StepLoggingContract;
-import de.velcommuta.denul.db.VaultContract;
 import de.velcommuta.denul.event.DatabaseAvailabilityEvent;
 import de.velcommuta.denul.crypto.FileOperation;
 import de.velcommuta.denul.crypto.Hybrid;
@@ -89,9 +83,6 @@ public class PedometerService extends Service implements SensorEventListener, Se
 
     private Binder mBinder;
     private List<UpdateListener> mListeners;
-
-    private String FORMAT_DATE = "dd/MM/yyyy";
-    private String FORMAT_TIME = "HH:mm";
 
     ///// Service lifecycle management
     /**
@@ -533,29 +524,7 @@ public class PedometerService extends Service implements SensorEventListener, Se
             return;
         }
         DateTime currentTimestamp = getTimestamp();
-        mDatabaseBinder.beginTransaction();
-        for (DateTime ts : mCache.keySet()) {
-            int c = isInDatabase(ts);
-            if (c != -1) {
-                if (c < mCache.get(ts)) {
-                    ContentValues update = new ContentValues();
-                    update.put(StepLoggingContract.StepCountLog.COLUMN_VALUE, mCache.get(ts));
-                    String selection = StepLoggingContract.StepCountLog.COLUMN_DATE + " LIKE ? AND "
-                            + StepLoggingContract.StepCountLog.COLUMN_TIME + " LIKE ?";
-                    String[] selectionArgs = {formatDate(ts), formatTime(ts)};
-                    mDatabaseBinder.update(StepLoggingContract.StepCountLog.TABLE_NAME, update, selection, selectionArgs);
-                }
-            } else {
-                Log.d(TAG, "saveToDatabase: Inserting value");
-                ContentValues entry = new ContentValues();
-                entry.put(StepLoggingContract.StepCountLog.COLUMN_DATE, formatDate(ts));
-                entry.put(StepLoggingContract.StepCountLog.COLUMN_TIME, formatTime(ts));
-                entry.put(StepLoggingContract.StepCountLog.COLUMN_VALUE, mCache.get(ts));
-                mDatabaseBinder.insert(StepLoggingContract.StepCountLog.TABLE_NAME, null, entry);
-            }
-        }
-        Log.d(TAG, "saveToDatabase: All values saved, committing");
-        mDatabaseBinder.commit();
+        mDatabaseBinder.integratePedometerCache(mCache);
         Log.d(TAG, "saveToDatabase: Removing saved values");
         Enumeration<DateTime> keys = mCache.keys();
         while (keys.hasMoreElements()) {
@@ -581,50 +550,6 @@ public class PedometerService extends Service implements SensorEventListener, Se
         }
     }
 
-
-    /**
-     * Format a given DateTime for the date column of the database
-     * @param dt The DateTime object
-     * @return The String representation of the day
-     */
-    private String formatDate(DateTime dt) {
-        return dt.toString(DateTimeFormat.forPattern(FORMAT_DATE));
-    }
-
-
-    /**
-     * Format a given DateTime for the time column of the database
-     * @param dt The DateTime Object
-     * @return The String representation of the time
-     */
-    private String formatTime(DateTime dt) {
-        return dt.toString(DateTimeFormat.forPattern(FORMAT_TIME));
-    }
-
-
-    /**
-     * Check if a certain DateTime is already present in the database
-     * @param dt DateTime
-     * @return The saved step count for that key, if present, or -1 if no step count was found
-     */
-    private int isInDatabase(DateTime dt) {
-        int rv = -1;
-        Cursor c = mDatabaseBinder.query(StepLoggingContract.StepCountLog.TABLE_NAME,
-                new String[]{StepLoggingContract.StepCountLog.COLUMN_VALUE},
-                StepLoggingContract.StepCountLog.COLUMN_DATE + " = '" + formatDate(dt) + "' AND " +
-                        StepLoggingContract.StepCountLog.COLUMN_TIME + " = '" + formatTime(dt) + "'",
-                null,
-                null,
-                null,
-                null);
-        if (c.getCount() != 0) {
-            c.moveToFirst();
-            rv = c.getInt(c.getColumnIndexOrThrow(StepLoggingContract.StepCountLog.COLUMN_VALUE));
-        }
-        c.close();
-        return rv;
-    }
-
     /**
      * Load the public key from the shared Preferences
      * @return The PublicKey object from the shared preferences
@@ -648,25 +573,7 @@ public class PedometerService extends Service implements SensorEventListener, Se
             Log.e(TAG, "loadSecretKey: Database unavailable");
             return null;
         }
-        // Query the database for the private key
-        Cursor c = mDatabaseBinder.query(VaultContract.KeyStore.TABLE_NAME,
-                new String[] {VaultContract.KeyStore.COLUMN_KEY_BYTES},
-                VaultContract.KeyStore.COLUMN_KEY_NAME + " = '" + VaultContract.KeyStore.NAME_PEDOMETER_PRIVATE + "'",
-                null,
-                null,
-                null,
-                null);
-        if (c.getCount() == 0) {
-            Log.e(TAG, "loadSecretKey: no secret key found, aborting");
-            return null;
-        }
-        // Retrieve the encoded string
-        c.moveToFirst();
-        String encoded = c.getString(
-                c.getColumnIndexOrThrow(VaultContract.KeyStore.COLUMN_KEY_BYTES)
-        );
-        // Close the cursor
-        c.close();
+        String encoded = mDatabaseBinder.getPedometerPrivateKey();
         // Decode and return the PrivateKey
         PrivateKey pk = RSA.decodePrivateKey(encoded);
         try {
@@ -696,22 +603,7 @@ public class PedometerService extends Service implements SensorEventListener, Se
             Log.e(TAG, "getMaxSequenceNumber: Database unavailable");
             return -1;
         }
-        Cursor c = mDatabaseBinder.query(VaultContract.SequenceNumberStore.TABLE_NAME,
-                new String[]{VaultContract.SequenceNumberStore.COLUMN_SNR_VALUE},
-                VaultContract.SequenceNumberStore.COLUMN_SNR_TYPE + " LIKE ?",
-                new String[]{VaultContract.SequenceNumberStore.TYPE_PEDOMETER},
-                null,
-                null,
-                null);
-        if (c.getCount() == 0) {
-            c.close();
-            return -1;
-        } else {
-            c.moveToFirst();
-            int res = c.getInt(c.getColumnIndexOrThrow(VaultContract.SequenceNumberStore.COLUMN_SNR_VALUE));
-            c.close();
-            return res;
-        }
+        return mDatabaseBinder.getMaxStepCounterSequenceNumber();
     }
 
 
@@ -723,28 +615,12 @@ public class PedometerService extends Service implements SensorEventListener, Se
             Log.e(TAG, "loadHistoryToday: Database unavailable");
             return;
         }
-        String date = formatDate(getTimestamp());
-        Cursor c = mDatabaseBinder.query(StepLoggingContract.StepCountLog.TABLE_NAME,
-                new String[] {StepLoggingContract.StepCountLog.COLUMN_TIME, StepLoggingContract.StepCountLog.COLUMN_VALUE},
-                StepLoggingContract.StepCountLog.COLUMN_DATE + " LIKE ?",
-                new String[] {date},
-                null, // groupby
-                null, // having
-                null); // orderby
-        if (c.getCount() > 0) {
-            while (c.moveToNext()) {
-                long value = c.getInt(c.getColumnIndexOrThrow(StepLoggingContract.StepCountLog.COLUMN_VALUE));
-                String time = c.getString(c.getColumnIndexOrThrow(StepLoggingContract.StepCountLog.COLUMN_TIME));
-                DateTime timestamp = DateTime.parse(date + " " + time, DateTimeFormat.forPattern(FORMAT_DATE + " " + FORMAT_TIME));
-                if (!mToday.contains(timestamp) || mToday.get(timestamp) < value) {
-                    mToday.put(timestamp, value);
-                }
+        Hashtable<DateTime, Long> dbvalues = mDatabaseBinder.getStepCountForDay(getTimestamp());
+        for (DateTime t : dbvalues.keySet()) {
+            if (!mToday.contains(t) || mToday.get(t) < dbvalues.get(t)) {
+                mToday.put(t, dbvalues.get(t));
             }
-            Log.d(TAG, "loadHistoryToday: Got a result");
-        } else {
-            Log.d(TAG, "loadHistoryToday: Nothing in the database for today");
         }
-        c.close();
         updateTodaySum();
         notifyListeners();
     }
@@ -757,23 +633,7 @@ public class PedometerService extends Service implements SensorEventListener, Se
         if (!mDatabaseAvailable || mDatabaseBinder == null) {
             Log.e(TAG, "storeSequenceNumber: Database unavailable");
         }
-        int cSeqNr = getMaxSequenceNumber();
-        if (cSeqNr == -1) {
-            Log.d(TAG, "storeSequenceNumber: Inserting new value");
-            ContentValues insert = new ContentValues();
-            insert.put(VaultContract.SequenceNumberStore.COLUMN_SNR_TYPE, VaultContract.SequenceNumberStore.TYPE_PEDOMETER);
-            insert.put(VaultContract.SequenceNumberStore.COLUMN_SNR_VALUE, seqnr);
-            mDatabaseBinder.insert(VaultContract.SequenceNumberStore.TABLE_NAME, null, insert);
-        } else {
-            Log.d(TAG, "storeSequenceNumber: Updating value");
-            ContentValues values = new ContentValues();
-            values.put(VaultContract.SequenceNumberStore.COLUMN_SNR_VALUE, seqnr);
-            mDatabaseBinder.update(VaultContract.SequenceNumberStore.TABLE_NAME,
-                    values,
-                    VaultContract.SequenceNumberStore.COLUMN_SNR_TYPE + " LIKE ?",
-                    new String[]{VaultContract.SequenceNumberStore.TYPE_PEDOMETER}
-            );
-        }
+        mDatabaseBinder.storeStepCounterSequenceNumber(seqnr);
     }
 
 

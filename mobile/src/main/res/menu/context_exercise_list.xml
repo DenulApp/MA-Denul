@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/exercise_remove"
+          android:title="@string/exercise_ctx_remove" />
+    <item android:id="@+id/exercise_share"
+          android:title="@string/exercise_ctx_share" />
+</menu>

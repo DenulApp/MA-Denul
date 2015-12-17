@@ -10,12 +10,15 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
+import de.velcommuta.denul.data.DataBlock;
+import de.velcommuta.denul.data.TokenPair;
 import de.velcommuta.denul.networking.protobuf.c2s.C2S;
 import de.velcommuta.denul.networking.protobuf.meta.MetaMessage;
 import de.velcommuta.denul.util.FormatHelper;
@@ -91,8 +94,9 @@ public class ProtobufProtocol implements Protocol {
 
     @Nullable
     @Override
-    public byte[] get(String key) {
+    public byte[] get(TokenPair token) {
         // Check if the Connection is still open
+        byte[] key = token.getIdentifier();
         if (!mConnection.isOpen()) {
             Log.e(TAG, "get: Underlying Connection not connected");
             return GET_FAIL_NO_CONNECTION;
@@ -118,7 +122,7 @@ public class ProtobufProtocol implements Protocol {
             if (getReply == null) {
                 Log.e(TAG, "get: Wrapper did not contain a GetReply, aborting");
                 return GET_FAIL_PROTOCOL_ERROR;
-            } else if (!getReply.getKey().equals(key)) {
+            } else if (!Arrays.equals(getReply.getKey().toByteArray(), key)) {
                 // The Keys do not match
                 Log.w(TAG, "get: Server replied for different key, aborting");
                 return GET_FAIL_PROTOCOL_ERROR;
@@ -157,9 +161,9 @@ public class ProtobufProtocol implements Protocol {
 
 
     @Override
-    public Map<String, byte[]> getMany(List<String> keys) {
-        Map<String, byte[]> rv = new HashMap<>();
-        for (String key : keys) {
+    public Map<TokenPair, byte[]> getMany(List<TokenPair> keys) {
+        Map<TokenPair, byte[]> rv = new HashMap<>();
+        for (TokenPair key : keys) {
             rv.put(key, get(key));
         }
         return rv;
@@ -167,7 +171,9 @@ public class ProtobufProtocol implements Protocol {
 
 
     @Override
-    public int put(String key, byte[] value) {
+    public int put(DataBlock data) {
+        byte[] key = data.getIdentifier();
+        byte[] value = data.getCiphertext();
         // Check if the Connection is still open
         if (!mConnection.isOpen()) {
             Log.e(TAG, "put: Underlying Connection not connected");
@@ -191,7 +197,7 @@ public class ProtobufProtocol implements Protocol {
         if (storeReply == null) {
             Log.e(TAG, "put: Reply did not contain a StoreReply");
             return PUT_FAIL_PROTOCOL_ERROR;
-        } else if (!storeReply.getKey().equals(key)) {
+        } else if (!Arrays.equals(storeReply.getKey().toByteArray(), key)) {
             // Server did not reply with the correct key
             Log.e(TAG, "put: Reply contained incorrect key");
             return PUT_FAIL_PROTOCOL_ERROR;
@@ -220,19 +226,21 @@ public class ProtobufProtocol implements Protocol {
 
 
     @Override
-    public Map<String, Integer> putMany(Map<String, byte[]> records) {
+    public Map<DataBlock, Integer> putMany(List<DataBlock> records) {
         // Prepare return-hashtable
-        Map<String, Integer> rv = new HashMap<>();
+        Map<DataBlock, Integer> rv = new HashMap<>();
         // Send inserts for all values in the input dictionary
-        for (String key : records.keySet()) {
-            rv.put(key, put(key, records.get(key)));
+        for (DataBlock key : records) {
+            rv.put(key, put(key));
         }
         return rv;
     }
 
 
     @Override
-    public int del(String key, String auth) {
+    public int del(TokenPair token) {
+        byte[] key = token.getIdentifier();
+        byte[] auth = token.getRevocation();
         // Check if the Connection is still open
         if (!mConnection.isOpen()) {
             Log.e(TAG, "del: Underlying Connection not connected");
@@ -241,8 +249,11 @@ public class ProtobufProtocol implements Protocol {
             Log.e(TAG, "del: Bad key or authenticator format");
             return DEL_FAIL_KEY_FMT;
         }
-        Log.e(TAG, "del: Key: " + key);
-        Log.e(TAG, "del: auth: " + auth);
+        if (!mVICBF.query(token.getIdentifier())) {
+            // Key is not on the server
+            Log.i(TAG, "del: Deletion failed, key not on the server");
+            return DEL_FAIL_KEY_NOT_TAKEN;
+        }
         // Get a wrapper message with the key-value-pair
         MetaMessage.Wrapper delete = getDeleteMessage(key, auth);
         // Transceive and get reply
@@ -258,7 +269,7 @@ public class ProtobufProtocol implements Protocol {
         if (deleteReply == null) {
             Log.e(TAG, "del: Reply did not contain a DeleteReply");
             return DEL_FAIL_PROTOCOL_ERROR;
-        } else if (!deleteReply.getKey().equals(key)) {
+        } else if (!Arrays.equals(deleteReply.getKey().toByteArray(), key)) {
             // Server did not reply with the correct key
             Log.e(TAG, "del: Reply contained incorrect key");
             return DEL_FAIL_PROTOCOL_ERROR;
@@ -275,7 +286,7 @@ public class ProtobufProtocol implements Protocol {
             return DEL_OK;
         } else if (deleteReply.getOpcode() == C2S.DeleteReply.DeleteReplyCode.DELETE_FAIL_NOT_FOUND) {
             // Server replied that no such key is stored on it
-            Log.e(TAG, "del: Deletion failed, no such key");
+            Log.w(TAG, "del: Deletion failed, no such key");
             return DEL_FAIL_KEY_NOT_TAKEN;
         } else if (deleteReply.getOpcode() == C2S.DeleteReply.DeleteReplyCode.DELETE_FAIL_KEY_FMT) {
             // Server complained about the key format
@@ -296,12 +307,36 @@ public class ProtobufProtocol implements Protocol {
 
 
     @Override
-    public Map<String, Integer> delMany(Map<String, String> records) {
+    public Map<TokenPair, Integer> delMany(List<TokenPair> records) {
         // Prepare return-hashtable
-        Map<String, Integer> rv = new HashMap<>();
+        Map<TokenPair, Integer> rv = new HashMap<>();
         // Send deletes for all key-authenticator-pairs in the input dictionary
-        for (String key : records.keySet()) {
-            rv.put(key, del(key, records.get(key)));
+        for (TokenPair key : records) {
+            rv.put(key, del(key));
+        }
+        return rv;
+    }
+
+
+    @Override
+    public int revoke(TokenPair pair) {
+        int rv = del(pair);
+        if (rv == DEL_OK) {
+            put(new DataBlock(new byte[] {0x42}, new byte[] {0x42}, pair.getIdentifier()));
+            return REV_OK;
+        } else {
+            return rv;  // The values of the DEL_* constants semantically match the REV_* constants
+        }
+    }
+
+
+    @Override
+    public Map<TokenPair, Integer> revokeMany(List<TokenPair> pairs) {
+        // Prepare return-hashtable
+        Map<TokenPair, Integer> rv = new HashMap<>();
+        // Send deletes for all key-authenticator-pairs in the input dictionary
+        for (TokenPair key : pairs) {
+            rv.put(key, revoke(key));
         }
         return rv;
     }
@@ -349,12 +384,12 @@ public class ProtobufProtocol implements Protocol {
      * @param key The key to get the value for
      * @return A Get message wrapped in a Wrapper message
      */
-    private MetaMessage.Wrapper getGetMsg(String key) {
+    private MetaMessage.Wrapper getGetMsg(byte[] key) {
         // Get a Get builder and a wrapper builder
         C2S.Get.Builder get = C2S.Get.newBuilder();
         MetaMessage.Wrapper.Builder wrapper = MetaMessage.Wrapper.newBuilder();
         // Set the key to Get
-        get.setKey(key);
+        get.setKey(ByteString.copyFrom(key));
         // Pack the Get message in the Wrapper
         wrapper.setGet(get);
         // Build and return the Wrapper
@@ -368,12 +403,12 @@ public class ProtobufProtocol implements Protocol {
      * @param values The value
      * @return A Wrapper containing a Store message for the Key-Value-Pair
      */
-    private MetaMessage.Wrapper getStoreMsg(String key, byte[] values) {
+    private MetaMessage.Wrapper getStoreMsg(byte[] key, byte[] values) {
         // Get a Put builder and a wrapper builder
         C2S.Store.Builder store = C2S.Store.newBuilder();
         MetaMessage.Wrapper.Builder wrapper = MetaMessage.Wrapper.newBuilder();
         // Set the key
-        store.setKey(key);
+        store.setKey(ByteString.copyFrom(key));
         // Set the value
         store.setValue(ByteString.copyFrom(values));
         // Put the Store message into the Wrapper
@@ -390,14 +425,14 @@ public class ProtobufProtocol implements Protocol {
      * @param auth The authenticator
      * @return A Wrapper message containing a Delete message for the key-authenticator pair
      */
-    private MetaMessage.Wrapper getDeleteMessage(String key, String auth) {
+    private MetaMessage.Wrapper getDeleteMessage(byte[] key, byte[] auth) {
         // Get a Delete builder and a wrapper builder
         C2S.Delete.Builder delete = C2S.Delete.newBuilder();
         MetaMessage.Wrapper.Builder wrapper = MetaMessage.Wrapper.newBuilder();
         // Set the key
-        delete.setKey(key);
+        delete.setKey(ByteString.copyFrom(key));
         // Set the authenticator
-        delete.setAuth(auth);
+        delete.setAuth(ByteString.copyFrom(auth));
         // Put the Delete message into the Wrapper
         wrapper.setDelete(delete);
         // Build and return
@@ -515,9 +550,9 @@ public class ProtobufProtocol implements Protocol {
      * @param key The key to check
      * @return true if the key has a valid format, false otherwise
      */
-    protected static boolean checkKeyFormat(String key) {
+    protected static boolean checkKeyFormat(byte[] key) {
         // The key must be a SHA256 hash => 64 hex characters
-        return key != null && key.length() == 64 && key.matches("[0-9a-fA-F]+");
+        return key != null && key.length == 32;
     }
 
 
@@ -527,7 +562,7 @@ public class ProtobufProtocol implements Protocol {
      * @param auth The authenticator
      * @return true if the authentitcator is valid, false otherwise
      */
-    protected static boolean checkAuthenticator(String key, String auth) {
+    protected static boolean checkAuthenticator(byte[] key, byte[] auth) {
         MessageDigest md;
         try {
             md = MessageDigest.getInstance("SHA-256");
@@ -535,7 +570,7 @@ public class ProtobufProtocol implements Protocol {
             Log.e(TAG, "checkAuthenticator: SHA256 not supported");
             return false;
         }
-        md.update(auth.getBytes());
-        return FormatHelper.bytesToHex(md.digest()).equals(key);
+        md.update(auth);
+        return Arrays.equals(md.digest(), key);
     }
 }

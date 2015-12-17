@@ -1,16 +1,16 @@
 package de.velcommuta.denul.util;
 
-import de.velcommuta.denul.crypto.KeySet;
+import de.velcommuta.denul.data.KeySet;
 import de.velcommuta.denul.service.DatabaseServiceBinder;
-import de.velcommuta.denul.ui.adapter.Friend;
+import de.velcommuta.denul.data.Friend;
 
 /**
  * Helper class to perform common friend-related operations. Some of these functions just call
  * through to the database binder, but in the interest of having a unified API, they were included
  * anyway.
  */
-public class FriendManagement {
-    private static final String TAG = "FriendManagement";
+public class FriendManager {
+    private static final String TAG = "FriendManager";
 
 
     /**
@@ -30,8 +30,11 @@ public class FriendManagement {
      * @param binder The {@link DatabaseServiceBinder} to use
      */
     public static void deleteFriend(Friend friend, DatabaseServiceBinder binder) {
-        // TODO Delete data?
-        // TODO Delete from server?
+        // Delete all data shared by that friend
+        binder.deleteSharesByFriend(friend);
+        // Delete all data shared TO the friend
+        ShareManager.revokeAllForFriend(friend, binder);
+        // Delete the friend itself
         binder.deleteFriend(friend);
     }
 

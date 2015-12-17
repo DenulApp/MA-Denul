@@ -8,6 +8,7 @@ import android.app.Service;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.location.Location;
 import android.os.Binder;
 import android.os.IBinder;
 import android.os.SystemClock;
@@ -17,15 +18,29 @@ import net.sqlcipher.Cursor;
 import net.sqlcipher.database.SQLiteDatabase;
 import net.sqlcipher.database.SQLiteException;
 
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormat;
+
 import java.util.ArrayList;
+import java.util.Hashtable;
+import java.util.LinkedList;
 import java.util.List;
 
 import de.greenrobot.event.EventBus;
-import de.velcommuta.denul.crypto.KeySet;
+import de.velcommuta.denul.data.DataBlock;
+import de.velcommuta.denul.data.GPSTrack;
+import de.velcommuta.denul.data.KeySet;
+import de.velcommuta.denul.data.Shareable;
+import de.velcommuta.denul.data.TokenPair;
 import de.velcommuta.denul.db.FriendContract;
+import de.velcommuta.denul.db.LocationLoggingContract;
 import de.velcommuta.denul.db.SecureDbHelper;
+import de.velcommuta.denul.db.SharingContract;
+import de.velcommuta.denul.db.StepLoggingContract;
+import de.velcommuta.denul.db.VaultContract;
 import de.velcommuta.denul.event.DatabaseAvailabilityEvent;
-import de.velcommuta.denul.ui.adapter.Friend;
+import de.velcommuta.denul.data.Friend;
+import de.velcommuta.denul.util.FormatHelper;
 
 /**
  * Database service to hold a handle on the protected database and close it after a certain time of
@@ -42,6 +57,10 @@ public class DatabaseService extends Service {
     // Alarm manager
     private AlarmManager mManager;
     private PendingIntent mIntent;
+
+    // Formatting constants
+    private String FORMAT_DATE = "dd/MM/yyyy";
+    private String FORMAT_TIME = "HH:mm";
 
     ///// Lifecycle Management
     /**
@@ -193,8 +212,7 @@ public class DatabaseService extends Service {
          * Begin a database transaction
          * @throws SQLiteException Thrown in case the database is not open or already in a transaction
          */
-        @Override
-        public void beginTransaction() throws SQLiteException {
+        private void beginTransaction() throws SQLiteException {
             assertOpen();
             if (mSQLiteHandler.inTransaction()) {
                 Log.e(TAG, "beginTransaction: Already in transaction, aborting");
@@ -209,8 +227,7 @@ public class DatabaseService extends Service {
          * Commit a database transaction
          * @throws SQLiteException Thrown in case the database is not open or not in a transaction
          */
-        @Override
-        public void commit() throws SQLiteException{
+        private void commit() throws SQLiteException{
             assertOpen();
             if (!mSQLiteHandler.inTransaction()) {
                 Log.e(TAG, "commit: Not in transaction");
@@ -226,8 +243,7 @@ public class DatabaseService extends Service {
          * Revert a database transaction
          * @throws SQLiteException Thrown in case the database is not open or not in a transaction
          */
-        @Override
-        public void revert() throws SQLiteException {
+        private void revert() throws SQLiteException {
             assertOpen();
             if (!mSQLiteHandler.inTransaction()) {
                 Log.e(TAG, "revert: Not in transaction, aborting");
@@ -247,8 +263,7 @@ public class DatabaseService extends Service {
          * @return The row of the inserted data, as per the SQLite interface
          * @throws SQLiteException If the database is not open or the insert failed
          */
-        @Override
-        public long insert(String table, String nullable, ContentValues values) throws SQLiteException {
+        private long insert(String table, String nullable, ContentValues values) throws SQLiteException {
             assertOpen();
             Log.d(TAG, "insert: Running insert");
             return mSQLiteHandler.insertOrThrow(table, nullable, values);
@@ -266,16 +281,22 @@ public class DatabaseService extends Service {
          * @param having Filtering clause (excluding the HAVING)
          * @param orderBy Ordering clause (excluding the ORDER BY)
          * @return A cursor object that allows interaction with the data
+         * @throws SQLiteException if the underlying query function throws it
          */
-        @Override
-        public Cursor query(String table, String[] columns, String selection, String[] selectionArgs, String groupBy, String having, String orderBy) throws SQLiteException {
+        private Cursor query(String table, String[] columns, String selection, String[] selectionArgs, String groupBy, String having, String orderBy) throws SQLiteException {
             assertOpen();
-            Log.d(TAG, "query: Running query");
             return mSQLiteHandler.query(table, columns, selection, selectionArgs, groupBy, having, orderBy);
         }
 
-        @Override
-        public int update(String table, ContentValues values, String selection, String[] selectionArgs) {
+        /**
+         * Send an UPDATE query to the SQLite database
+         * @param table The table to be updated
+         * @param values The values to update it with
+         * @param selection The selection of which entries should be updated
+         * @param selectionArgs The arguments to replace wildcards ("?")
+         * @return The number of updated entries
+         */
+        private int update(String table, ContentValues values, String selection, String[] selectionArgs) {
             assertOpen();
             Log.d(TAG, "update: Running update");
             return mSQLiteHandler.update(table, values, selection, selectionArgs);
@@ -331,10 +352,12 @@ public class DatabaseService extends Service {
                     null,
                     null,
                     null);
-            c.moveToFirst();
-            Friend rv = new Friend(c.getString(c.getColumnIndexOrThrow(FriendContract.FriendList.COLUMN_NAME_FRIEND)),
-                                   c.getInt(   c.getColumnIndexOrThrow(FriendContract.FriendList.COLUMN_NAME_VERIFIED)),
-                                   c.getInt(   c.getColumnIndexOrThrow(FriendContract.FriendList._ID)));
+            Friend rv = null;
+            if (c.moveToFirst()) {
+                rv = new Friend(c.getString(c.getColumnIndexOrThrow(FriendContract.FriendList.COLUMN_NAME_FRIEND)),
+                        c.getInt(c.getColumnIndexOrThrow(FriendContract.FriendList.COLUMN_NAME_VERIFIED)),
+                        c.getInt(c.getColumnIndexOrThrow(FriendContract.FriendList._ID)));
+            }
             c.close();
             return rv;
         }
@@ -355,9 +378,31 @@ public class DatabaseService extends Service {
                                    c.getBlob(c.getColumnIndexOrThrow(FriendContract.FriendKeys.COLUMN_NAME_KEY_OUT)),
                                    c.getBlob(c.getColumnIndexOrThrow(FriendContract.FriendKeys.COLUMN_NAME_CTR_IN)),
                                    c.getBlob(c.getColumnIndexOrThrow(FriendContract.FriendKeys.COLUMN_NAME_CTR_OUT)),
-                                   c.getInt (c.getColumnIndexOrThrow(FriendContract.FriendKeys.COLUMN_NAME_INITIATED)) == 1);
+                                   c.getInt (c.getColumnIndexOrThrow(FriendContract.FriendKeys.COLUMN_NAME_INITIATED)) == 1,
+                                   c.getInt (c.getColumnIndexOrThrow(FriendContract.FriendKeys._ID)));
             c.close();
             return rv;
+        }
+
+
+        @Override
+        public void updateKeySet(KeySet keyset) {
+            assertOpen();
+            if (keyset == null) throw new SQLiteException("KeySet cannot be null");
+            // Prepare ContentValues with new values
+            ContentValues key_entry = new ContentValues();
+            key_entry.put(FriendContract.FriendKeys.COLUMN_NAME_KEY_IN, keyset.getInboundKey());
+            key_entry.put(FriendContract.FriendKeys.COLUMN_NAME_KEY_OUT, keyset.getOutboundKey());
+            key_entry.put(FriendContract.FriendKeys.COLUMN_NAME_CTR_IN, keyset.getInboundCtr());
+            key_entry.put(FriendContract.FriendKeys.COLUMN_NAME_CTR_OUT, keyset.getOutboundCtr());
+            String[] whereArgs = {"" + keyset.getID() };
+            // Perform the update
+            beginTransaction();
+            update(FriendContract.FriendKeys.TABLE_NAME,
+                    key_entry,
+                    FriendContract.FriendKeys._ID + " LIKE ?",
+                    whereArgs);
+            commit();
         }
 
 
@@ -450,6 +495,828 @@ public class DatabaseService extends Service {
             return rv;
         }
 
+        @Override
+        public void addGPSTrack(GPSTrack track) {
+            assertOpen();
+            addGPSTrack(track, -1);
+        }
+
+        @Override
+        public void addGPSTrackForFriend(GPSTrack track, Friend friend) {
+            assertOpen();
+            addGPSTrack(track, friend.getID());
+        }
+
+        /**
+         * Private helper function to add a track with a certain owner ID to the database
+         * @param track The track
+         * @param ownerid The owner ID ({@link Friend#getID()}, or -1 if the track is owned by the
+         *                device owner)
+         */
+        private void addGPSTrack(GPSTrack track, int ownerid) {
+            // Start a transaction to get an all-or-nothing write to the database
+            beginTransaction();
+            // Write new database entry with metadata for the track
+            ContentValues metadata = new ContentValues();
+
+            metadata.put(LocationLoggingContract.LocationSessions.COLUMN_NAME_SESSION_START, track.getTimestamp());
+            metadata.put(LocationLoggingContract.LocationSessions.COLUMN_NAME_SESSION_END, track.getTimestampEnd());
+            metadata.put(LocationLoggingContract.LocationSessions.COLUMN_NAME_NAME, track.getSessionName());
+            metadata.put(LocationLoggingContract.LocationSessions.COLUMN_NAME_MODE, track.getModeOfTransportation());
+            metadata.put(LocationLoggingContract.LocationSessions.COLUMN_NAME_TIMEZONE, track.getTimezone());
+            metadata.put(LocationLoggingContract.LocationSessions.COLUMN_NAME_DESCRIPTION, track.getDescription());
+            metadata.put(LocationLoggingContract.LocationSessions.COLUMN_NAME_DISTANCE, track.getDistance());
+            metadata.put(LocationLoggingContract.LocationSessions.COLUMN_NAME_OWNER, ownerid);
+
+            long rowid = insert(LocationLoggingContract.LocationSessions.TABLE_NAME, null, metadata);
+
+            // Write the individual steps in the track
+            for (Location cLoc : track.getPosition()) {
+                // Prepare ContentValues object
+                ContentValues entry = new ContentValues();
+                // Set values for ContentValues
+                entry.put(LocationLoggingContract.LocationLog.COLUMN_NAME_SESSION, rowid);
+                entry.put(LocationLoggingContract.LocationLog.COLUMN_NAME_LAT, cLoc.getLatitude());
+                entry.put(LocationLoggingContract.LocationLog.COLUMN_NAME_LONG, cLoc.getLongitude());
+                entry.put(LocationLoggingContract.LocationLog.COLUMN_NAME_TIMESTAMP, cLoc.getTime());
+                // Save ContentValues into Database
+                insert(LocationLoggingContract.LocationLog.TABLE_NAME, null, entry);
+            }
+            // Finish transaction
+            commit();
+        }
+
+
+        @Override
+        public List<GPSTrack> getGPSTracks() {
+            assertOpen();
+            List<GPSTrack> trackList = new LinkedList<>();
+            String[] columns = {LocationLoggingContract.LocationSessions._ID};
+            // Retrieve session IDs
+            Cursor session = query(LocationLoggingContract.LocationSessions.TABLE_NAME,
+                    columns,
+                    null,
+                    null,
+                    null,
+                    null,
+                    LocationLoggingContract.LocationSessions.COLUMN_NAME_SESSION_START + " DESC");
+            while (session.moveToNext()) {
+                // For each session ID, load the track from the database
+                GPSTrack track = getGPSTrackById(session.getInt(session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions._ID)));
+                trackList.add(track);
+            }
+            // Close the session cursor
+            session.close();
+            // Return
+            return trackList;
+        }
+
+        @Override
+        public List<GPSTrack> getOwnerGPSTracks() {
+            return getGPSTracksForOwnerID(-1);
+        }
+
+
+        /**
+         * Private helper function to retrieve all GPS tracks by a specific owner
+         * @param id The owner ID (i.e. the database ID of a Friend, or -1 to get all GPSTracks by
+         *           the device owner
+         * @return A List of GPSTracks owned by the user with that ID, or an empty List.
+         */
+        private List<GPSTrack> getGPSTracksForOwnerID(int id) {
+            assertOpen();
+            List<GPSTrack> trackList = new LinkedList<>();
+            String[] columns = {LocationLoggingContract.LocationSessions._ID};
+            String[] whereArgs = { ""+id };
+            // Retrieve session IDs
+            Cursor session = query(LocationLoggingContract.LocationSessions.TABLE_NAME,
+                    columns,
+                    LocationLoggingContract.LocationSessions.COLUMN_NAME_OWNER + " LIKE ?",
+                    whereArgs,
+                    null,
+                    null,
+                    LocationLoggingContract.LocationSessions.COLUMN_NAME_SESSION_START + " DESC");
+            while (session.moveToNext()) {
+                // For each session ID, load the track from the database
+                GPSTrack track = getGPSTrackById(session.getInt(session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions._ID)));
+                trackList.add(track);
+            }
+            // Close the session cursor
+            session.close();
+            // Return
+            return trackList;
+        }
+
+
+        @Override
+        public List<GPSTrack> getGPSTrackByFriend(Friend friend) {
+            if (friend == null || friend.getID() == -1) throw new IllegalArgumentException("Bad friend object");
+            return getGPSTracksForOwnerID(friend.getID());
+        }
+
+
+        @Override
+        public GPSTrack getGPSTrackById(int id) {
+            assertOpen();
+            GPSTrack track = null;
+            String[] selectionArgs = { "" + id };
+            Cursor session = query(LocationLoggingContract.LocationSessions.TABLE_NAME,
+                    null,
+                    LocationLoggingContract.LocationSessions._ID + " LIKE ?",
+                    selectionArgs,
+                    null,
+                    null,
+                    null);
+            if (session.moveToFirst()) {
+                // Prepare output list
+                List<Location> locList = new LinkedList<>();
+                // Query for the Locations in the session
+                String[] whereArgs = {"" + id};
+                Cursor locs = query(LocationLoggingContract.LocationLog.TABLE_NAME,
+                        null,
+                        LocationLoggingContract.LocationLog.COLUMN_NAME_SESSION + " LIKE ?",
+                        whereArgs,
+                        null,
+                        null,
+                        null);
+                while (locs.moveToNext()) {
+                    // For each location, construct a Location object
+                    Location loc = new Location("");
+                    loc.setLongitude(locs.getFloat(locs.getColumnIndexOrThrow(LocationLoggingContract.LocationLog.COLUMN_NAME_LONG)));
+                    loc.setLatitude(locs.getFloat(locs.getColumnIndexOrThrow(LocationLoggingContract.LocationLog.COLUMN_NAME_LAT)));
+                    loc.setTime(locs.getLong(locs.getColumnIndexOrThrow(LocationLoggingContract.LocationLog.COLUMN_NAME_TIMESTAMP)));
+                    locList.add(loc);
+                }
+                // Close the location cursor
+                locs.close();
+                // Create the GPSTrack object
+                track = new GPSTrack(locList,
+                        session.getString (session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions.COLUMN_NAME_NAME)),
+                        session.getInt    (session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions.COLUMN_NAME_MODE)),
+                        session.getLong   (session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions.COLUMN_NAME_SESSION_START)),
+                        session.getLong   (session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions.COLUMN_NAME_SESSION_END)),
+                        session.getString (session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions.COLUMN_NAME_TIMEZONE)),
+                        session.getInt    (session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions.COLUMN_NAME_OWNER)),
+                        session.getFloat  (session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions.COLUMN_NAME_DISTANCE)));
+                track.setID(session.getInt(session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions._ID)));
+                track.setDescription(session.getString(session.getColumnIndexOrThrow(LocationLoggingContract.LocationSessions.COLUMN_NAME_DESCRIPTION)));
+            }
+            session.close();
+            return track;
+        }
+
+
+        @Override
+        public void deleteGPSTrack(GPSTrack track) {
+            // Ensure database is open
+            assertOpen();
+            // sanity checks on the object
+            if (track == null) throw new SQLiteException("Friend cannot be null");
+            if (track.getID() == -1) throw new SQLiteException("ID must be set");
+            // Prepare and perform deletion
+            // Entries in LocationLoggingContract.LocationLog will be automatically deleted due to
+            // the foreign key ON DELETE CASCADE statement
+            String[] whereArgs = { "" + track.getID() };
+            int deleted = delete(LocationLoggingContract.LocationSessions.TABLE_NAME,
+                    LocationLoggingContract.LocationSessions._ID + " LIKE ?",
+                    whereArgs);
+            // Ensure the correct number of items was deleted
+            if (deleted != 1) {
+                throw new SQLiteException("Wanted to delete 1 row, but deleted " + deleted);
+            }
+        }
+
+
+        @Override
+        public void renameGPSTrack(GPSTrack track, String name) {
+            assertOpen();
+            // Sanity checks
+            if (track == null) throw new SQLiteException("Track cannot be null");
+            if (track.getID() == -1) throw new SQLiteException("ID must be set");
+            if (name == null || name.equals("")) throw new SQLiteException("Name must be set");
+            // Prepare ContentValues with new values
+            ContentValues track_entry = new ContentValues();
+            track_entry.put(LocationLoggingContract.LocationSessions.COLUMN_NAME_NAME, name);
+            String[] whereArgs = {"" + track.getID()};
+            // Perform the update
+            beginTransaction();
+            update(LocationLoggingContract.LocationSessions.TABLE_NAME,
+                    track_entry,
+                    LocationLoggingContract.LocationSessions._ID + " LIKE ?",
+                    whereArgs);
+            commit();
+        }
+
+
+        @Override
+        public void integratePedometerCache(Hashtable<DateTime, Long> cache) {
+            assertOpen();
+            beginTransaction();
+            for (DateTime ts : cache.keySet()) {
+                int c = getStepCountForTimestamp(ts);
+                if (c != -1) {
+                    if (c < cache.get(ts)) {
+                        ContentValues update = new ContentValues();
+                        update.put(StepLoggingContract.StepCountLog.COLUMN_VALUE, cache.get(ts));
+                        String selection = StepLoggingContract.StepCountLog.COLUMN_DATE + " LIKE ? AND "
+                                + StepLoggingContract.StepCountLog.COLUMN_TIME + " LIKE ?";
+                        String[] selectionArgs = {formatDate(ts), formatTime(ts)};
+                        update(StepLoggingContract.StepCountLog.TABLE_NAME, update, selection, selectionArgs);
+                    }
+                } else {
+                    Log.d(TAG, "saveToDatabase: Inserting value");
+                    ContentValues entry = new ContentValues();
+                    entry.put(StepLoggingContract.StepCountLog.COLUMN_DATE, formatDate(ts));
+                    entry.put(StepLoggingContract.StepCountLog.COLUMN_TIME, formatTime(ts));
+                    entry.put(StepLoggingContract.StepCountLog.COLUMN_VALUE, cache.get(ts));
+                    insert(StepLoggingContract.StepCountLog.TABLE_NAME, null, entry);
+                }
+            }
+            Log.d(TAG, "saveToDatabase: All values saved, committing");
+            commit();
+        }
+
+        @Override
+        public int getStepCountForTimestamp(DateTime dt) {
+            assertOpen();
+            int rv = -1;
+            Cursor c = query(StepLoggingContract.StepCountLog.TABLE_NAME,
+                    new String[]{StepLoggingContract.StepCountLog.COLUMN_VALUE},
+                    StepLoggingContract.StepCountLog.COLUMN_DATE + " = '" + formatDate(dt) + "' AND " +
+                            StepLoggingContract.StepCountLog.COLUMN_TIME + " = '" + formatTime(dt) + "'",
+                    null,
+                    null,
+                    null,
+                    null);
+            if (c.moveToFirst()) {
+                rv = c.getInt(c.getColumnIndexOrThrow(StepLoggingContract.StepCountLog.COLUMN_VALUE));
+            }
+            c.close();
+            return rv;
+        }
+
+
+        @Override
+        public String getPedometerPrivateKey() {
+            assertOpen();
+            String encoded = null;
+            // Query the database for the private key
+            Cursor c = query(VaultContract.KeyStore.TABLE_NAME,
+                    new String[] {VaultContract.KeyStore.COLUMN_KEY_BYTES},
+                    VaultContract.KeyStore.COLUMN_KEY_NAME + " LIKE ?",
+                    new String[] {VaultContract.KeyStore.NAME_PEDOMETER_PRIVATE},
+                    null,
+                    null,
+                    null);
+            // Retrieve the encoded string
+            if (c.moveToFirst()) {
+                encoded = c.getString(
+                        c.getColumnIndexOrThrow(VaultContract.KeyStore.COLUMN_KEY_BYTES)
+                );
+            }
+            // Close the cursor
+            c.close();
+            // Return
+            return encoded;
+        }
+
+
+        @Override
+        public void storePedometerKeypair(String pubkey, String privkey) {
+            assertOpen();
+            // Begin a database transaction
+            beginTransaction();
+            // Prepare database entry for the private key
+            ContentValues keyEntry = new ContentValues();
+            // Set type to private RSA key
+            keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_TYPE, VaultContract.KeyStore.TYPE_RSA_PRIV);
+            // Set the key descriptor to Pedometer key
+            keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_NAME, VaultContract.KeyStore.NAME_PEDOMETER_PRIVATE);
+            // Add the actual key to the insert
+            keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_BYTES, privkey);
+            // Insert the values into the database
+            insert(VaultContract.KeyStore.TABLE_NAME, null, keyEntry);
+
+            // Perform the same steps for the public key (as a backup)
+            keyEntry = new ContentValues();
+            keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_TYPE, VaultContract.KeyStore.TYPE_RSA_PUB);
+            keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_NAME, VaultContract.KeyStore.NAME_PEDOMETER_PUBLIC);
+            keyEntry.put(VaultContract.KeyStore.COLUMN_KEY_BYTES, pubkey);
+            // insert the values
+            insert(VaultContract.KeyStore.TABLE_NAME, null, keyEntry);
+            // Finish the transaction
+            commit();
+        }
+
+
+        @Override
+        public Hashtable<DateTime, Long> getStepCountForDay(DateTime dt) {
+            assertOpen();
+            String date = formatDate(dt);
+            Hashtable<DateTime, Long> rv = new Hashtable<>();
+            Cursor c = query(StepLoggingContract.StepCountLog.TABLE_NAME,
+                    new String[]{StepLoggingContract.StepCountLog.COLUMN_TIME, StepLoggingContract.StepCountLog.COLUMN_VALUE},
+                    StepLoggingContract.StepCountLog.COLUMN_DATE + " LIKE ?",
+                    new String[]{date},
+                    null, // groupby
+                    null, // having
+                    null); // orderby
+            if (c.getCount() > 0) {
+                while (c.moveToNext()) {
+                    // retrieve values
+                    long value = c.getInt(c.getColumnIndexOrThrow(StepLoggingContract.StepCountLog.COLUMN_VALUE));
+                    String time = c.getString(c.getColumnIndexOrThrow(StepLoggingContract.StepCountLog.COLUMN_TIME));
+                    // Convert to DateTime
+                    DateTime timestamp = DateTime.parse(date + " " + time, DateTimeFormat.forPattern(FORMAT_DATE + " " + FORMAT_TIME));
+                    rv.put(timestamp, value);
+                }
+                Log.d(TAG, "getStepCountForDay: Got a result");
+            } else {
+                Log.d(TAG, "getStepCountForDay: Nothing in the database for specified day");
+            }
+            c.close();
+            return rv;
+        }
+
+
+        @Override
+        public int getMaxStepCounterSequenceNumber() {
+            assertOpen();
+            int rv = -1;
+            Cursor c = query(VaultContract.SequenceNumberStore.TABLE_NAME,
+                    new String[]{VaultContract.SequenceNumberStore.COLUMN_SNR_VALUE},
+                    VaultContract.SequenceNumberStore.COLUMN_SNR_TYPE + " LIKE ?",
+                    new String[]{VaultContract.SequenceNumberStore.TYPE_PEDOMETER},
+                    null,
+                    null,
+                    null);
+            if (c.moveToFirst()) {
+                rv = c.getInt(c.getColumnIndexOrThrow(VaultContract.SequenceNumberStore.COLUMN_SNR_VALUE));
+            }
+            c.close();
+            return rv;
+        }
+
+
+        @Override
+        public void storeStepCounterSequenceNumber(int seqnr) {
+            int cSeqNr = getMaxStepCounterSequenceNumber();
+            if (cSeqNr == -1) {
+                Log.d(TAG, "storeStepCounterSequenceNumber: Inserting new value");
+                ContentValues insert = new ContentValues();
+                insert.put(VaultContract.SequenceNumberStore.COLUMN_SNR_TYPE, VaultContract.SequenceNumberStore.TYPE_PEDOMETER);
+                insert.put(VaultContract.SequenceNumberStore.COLUMN_SNR_VALUE, seqnr);
+                insert(VaultContract.SequenceNumberStore.TABLE_NAME, null, insert);
+            } else {
+                Log.d(TAG, "storeStepCounterSequenceNumber: Updating value");
+                ContentValues values = new ContentValues();
+                values.put(VaultContract.SequenceNumberStore.COLUMN_SNR_VALUE, seqnr);
+                update(VaultContract.SequenceNumberStore.TABLE_NAME,
+                        values,
+                        VaultContract.SequenceNumberStore.COLUMN_SNR_TYPE + " LIKE ?",
+                        new String[]{VaultContract.SequenceNumberStore.TYPE_PEDOMETER}
+                );
+            }
+        }
+
+
+        @Override
+        public boolean isShared(Shareable sh) {
+            assertOpen();
+            // Sanity check
+            if (sh.getID() == -1) {
+                Log.e(TAG, "isShared: Shareable had ID -1");
+                return false;
+            }
+            // Prepare arguments to the query, based on the shareable
+            String[] whereArgs = { "" + sh.getID() };
+            String[] columns = { getShareIDColumnForShareable(sh)};
+            // Ensure that the shareable was known to our helper functions
+            String table = getTableForShareable(sh);
+            if (table == null) {
+                // Perform check here to avoid NPE on query definition below if Shareable is unknown
+                Log.e(TAG, "isShared: Unknown shareable type");
+                return false;
+            }
+            String query = getIDColumnForShareable(sh) + " LIKE ? AND " + getShareIDColumnForShareable(sh) + " IS NOT NULL";
+            // Perform the query
+            Cursor c = query(table,
+                    columns,
+                    query,
+                    whereArgs,
+                    null,
+                    null,
+                    null);
+            // If we got a result, the Shareable has already been shared, as that is the only situation
+            // in which the Share ID column will not be NULL
+            boolean rv = c.getCount() == 1;
+            // Close the cursor
+            c.close();
+            // Return
+            return rv;
+        }
+
+        @Override
+        public int getShareID(Shareable sh) {
+            // Sanity checks
+            assertOpen();
+            if (!isShared(sh)) return -1;
+            // Prepare arguments to query based on Shareable
+            String[] whereArgs = { "" + sh.getID() };
+            String table = getTableForShareable(sh);
+            if (table == null) {
+                // We perform the sanity check here because the query definition would NPE if the shareable is unknown
+                Log.e(TAG, "isShared: Unknown shareable type");
+                return -1;
+            }
+            String[] columns = { getShareIDColumnForShareable(sh)};
+            String query = getIDColumnForShareable(sh) + " LIKE ?";
+            // Perform query
+            Cursor c = query(table,
+                    columns,
+                    query,
+                    whereArgs,
+                    null,
+                    null,
+                    null);
+            // Retrieve data (there must be a result, otherwise isShared(sh) would have returned false)
+            c.moveToFirst();
+            int rv = c.getInt(c.getColumnIndexOrThrow(getShareIDColumnForShareable(sh)));
+            // Close cursor, return
+            c.close();
+            return rv;
+        }
+
+
+        @Override
+        public int getShareGranularity(Shareable sh) {
+            assertOpen();
+            // Retrieve ID
+            int id = getShareID(sh);
+            // If ID is -1, the item is not shared => return -1
+            if (id == -1) return -1;
+            // Prepare and execute query
+            String[] whereArgs = {String.valueOf(id)};
+            String[] columns = {SharingContract.DataShareLog.COLUMN_GRANULARITY};
+            Cursor c = query(SharingContract.DataShareLog.TABLE_NAME,
+                    columns,
+                    SharingContract.DataShareLog._ID + " LIKE ?",
+                    whereArgs,
+                    null,
+                    null,
+                    null);
+            // Prepare return value
+            int rv = -1;
+            // Grab return value from cursor
+            if (c.moveToFirst()) {
+                rv = c.getInt(c.getColumnIndexOrThrow(SharingContract.DataShareLog.COLUMN_GRANULARITY));
+            }
+            // Close cursor and return
+            c.close();
+            return rv;
+        }
+
+
+        @Override
+        public int addShare(Shareable sh, TokenPair pair, DataBlock block) {
+            assertOpen();
+            // Sanity checks
+            if (sh.getID() == -1) return -1;
+            if (isShared(sh)) return -1;
+            // Begin a database transaction
+            beginTransaction();
+            // Prepare entry in DataShareLog
+            ContentValues data = new ContentValues();
+            data.put(SharingContract.DataShareLog.COLUMN_KEY, block.getKey());
+            data.put(SharingContract.DataShareLog.COLUMN_IDENTIFIER, pair.getIdentifier());
+            data.put(SharingContract.DataShareLog.COLUMN_REVOCATION_TOKEN, pair.getRevocation());
+            data.put(SharingContract.DataShareLog.COLUMN_GRANULARITY, block.getGranularity());
+            // Insert
+            int dataid = (int) insert(SharingContract.DataShareLog.TABLE_NAME, null, data);
+
+            // Prepare insert into regular database to link the Shareable with the DataShareLog
+            ContentValues link = new ContentValues();
+            link.put(getShareIDColumnForShareable(sh), dataid);
+            // Prepare table information
+            String table = getTableForShareable(sh);
+            String selection = getIDColumnForShareable(sh) + " LIKE ?";
+            String[] selectArgs = { "" + sh.getID() };
+            // Perform update
+            int updated = update(table, link, selection, selectArgs);
+            // Ensure the update took place
+            if (updated == 0) {
+                Log.e(TAG, "addShare: Update of Shareable database failed, rolling back");
+                revert();
+                return -1;
+            } else {
+                commit();
+            }
+            return dataid;
+        }
+
+
+        @Override
+        public void addShareRecipient(int datashareid, Friend friend, TokenPair pair) {
+            assertOpen();
+            // Sanity checks
+            if (datashareid == -1 || friend.getID() == -1) {
+                Log.e(TAG, "addShareRecipient: Bad ID. Data = " + datashareid + ", Friend = " + friend.getID());
+                return;
+            }
+            // Prepare contentValues
+            ContentValues share = new ContentValues();
+            share.put(SharingContract.FriendShareLog.COLUMN_DATASHARE_ID, datashareid);
+            share.put(SharingContract.FriendShareLog.COLUMN_FRIEND_ID, friend.getID());
+            share.put(SharingContract.FriendShareLog.COLUMN_IDENTIFIER, pair.getIdentifier());
+            share.put(SharingContract.FriendShareLog.COLUMN_REVOCATION_TOKEN, pair.getRevocation());
+            // Perform insert
+            beginTransaction();
+            insert(SharingContract.FriendShareLog.TABLE_NAME, null, share);
+            commit();
+        }
+
+
+        @Override
+        public List<Friend> getShareRecipientsForShareable(Shareable shareable) {
+            assertOpen();
+            if (shareable == null || shareable.getID() == -1) throw new IllegalArgumentException("shareable must have database ID set");
+            List<Friend> rv = new LinkedList<>();
+            int share_id = getShareID(shareable);
+            if (share_id == -1) return rv;
+            String[] whereArgs = { "" + share_id };
+            String[] columns = { FriendContract.FriendList._ID };
+            Cursor c = query(SharingContract.FriendShareLog.TABLE_NAME,
+                    columns,
+                    SharingContract.FriendShareLog.COLUMN_DATASHARE_ID + " LIKE ?",
+                    whereArgs,
+                    null,
+                    null,
+                    null);
+            while (c.moveToNext()) {
+                rv.add(getFriendById(c.getInt(c.getColumnIndexOrThrow(FriendContract.FriendList._ID))));
+            }
+            c.close();
+            return rv;
+        }
+
+
+        @Override
+        public DataBlock getShareData(int shareid) {
+            assertOpen();
+            if (shareid == -1) {
+                Log.e(TAG, "getShareData: shareid cannot be -1");
+                return null;
+            }
+            String[] whereArgs = { "" + shareid };
+            String[] columns = {SharingContract.DataShareLog.COLUMN_IDENTIFIER, SharingContract.DataShareLog.COLUMN_KEY};
+            Cursor c = query(SharingContract.DataShareLog.TABLE_NAME,
+                    columns,
+                    SharingContract.DataShareLog._ID + " LIKE ?",
+                    whereArgs,
+                    null,
+                    null,
+                    null);
+            DataBlock rv;
+            if (c.moveToFirst()) {
+                rv = new DataBlock(c.getBlob(c.getColumnIndexOrThrow(SharingContract.DataShareLog.COLUMN_KEY)),
+                                   c.getBlob(c.getColumnIndexOrThrow(SharingContract.DataShareLog.COLUMN_IDENTIFIER)));
+            } else {
+                Log.e(TAG, "getShareData: No results for ID " + shareid);
+                rv = null;
+            }
+            c.close();
+            return rv;
+        }
+
+
+        @Override
+        public boolean deleteShareByToken(TokenPair tokenPair) {
+            assertOpen();
+            int deleted = delete(SharingContract.FriendShareLog.TABLE_NAME,
+                    SharingContract.FriendShareLog.COLUMN_REVOCATION_TOKEN + " LIKE x'" + FormatHelper.bytesToHex(tokenPair.getRevocation()) +
+                            "' AND " + SharingContract.FriendShareLog.COLUMN_IDENTIFIER + " LIKE x'" + FormatHelper.bytesToHex(tokenPair.getIdentifier()) + "'",
+                    null);
+            if (deleted == 0) {
+                deleted = delete(SharingContract.DataShareLog.TABLE_NAME,
+                        SharingContract.DataShareLog.COLUMN_IDENTIFIER + " LIKE x'" + FormatHelper.bytesToHex(tokenPair.getIdentifier()) +
+                                "' AND " + SharingContract.DataShareLog.COLUMN_REVOCATION_TOKEN + " LIKE x'" + FormatHelper.bytesToHex(tokenPair.getRevocation()) + "'",
+                        null);
+                if (deleted == 0) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+
+        @Override
+        public void deleteSharesByFriend(Friend friend) {
+            assertOpen();
+            if (friend == null || friend.getID() == -1) throw new IllegalArgumentException("Bad friend object");
+            List<GPSTrack> shares = getGPSTrackByFriend(friend);
+            for (GPSTrack track : shares) {
+                deleteGPSTrack(track);
+            }
+            // TODO Add further shareable types here
+        }
+
+
+        @Override
+        public List<TokenPair> getTokensForShareable(Shareable shareable) {
+            assertOpen();
+            // Prepare return list
+            List<TokenPair> rv = new LinkedList<>();
+            // Get the share ID for the shareable
+            int share_id = getShareID(shareable);
+            // Check if it is set
+            if (share_id == -1) return rv;
+            // Retrieve identifier
+            TokenPair data = getTokenPairForShareID(share_id);
+            if (data != null) {
+                rv.add(data);
+            }
+            // Retrieve TokenPairs of all KeyBlocks referring to the data share
+            rv.addAll(getFriendShareTokenPairsForShareID(share_id));
+            // Return
+            return rv;
+        }
+
+        @Override
+        public List<TokenPair> getTokensForSharesToFriend(Friend friend) {
+            assertOpen();
+            // Prepare return List
+            List<TokenPair> rv = new LinkedList<>();
+            if (friend.getID() == -1) return rv;
+            // Prepare query
+            String[] whereArgs = {String.valueOf(friend.getID())};
+            String[] columns = {SharingContract.FriendShareLog.COLUMN_IDENTIFIER, SharingContract.FriendShareLog.COLUMN_REVOCATION_TOKEN};
+            Cursor c = query(SharingContract.FriendShareLog.TABLE_NAME,
+                    columns,
+                    SharingContract.FriendShareLog.COLUMN_FRIEND_ID + " LIKE ?",
+                    whereArgs,
+                    null,
+                    null,
+                    null);
+            // Read out results
+            while (c.moveToNext()) {
+                rv.add(new TokenPair(c.getBlob(c.getColumnIndexOrThrow(SharingContract.FriendShareLog.COLUMN_IDENTIFIER)),
+                                     c.getBlob(c.getColumnIndexOrThrow(SharingContract.FriendShareLog.COLUMN_REVOCATION_TOKEN))));
+            }
+            // Close cursor
+            c.close();
+            return rv;
+        }
+
+        @Override
+        public TokenPair getTokenForShareToFriend(Shareable shareable, Friend friend) {
+            TokenPair rv = null;
+            if (shareable.getID() == -1 || friend.getID() == -1) return null;
+            int share_id = getShareID(shareable);
+            if (share_id == -1) return null;
+            // Prepare query
+            String[] whereArgs = {String.valueOf(share_id), String.valueOf(friend.getID())};
+            String[] columns = {SharingContract.FriendShareLog.COLUMN_IDENTIFIER, SharingContract.FriendShareLog.COLUMN_REVOCATION_TOKEN};
+            Cursor c = query(SharingContract.FriendShareLog.TABLE_NAME,
+                    columns,
+                    SharingContract.FriendShareLog.COLUMN_DATASHARE_ID + " LIKE ? AND " + SharingContract.FriendShareLog.COLUMN_FRIEND_ID + " LIKE ?",
+                    whereArgs,
+                    null,
+                    null,
+                    null);
+            // Read results
+            if (c.moveToFirst()) {
+                rv = new TokenPair(c.getBlob(c.getColumnIndexOrThrow(SharingContract.FriendShareLog.COLUMN_IDENTIFIER)),
+                                   c.getBlob(c.getColumnIndexOrThrow(SharingContract.FriendShareLog.COLUMN_REVOCATION_TOKEN)));
+            }
+            // Close cursor
+            c.close();
+            return rv;
+        }
+
+
+        /**
+         * Retrieve the TokenPair associated with a specific shareID in the DataShareLog table
+         * @param shareid The ShareID in the DataShareLog table
+         * @return The TokenPair, or null if none exists
+         */
+        private TokenPair getTokenPairForShareID(int shareid) {
+            if (shareid == -1) return null;
+            // Prepare query
+            String[] whereArgs = {String.valueOf(shareid)};
+            String[] columns = {SharingContract.DataShareLog.COLUMN_IDENTIFIER, SharingContract.DataShareLog.COLUMN_REVOCATION_TOKEN};
+            Cursor c = query(SharingContract.DataShareLog.TABLE_NAME,
+                    columns,
+                    SharingContract.DataShareLog._ID + " LIKE ?",
+                    whereArgs,
+                    null,
+                    null,
+                    null);
+            // Read out result
+            TokenPair rv = null;
+            if (c.moveToFirst()) {
+                rv = new TokenPair(c.getBlob(c.getColumnIndexOrThrow(SharingContract.DataShareLog.COLUMN_IDENTIFIER)),
+                                   c.getBlob(c.getColumnIndexOrThrow(SharingContract.DataShareLog.COLUMN_REVOCATION_TOKEN)));
+            }
+            // Close cursor
+            c.close();
+            return rv;
+        }
+
+
+        /**
+         * Retrieve all TokenPairs associated with a specific ShareID from the FriendShareLog table
+         * @param shareid The ShareID (referring to an entry in the DataShareLog table)
+         * @return A List of {@link TokenPair}s of entries referring to the shareID
+         */
+        private List<TokenPair> getFriendShareTokenPairsForShareID(int shareid) {
+            // Prepare return value
+            List<TokenPair> rv = new LinkedList<>();
+            if (shareid == -1) return rv;
+            // Prepare query
+            String[] whereArgs = {String.valueOf(shareid)};
+            String[] columns = {SharingContract.FriendShareLog.COLUMN_IDENTIFIER, SharingContract.FriendShareLog.COLUMN_REVOCATION_TOKEN};
+            Cursor c = query(SharingContract.FriendShareLog.TABLE_NAME,
+                    columns,
+                    SharingContract.FriendShareLog.COLUMN_DATASHARE_ID + " LIKE ?",
+                    whereArgs,
+                    null,
+                    null,
+                    null);
+            // Iterate through results and create TokenPairs
+            while (c.moveToNext()) {
+                rv.add(new TokenPair(c.getBlob(c.getColumnIndexOrThrow(SharingContract.FriendShareLog.COLUMN_IDENTIFIER)),
+                                     c.getBlob(c.getColumnIndexOrThrow(SharingContract.FriendShareLog.COLUMN_REVOCATION_TOKEN))));
+            }
+            // Close cursor
+            c.close();
+            return rv;
+        }
+
+
+        @Override
+        public void addShareable(Shareable shareable) {
+            assertOpen();
+            if (shareable == null) return;
+            switch (shareable.getType()) {
+                case Shareable.SHAREABLE_TRACK:
+                    addGPSTrack((GPSTrack) shareable, shareable.getOwner());
+                    break;
+                case Shareable.SHAREABLE_STEPCOUNT:
+                    // TODO
+                    Log.e(TAG, "addShareable: Step count Not implemented");
+                    break;
+            }
+        }
+
+
+        @Override
+        public void deleteShareable(Shareable shareable) {
+            assertOpen();
+            if (shareable == null || shareable.getID() == -1) throw new IllegalArgumentException("Bad shareable");
+            switch (shareable.getType()) {
+                case Shareable.SHAREABLE_TRACK:
+                    deleteGPSTrack((GPSTrack) shareable);
+                    break;
+                // TODO Add new Shareables here
+                default:
+                    Log.e(TAG, "deleteShareable: Unknown shareable type");
+            }
+        }
+
+
+        @Override
+        public void updateShareableDescription(Shareable shareable) {
+            switch (shareable.getType()) {
+                case Shareable.SHAREABLE_TRACK:
+                    updateGPSTrackDescription((GPSTrack) shareable);
+                    break;
+                default:
+                    throw new IllegalArgumentException("Bad shareable - unknown type");
+            }
+        }
+
+
+        /**
+         * Private helper function to update the description of a GPS track in the database
+         * @param track The updated GPS track
+         */
+        private void updateGPSTrackDescription(GPSTrack track) {
+            assertOpen();
+            // Ensure object is sane
+            if (track == null || track.getID() == -1) throw new IllegalArgumentException("Bad GPS track");
+            // Prepare contentvalues
+            ContentValues description = new ContentValues();
+            description.put(LocationLoggingContract.LocationSessions.COLUMN_NAME_DESCRIPTION, track.getDescription());
+            // Prepare and perform update
+            String[] whereArgs = {String.valueOf(track.getID())};
+            beginTransaction();
+            update(LocationLoggingContract.LocationSessions.TABLE_NAME,
+                    description,
+                    LocationLoggingContract.LocationSessions._ID + " LIKE ?",
+                    whereArgs);
+            commit();
+        }
+
 
         ///// Utility functions
         /**
@@ -459,6 +1326,81 @@ public class DatabaseService extends Service {
         private void assertOpen() throws SQLiteException {
             if (!(mSQLiteHandler != null && mSQLiteHandler.isOpen()))
                 throw new SQLiteException("Database is not open");
+        }
+
+
+        //// Shareable helper functions
+        // TODO Add new shareables here
+        /**
+         * Helper function to determine the name of the table in which a Shareable is saved
+         * @param sh The shareable
+         * @return The table name
+         */
+        private String getTableForShareable(Shareable sh) {
+            switch (sh.getType()) {
+                case Shareable.SHAREABLE_TRACK:
+                    return LocationLoggingContract.LocationSessions.TABLE_NAME;
+                case Shareable.SHAREABLE_STEPCOUNT:
+                    return StepLoggingContract.StepCountLog.TABLE_NAME;
+                default:
+                    return null;
+            }
+        }
+
+
+        /**
+         * Helper function to determine the name of the ID column in the table in which a shareable is saved
+         * @param sh The shareable
+         * @return The ID column name
+         */
+        private String getIDColumnForShareable(Shareable sh) {
+            switch (sh.getType()) {
+                case Shareable.SHAREABLE_TRACK:
+                    return LocationLoggingContract.LocationSessions._ID;
+                case Shareable.SHAREABLE_STEPCOUNT:
+                    return StepLoggingContract.StepCountLog._ID;
+                default:
+                    return null;
+            }
+        }
+
+
+        /**
+         * Helper function to determine the name of the share ID column in the table in which a shareable
+         * is saved
+         * @param sh The Shareable
+         * @return The share ID column
+         */
+        private String getShareIDColumnForShareable(Shareable sh) {
+            switch (sh.getType()) {
+                case Shareable.SHAREABLE_TRACK:
+                    return LocationLoggingContract.LocationSessions.COLUMN_NAME_SHARE_ID;
+                case Shareable.SHAREABLE_STEPCOUNT:
+                    return StepLoggingContract.StepCountLog.COLUMN_SHARE_ID;
+                default:
+                    return null;
+            }
+        }
+
+        // Formatting helper
+
+        /**
+         * Format a given DateTime for the date column of the database
+         * @param dt The DateTime object
+         * @return The String representation of the day
+         */
+        private String formatDate(DateTime dt) {
+            return dt.toString(DateTimeFormat.forPattern(FORMAT_DATE));
+        }
+
+
+        /**
+         * Format a given DateTime for the time column of the database
+         * @param dt The DateTime Object
+         * @return The String representation of the time
+         */
+        private String formatTime(DateTime dt) {
+            return dt.toString(DateTimeFormat.forPattern(FORMAT_TIME));
         }
     }
 

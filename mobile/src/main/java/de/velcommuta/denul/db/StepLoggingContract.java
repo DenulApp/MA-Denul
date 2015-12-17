@@ -19,5 +19,8 @@ public class StepLoggingContract {
         public static final String COLUMN_DATE  = "recording_date";
         public static final String COLUMN_TIME  = "recording_time";
         public static final String COLUMN_VALUE = "recording_steps";
+        // Owner - references Friend table, or set to -1 if the user is the owner
+        public static final String COLUMN_OWNER = "recording_owner";
+        public static final String COLUMN_SHARE_ID = "share_id";
     }
 }

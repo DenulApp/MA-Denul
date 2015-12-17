@@ -1,6 +1,6 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
-    android:layout_height="match_parent" tools:context="de.velcommuta.denul.ui.StepCountFragment"
+    android:layout_height="wrap_content" tools:context="de.velcommuta.denul.ui.StepCountFragment"
     android:orientation="vertical"
     android:elevation="2dp"
     android:background="@drawable/background_rect">

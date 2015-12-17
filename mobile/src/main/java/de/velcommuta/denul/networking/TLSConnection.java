@@ -38,7 +38,6 @@ public class TLSConnection implements Connection {
         SocketFactory factory = SSLSocketFactory.getDefault();
         // Create a socket and connect to the host and port, throwing an exception if anything
         // goes wrong
-        Log.d(TAG, "TLSConnection: Establishing connection to " + host + ":" + port);
         mSocket = (SSLSocket) factory.createSocket(host, port);
         // We need to verify the certificate hostname explicitly. Get a hostname verifier
         HostnameVerifier hv = HttpsURLConnection.getDefaultHostnameVerifier();

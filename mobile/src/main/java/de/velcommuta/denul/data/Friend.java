@@ -1,4 +1,4 @@
-package de.velcommuta.denul.ui.adapter;
+package de.velcommuta.denul.data;
 
 /**
  * Data container for the FriendListCursorAdapter
@@ -81,5 +81,17 @@ public class Friend {
      */
     public void setID(int id) {
         mID = id;
+    }
+
+    public String toString() {
+        return mName;
+    }
+
+    public boolean equals(Object o) {
+        if (!(o instanceof Friend)) return false;
+        Friend f = (Friend) o;
+        return getName().equals(f.getName())
+                && getID() == f.getID()
+                && getVerified() == f.getVerified();
     }
 }

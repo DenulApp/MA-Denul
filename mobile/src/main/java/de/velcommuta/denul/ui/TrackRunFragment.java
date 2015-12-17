@@ -6,7 +6,6 @@ import android.animation.ArgbEvaluator;
 import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.app.ActivityManager;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -43,17 +42,17 @@ import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.maps.android.ui.IconGenerator;
 
+import org.joda.time.DateTimeZone;
+
 import java.util.List;
 
 import de.greenrobot.event.EventBus;
 import de.velcommuta.denul.R;
-import de.velcommuta.denul.db.LocationLoggingContract;
 import de.velcommuta.denul.event.DatabaseResultEvent;
 import de.velcommuta.denul.event.GPSLocationEvent;
-import de.velcommuta.denul.event.GPSTrackEvent;
+import de.velcommuta.denul.data.GPSTrack;
 import de.velcommuta.denul.service.DatabaseServiceBinder;
 import de.velcommuta.denul.service.GPSTrackingService;
-import de.velcommuta.denul.service.PedometerService;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -215,21 +214,19 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
     }
 
     @Override
-    public void onStart() {
-        super.onStart();
-        Log.i(TAG, "onStart: Registering with EventBus");
-        if (mEventBus == null) {
-            mEventBus = EventBus.getDefault();
-            mEventBus.register(this);
-        }
+    public void onResume() {
+        super.onResume();
+        Log.i(TAG, "onResume: Registering with EventBus");
+        mEventBus = EventBus.getDefault();
+        mEventBus.register(this);
     }
 
     @Override
-    public void onStop() {
+    public void onPause() {
         // Unregister from EventBus
-        Log.d(TAG, "onStop: Unregister from EventBus");
+        Log.d(TAG, "onPause: Unregister from EventBus");
         EventBus.getDefault().unregister(this);
-        super.onStop();
+        super.onPause();
     }
 
     @Override
@@ -282,10 +279,13 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
                 int mode = getSelectedModeOfTransportation();
                 if (mode != -1) {
                     GPSLocationEvent gpsloc = EventBus.getDefault().getStickyEvent(GPSLocationEvent.class);
-                    GPSTrackEvent ev = new GPSTrackEvent(
+                    GPSTrack ev = new GPSTrack(
                             gpsloc.getPosition(),
                             mSessionName.getText().toString(),
-                            mode);
+                            mode,
+                            gpsloc.getPosition().get(0).getTime(),
+                            gpsloc.getPosition().get(gpsloc.getPosition().size() -1).getTime(),
+                            DateTimeZone.getDefault().toString());
                     EventBus.getDefault().post(ev);
                 }
             }
@@ -395,9 +395,9 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
      */
     private int getSelectedModeOfTransportation() {
         if (mRunning.isSelected()) {
-            return LocationLoggingContract.LocationSessions.VALUE_RUNNING;
+            return GPSTrack.VALUE_RUNNING;
         } else if (mCycling.isSelected()) {
-            return LocationLoggingContract.LocationSessions.VALUE_CYCLING;
+            return GPSTrack.VALUE_CYCLING;
         } else {
             // Nothing is selected :(
             Toast.makeText(getActivity(), "Please select a mode of transportation", Toast.LENGTH_SHORT).show();
@@ -881,51 +881,20 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
 
     /**
      * EventBus function to perform Database interactions in an AsyncThread (in the background)
+     * TODO Refactor to regular asyncTask and stop using eventbus here?
+     * TODO Move database insert code into DatabaseService
      * @param ev Event containing the track and other information that should be saved to the database
      */
     @SuppressWarnings("unused")
-    public void onEventAsync(GPSTrackEvent ev) {
+    public void onEventAsync(GPSTrack ev) {
         // Get a handler on the database
         DatabaseServiceBinder db = ((MainActivity)getActivity()).getDbBinder();
         if (db == null) {
             EventBus.getDefault().post(new DatabaseResultEvent("Database not open"));
             return;
         }
-
-        // Ensure that the event is sane
-        if (ev.getPosition().size() != ev.getPosition().size()) {
-            EventBus.getDefault().post(new DatabaseResultEvent("Position list has different size than timestsamp list - aborting"));
-            return;
-        }
-
-        // Start a transaction to get an all-or-nothing write to the database
-        db.beginTransaction();
-        // Write new database entry with metadata for the track
-        ContentValues metadata = new ContentValues();
-
-        metadata.put(LocationLoggingContract.LocationSessions.COLUMN_NAME_SESSION_START, ev.getPosition().get(0).getTime());
-        metadata.put(LocationLoggingContract.LocationSessions.COLUMN_NAME_SESSION_END, ev.getPosition().get(ev.getPosition().size() - 1).getTime());
-        metadata.put(LocationLoggingContract.LocationSessions.COLUMN_NAME_NAME, ev.getSessionName());
-        metadata.put(LocationLoggingContract.LocationSessions.COLUMN_NAME_MODE, ev.getModeOfTransportation());
-
-        long rowid = db.insert(LocationLoggingContract.LocationSessions.TABLE_NAME, null, metadata);
-
-        // Write the individual steps in the track
-        for (int i = 0; i < ev.getPosition().size(); i++) {
-            // Prepare ContentValues object
-            ContentValues entry = new ContentValues();
-            // Get Location object
-            Location cLoc = ev.getPosition().get(i);
-            // Set values for ContentValues
-            entry.put(LocationLoggingContract.LocationLog.COLUMN_NAME_SESSION, rowid);
-            entry.put(LocationLoggingContract.LocationLog.COLUMN_NAME_LAT, cLoc.getLatitude());
-            entry.put(LocationLoggingContract.LocationLog.COLUMN_NAME_LONG, cLoc.getLongitude());
-            entry.put(LocationLoggingContract.LocationLog.COLUMN_NAME_TIMESTAMP, cLoc.getTime());
-            // Save ContentValues into Database
-            db.insert(LocationLoggingContract.LocationLog.TABLE_NAME, null, entry);
-        }
-        // Finish transaction
-        db.commit();
+        // Add to database
+        db.addGPSTrack(ev);
         // Notify main thread
         EventBus.getDefault().post(new DatabaseResultEvent(getString(R.string.save_success)));
     }

@@ -1,26 +1,48 @@
 package de.velcommuta.denul.ui;
 
 import android.app.Activity;
+import android.content.ComponentName;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.net.Uri;
 import android.os.Bundle;
 import android.app.Fragment;
+import android.os.IBinder;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
+
+import java.util.LinkedList;
+import java.util.List;
 
 import de.velcommuta.denul.R;
+import de.velcommuta.denul.data.GPSTrack;
+import de.velcommuta.denul.data.Shareable;
+import de.velcommuta.denul.service.DatabaseService;
+import de.velcommuta.denul.service.DatabaseServiceBinder;
+import de.velcommuta.denul.ui.adapter.SocialStreamAdapter;
+import de.velcommuta.denul.ui.view.EmptyRecyclerView;
+import de.velcommuta.denul.util.ShareManager;
 
 
 /**
- * A simple {@link Fragment} subclass.
- * Activities that contain this fragment must implement the
- * {@link StartScreenFragment.OnFragmentInteractionListener} interface
- * to handle interaction events.
- * Use the {@link StartScreenFragment#newInstance} factory method to
- * create an instance of this fragment.
+ * A fragment displaying the social stream of the user
  */
-public class StartScreenFragment extends Fragment {
-    private OnFragmentInteractionListener mListener;
+public class StartScreenFragment extends Fragment implements ServiceConnection,
+        SocialStreamAdapter.OnItemClickListener,
+        ShareManager.ShareManagerCallback {
+    private static final String TAG = "StartScreenFragment";
+
+    private DatabaseServiceBinder mBinder;
+    private EmptyRecyclerView mRecycler;
+    private SocialStreamAdapter mAdapter;
 
     /**
      * Use this factory method to create a new instance of
@@ -38,52 +60,127 @@ public class StartScreenFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setHasOptionsMenu(false); // TODO Add options menu
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_start_screen, container, false);
-    }
-
-    // TODO: Rename method, update argument and hook method into UI event
-    public void onButtonPressed(Uri uri) {
-        if (mListener != null) {
-            mListener.onFragmentInteraction(uri);
-        }
-    }
-
-    @Override
-    public void onAttach(Activity activity) {
-        super.onAttach(activity);
-        try {
-            mListener = (OnFragmentInteractionListener) activity;
-        } catch (ClassCastException e) {
-            throw new ClassCastException(activity.toString()
-                    + " must implement OnFragmentInteractionListener");
-        }
+        View v = inflater.inflate(R.layout.fragment_start_screen, container, false);
+        setHasOptionsMenu(true);
+        // TODO Set up emptyView
+        mRecycler = (EmptyRecyclerView) v.findViewById(R.id.socialstream_recycler);
+        RecyclerView.LayoutManager mLayoutManager = new LinearLayoutManager(getActivity());
+        ((LinearLayoutManager) mLayoutManager).setOrientation(LinearLayoutManager.VERTICAL);
+        mRecycler.setLayoutManager(mLayoutManager);
+        registerForContextMenu(mRecycler);
+        return v;
     }
 
     @Override
-    public void onDetach() {
-        super.onDetach();
-        mListener = null;
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        inflater.inflate(R.menu.fragment_social, menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.action_refresh:
+                // The "add friend" button was clicked
+                Log.d(TAG, "onOptionsItemSelected: Refresh requested");
+                ShareManager.RetrieveWithProgress update = new ShareManager().new RetrieveWithProgress(this, mBinder);
+                update.execute(mBinder.getFriends());
+                return true;
+            default:
+                // The clicked button was not our responsibility
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+    public void onPause() {
+        super.onPause();
+        getActivity().unbindService(this);
+    }
+
+    public void onResume() {
+        super.onResume();
+        bindDbService();
     }
 
     /**
-     * This interface must be implemented by activities that contain this
-     * fragment to allow an interaction in this fragment to be communicated
-     * to the activity and potentially other fragments contained in that
-     * activity.
-     * <p/>
-     * See the Android Training lesson <a href=
-     * "http://developer.android.com/training/basics/fragments/communicating.html"
-     * >Communicating with Other Fragments</a> for more information.
+     * Get a binder to the database service
+     * @return true if the request was sent successfully, false otherwise
      */
-    public interface OnFragmentInteractionListener {
-        // TODO: Update argument type and name
-        void onFragmentInteraction(Uri uri);
+    private boolean bindDbService() {
+        if (!DatabaseService.isRunning(getActivity())) {
+            Log.w(TAG, "bindDbService: Trying to bind to a non-running database service. Aborting");
+            return false;
+        }
+        Intent intent = new Intent(getActivity(), DatabaseService.class);
+        if (!getActivity().bindService(intent, this, 0)) {
+            Log.e(TAG, "bindDbService: An error occured during binding :(");
+            return false;
+        } else {
+            Log.d(TAG, "bindDbService: Database service binding request sent");
+            return true;
+        }
     }
 
+
+    /**
+     * Populate the social stream
+     */
+    private void populateSocialStream() {
+        List<Shareable> tracks = new LinkedList<>();
+        for (GPSTrack track : mBinder.getGPSTracks()) {
+            tracks.add(track);
+        }
+        mAdapter = new SocialStreamAdapter(getActivity(), this, tracks, mBinder);
+        mRecycler.setAdapter(mAdapter);
+    }
+
+    @Override
+    public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+        Log.d(TAG, "onServiceConnected: New service connection received");
+        mBinder = (DatabaseServiceBinder) iBinder;
+        // TODO Debugging code, move to passphrase activity once it is added
+        if (!mBinder.isDatabaseOpen()) {
+            mBinder.openDatabase("VerySecureHardcodedPasswordOlolol123");
+        }
+        // Populate the list of friends
+        populateSocialStream();
+    }
+
+
+    @Override
+    public void onServiceDisconnected(ComponentName componentName) {
+        Log.i(TAG, "onServiceDisconnected: Lost DB binder");
+        mBinder = null;
+    }
+
+
+    @Override
+    public void onItemClicked(int position) {
+        Intent i = new Intent(getActivity(), ExerciseViewActivity.class);
+        // TODO This will probably explode once other data types are added to the social stream
+        i.putExtra("track-id", mAdapter.getShareableAt(position).getID());
+        startActivity(i);
+    }
+
+
+    @Override
+    public void onShareStatusUpdate(int status) {
+        // Do nothing, we're not interested
+    }
+
+
+    @Override
+    public void onShareFinished(boolean success) {
+        if (success) {
+            Toast.makeText(getActivity(), "Refresh complete", Toast.LENGTH_SHORT).show();
+            populateSocialStream();
+        }
+        else Toast.makeText(getActivity(), "Refresh failed", Toast.LENGTH_SHORT).show();
+    }
 }
