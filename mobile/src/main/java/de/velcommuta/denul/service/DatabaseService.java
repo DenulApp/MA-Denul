@@ -1092,15 +1092,15 @@ public class DatabaseService extends Service {
         @Override
         public boolean deleteShareByToken(TokenPair tokenPair) {
             assertOpen();
-            String[] whereArgsFriends = {FormatHelper.bytesToHex(tokenPair.getRevocation()), FormatHelper.bytesToHex(tokenPair.getIdentifier())};
             int deleted = delete(SharingContract.FriendShareLog.TABLE_NAME,
-                    SharingContract.FriendShareLog.COLUMN_REVOCATION_TOKEN + " LIKE x'?' AND " + SharingContract.FriendShareLog.COLUMN_IDENTIFIER + " LIKE x'?'",
-                    whereArgsFriends);
+                    SharingContract.FriendShareLog.COLUMN_REVOCATION_TOKEN + " LIKE x'" + FormatHelper.bytesToHex(tokenPair.getRevocation()) +
+                            "' AND " + SharingContract.FriendShareLog.COLUMN_IDENTIFIER + " LIKE x'" + FormatHelper.bytesToHex(tokenPair.getIdentifier()) + "'",
+                    null);
             if (deleted == 0) {
-                String[] whereArgsData = {FormatHelper.bytesToHex(tokenPair.getIdentifier()), FormatHelper.bytesToHex(tokenPair.getRevocation())};
                 deleted = delete(SharingContract.DataShareLog.TABLE_NAME,
-                        SharingContract.DataShareLog.COLUMN_IDENTIFIER + " LIKE x'?' AND " + SharingContract.DataShareLog.COLUMN_REVOCATION_TOKEN + " LIKE x'?'",
-                        whereArgsData);
+                        SharingContract.DataShareLog.COLUMN_IDENTIFIER + " LIKE x'" + FormatHelper.bytesToHex(tokenPair.getIdentifier()) +
+                                "' AND " + SharingContract.DataShareLog.COLUMN_REVOCATION_TOKEN + " LIKE x'" + FormatHelper.bytesToHex(tokenPair.getRevocation()) + "'",
+                        null);
                 if (deleted == 0) {
                     return false;
                 }
