@@ -9,6 +9,7 @@ import de.velcommuta.denul.data.Friend;
 import de.velcommuta.denul.data.Shareable;
 import de.velcommuta.denul.service.DatabaseServiceBinder;
 import de.velcommuta.denul.util.FriendManager;
+import de.velcommuta.denul.util.ShareManager;
 
 /**
  * Helper class to display a dialog for deleting items from the database
@@ -29,6 +30,10 @@ public class DeleteDialog {
                 .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialogInterface, int i) {
+                        // Revoke shareable on server
+                        // TODO should this be optional? Should the user be warned about this behaviour?
+                        ShareManager.revokeShareable(shareable, binder);
+                        // Locally delete shareable
                         binder.deleteShareable(shareable);
                         Toast.makeText(act, "Exercise deleted", Toast.LENGTH_SHORT).show();
                         if (callback != null)
