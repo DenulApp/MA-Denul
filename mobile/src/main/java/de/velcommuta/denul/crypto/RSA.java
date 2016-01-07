@@ -10,6 +10,7 @@ import java.security.Key;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
@@ -25,6 +26,8 @@ import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
+
+import de.velcommuta.denul.util.FormatHelper;
 
 /**
  * RSA Cryptography
@@ -216,5 +219,29 @@ public class RSA {
             Log.e(TAG, "decryptRSA: Encountered Exception: ", e);
         }
         return null;
+    }
+
+    ///// Fingerprinting
+    /**
+     * Calculate a fingerprint of a public key
+     * @param pubkey The public key
+     * @return The fingerprint, or null if the four horsemen of the apocalypse have arrived and removed SHA256 from the
+     * list of supported hash functions.
+     */
+    public static String fingerprint(PublicKey pubkey) {
+        assert pubkey != null;
+        try {
+            // Get a SHA256 hash function
+            MessageDigest md = MessageDigest.getInstance("SHA256");
+            // Add the bytes of the public key
+            md.update(pubkey.getEncoded());
+            // Calculate hash
+            byte[] hash = md.digest();
+            // Return String-representation
+            return FormatHelper.bytesToHex(hash);
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 }

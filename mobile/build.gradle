@@ -12,7 +12,7 @@ android {
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArgument "disableAnalytics", "true"
-        multiDexEnabled = false
+        multiDexEnabled = true
     }
     buildTypes {
         release {
@@ -61,6 +61,9 @@ dependencies {
     compile 'com.madgag.spongycastle:prov:1.52.0.0'
     //compile 'com.madgag.spongycastle:pkix:1.52.0.0' // Currently not needed (provides PKIX support)
     //compile 'com.madgag.spongycastle:pg:1.52.0.0' // Currently not needed (provides PGP support)
+
+    // DNSJava for DNS APIs (research request verification)
+    compile 'dnsjava:dnsjava:2.1.7'
 
     // Testing libraries for... testing, I guess.
     testCompile 'junit:junit:4.12'
