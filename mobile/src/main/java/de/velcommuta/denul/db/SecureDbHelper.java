@@ -132,6 +132,54 @@ public class SecureDbHelper extends SQLiteOpenHelper {
                 FKEY_ONDELETE_CASCADE +
             ");";
 
+    private static final String SQL_CREATE_ENTRIES_STUDIES
+            = "CREATE TABLE " + StudyContract.Studies.TABLE_NAME + " (" +
+            StudyContract.Studies._ID + TYPE_INT + OPT_PRIMARY_KEY + COMMA_SEP +
+            StudyContract.Studies.COLUMN_NAME + TYPE_TEXT + COMMA_SEP +
+            StudyContract.Studies.COLUMN_INSTITUTION + TYPE_TEXT + COMMA_SEP +
+            StudyContract.Studies.COLUMN_WEB + TYPE_TEXT + COMMA_SEP +
+            StudyContract.Studies.COLUMN_DESCRIPTION + TYPE_TEXT + COMMA_SEP +
+            StudyContract.Studies.COLUMN_PURPOSE + TYPE_TEXT + COMMA_SEP +
+            StudyContract.Studies.COLUMN_PROCEDURES + TYPE_TEXT + COMMA_SEP +
+            StudyContract.Studies.COLUMN_RISKS + TYPE_TEXT + COMMA_SEP +
+            StudyContract.Studies.COLUMN_BENEFITS + TYPE_TEXT + COMMA_SEP +
+            StudyContract.Studies.COLUMN_PAYMENT + TYPE_TEXT + COMMA_SEP +
+            StudyContract.Studies.COLUMN_CONFLICTS + TYPE_TEXT + COMMA_SEP +
+            StudyContract.Studies.COLUMN_CONFIDENTIALITY + TYPE_TEXT + COMMA_SEP +
+            StudyContract.Studies.COLUMN_PARTICIPATION + TYPE_TEXT + COMMA_SEP +
+            StudyContract.Studies.COLUMN_RIGHTS + TYPE_TEXT + COMMA_SEP +
+            StudyContract.Studies.COLUMN_VERIFICATION + TYPE_INT + COMMA_SEP +
+            StudyContract.Studies.COLUMN_PRIVKEY + TYPE_TEXT + COMMA_SEP +
+            StudyContract.Studies.COLUMN_PUBKEY + TYPE_TEXT + COMMA_SEP +
+            StudyContract.Studies.COLUMN_KEYALGO + TYPE_INT + COMMA_SEP +
+            StudyContract.Studies.COLUMN_KEX + TYPE_BLOB + COMMA_SEP +
+            StudyContract.Studies.COLUMN_KEXALGO + TYPE_INT + COMMA_SEP +
+            StudyContract.Studies.COLUMN_QUEUE + TYPE_BLOB +
+            ");";
+
+    private static final String SQL_CREATE_ENTRIES_INVESTIGATORS
+            = "CREATE TABLE " + StudyContract.Investigators.TABLE_NAME + " (" +
+            StudyContract.Investigators._ID + TYPE_INT + OPT_PRIMARY_KEY + COMMA_SEP +
+            StudyContract.Investigators.COLUMN_STUDY + TYPE_INT + OPT_NOT_NULL + COMMA_SEP +
+            StudyContract.Investigators.COLUMN_NAME + TYPE_TEXT + OPT_NOT_NULL + COMMA_SEP +
+            StudyContract.Investigators.COLUMN_INSTITUTION + TYPE_TEXT + OPT_NOT_NULL + COMMA_SEP +
+            StudyContract.Investigators.COLUMN_GROUP + TYPE_TEXT + OPT_NOT_NULL + COMMA_SEP +
+            StudyContract.Investigators.COLUMN_POSITION + TYPE_TEXT + OPT_NOT_NULL + COMMA_SEP +
+            FKEY_DECL + StudyContract.Investigators.COLUMN_STUDY + FKEY_REFS + StudyContract.Studies.TABLE_NAME +
+            "(" + StudyContract.Studies._ID + ") " + FKEY_ONDELETE_CASCADE +
+            ");";
+
+    private static final String SQL_CREATE_ENTRIES_DATAREQUESTS
+            = "CREATE TABLE " + StudyContract.DataRequests.TABLE_NAME + " (" +
+            StudyContract.DataRequests._ID + TYPE_INT + OPT_PRIMARY_KEY + COMMA_SEP +
+            StudyContract.DataRequests.COLUMN_STUDY + TYPE_INT + OPT_NOT_NULL + COMMA_SEP +
+            StudyContract.DataRequests.COLUMN_DATATYPE + TYPE_INT + OPT_NOT_NULL + COMMA_SEP +
+            StudyContract.DataRequests.COLUMN_GRANULARITY + TYPE_INT + OPT_NOT_NULL + COMMA_SEP +
+            StudyContract.DataRequests.COLUMN_FREQUENCY + TYPE_INT + OPT_NOT_NULL + COMMA_SEP +
+            FKEY_DECL + StudyContract.DataRequests.COLUMN_STUDY + FKEY_REFS + StudyContract.Studies.TABLE_NAME +
+            "(" + StudyContract.Studies._ID + ")" + FKEY_ONDELETE_CASCADE +
+            ");";
+
     private static final String SQL_DROP_LOCATIONLOG =
             "DROP TABLE " + LocationLoggingContract.LocationLog.TABLE_NAME + ";";
 
@@ -159,9 +207,18 @@ public class SecureDbHelper extends SQLiteOpenHelper {
     private static final String SQL_DROP_FRIENDSHARELOG =
             "DROP TABLE " + SharingContract.FriendShareLog.TABLE_NAME + ";";
 
+    private static final String SQL_DROP_STUDIES =
+            "DROP TABLE " + StudyContract.Studies.TABLE_NAME + ";";
+
+    private static final String SQL_DROP_INVESTIGATORS =
+            "DROP TABLE " + StudyContract.Investigators.TABLE_NAME + ";";
+
+    private static final String SQL_DROP_DATAREQUESTS =
+            "DROP TABLE " + StudyContract.DataRequests.TABLE_NAME + ";";
+
     public static final String DATABASE_NAME = "location.db"; // TODO Update
 
-    public static final int DATABASE_VERSION = 16;
+    public static final int DATABASE_VERSION = 17;
 
 
     /**
@@ -192,12 +249,19 @@ public class SecureDbHelper extends SQLiteOpenHelper {
         db.execSQL(SQL_CREATE_ENTRIES_FRIENDKEYS);
         db.execSQL(SQL_CREATE_ENTRIES_DATASHARELOG);
         db.execSQL(SQL_CREATE_ENTRIES_FRIENDSHAREDLOG);
+        db.execSQL(SQL_CREATE_ENTRIES_STUDIES);
+        db.execSQL(SQL_CREATE_ENTRIES_INVESTIGATORS);
+        db.execSQL(SQL_CREATE_ENTRIES_DATAREQUESTS);
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         Log.d(TAG, "onUpgrade: Old = " + oldVersion + " new = " + newVersion);
-        if (oldVersion == 15 && newVersion == 16) {
+        if (oldVersion == 16 && newVersion == 17) {
+            db.execSQL(SQL_CREATE_ENTRIES_STUDIES);
+            db.execSQL(SQL_CREATE_ENTRIES_INVESTIGATORS);
+            db.execSQL(SQL_CREATE_ENTRIES_DATAREQUESTS);
+        } else if (oldVersion == 15 && newVersion == 16) {
             // Rebuild everything except KeyStore and StepCounter
             db.execSQL(SQL_DROP_LOCATIONLOG);
             db.execSQL(SQL_DROP_LOCATIONSESSIONS);
@@ -223,6 +287,9 @@ public class SecureDbHelper extends SQLiteOpenHelper {
             db.execSQL(SQL_DROP_FRIENDKEYS);
             db.execSQL(SQL_DROP_FRIENDSHARELOG);
             db.execSQL(SQL_DROP_DATASHARELOG);
+            db.execSQL(SQL_DROP_STUDIES);
+            db.execSQL(SQL_DROP_INVESTIGATORS);
+            db.execSQL(SQL_DROP_DATAREQUESTS);
             onCreate(db);
         }
     }
