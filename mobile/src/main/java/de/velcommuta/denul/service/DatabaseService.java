@@ -1421,6 +1421,12 @@ public class DatabaseService extends Service {
         }
 
 
+        @Override
+        public boolean isParticipatingInStudy(StudyRequest req) {
+            return false; // FIXME Add actual, useful code
+        }
+
+
         /**
          * Private helper function to update the description of a GPS track in the database
          * @param track The updated GPS track

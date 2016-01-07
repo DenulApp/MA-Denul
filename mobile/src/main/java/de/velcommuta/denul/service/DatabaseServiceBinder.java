@@ -325,4 +325,11 @@ public interface DatabaseServiceBinder {
      * @return A List of study requests
      */
     List<StudyRequest> getStudyRequests();
+
+    /**
+     * Check if the user is participating in a certain study
+     * @param req The StudyRequest in question
+     * @return true if the user is participating, false otherwise
+     */
+    boolean isParticipatingInStudy(StudyRequest req);
 }
