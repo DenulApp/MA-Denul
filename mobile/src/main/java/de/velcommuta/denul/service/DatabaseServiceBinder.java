@@ -14,6 +14,7 @@ import de.velcommuta.denul.data.GPSTrack;
 import de.velcommuta.denul.data.KeySet;
 import de.velcommuta.denul.data.Friend;
 import de.velcommuta.denul.data.Shareable;
+import de.velcommuta.denul.data.StudyRequest;
 import de.velcommuta.denul.data.TokenPair;
 
 /**
@@ -298,4 +299,30 @@ public interface DatabaseServiceBinder {
      * @param shareable The shareable object with the new description returned by {@link Shareable#getDescription()}
      */
     void updateShareableDescription(Shareable shareable);
+
+    /**
+     * Add a {@link StudyRequest} to the database
+     * @param studyRequest The study request
+     * @return The ID of the inserted record, or -1 in case of an error
+     */
+    long addStudyRequest(StudyRequest studyRequest);
+
+    /**
+     * Delete a study from the database
+     * @param req The study
+     */
+    void deleteStudy(StudyRequest req);
+
+    /**
+     * Retrieve a specific {@link StudyRequest} by its ID
+     * @param id The ID
+     * @return The study request
+     */
+    StudyRequest getStudyRequestByID(long id);
+
+    /**
+     * Retrieve all {@link StudyRequest}s from the database
+     * @return A List of study requests
+     */
+    List<StudyRequest> getStudyRequests();
 }
