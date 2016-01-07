@@ -1,5 +1,7 @@
 package de.velcommuta.denul.crypto;
 
+import java.security.KeyPair;
+
 /**
  * Interface for different Key Exchange algorithms
  */
@@ -26,4 +28,10 @@ public interface KeyExchange {
      * @return The agreed-upon key, as byte[]
      */
     byte[] getAgreedKey();
+
+    /**
+     * Retrieve the underlying keypair
+     * @return The KeyPair
+     */
+    KeyPair getKeypair();
 }
