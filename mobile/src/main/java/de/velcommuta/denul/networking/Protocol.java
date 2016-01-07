@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import de.velcommuta.denul.data.DataBlock;
+import de.velcommuta.denul.data.StudyRequest;
 import de.velcommuta.denul.data.TokenPair;
 
 /**
@@ -155,4 +156,11 @@ public interface Protocol {
      * the interface, indicating the result of the operation
      */
     Map<TokenPair, Integer> revokeMany(List<TokenPair> pairs);
+
+    /**
+     * Retrieve all registered studies from the server and return them as a List of StudyRequests
+     * @return A List of StudyRequests, or an empty list if no requests have been registered. Null
+     * if an error occured
+     */
+    List<StudyRequest> listRegisteredStudies();
 }

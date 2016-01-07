@@ -12,15 +12,18 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
 import de.velcommuta.denul.data.DataBlock;
+import de.velcommuta.denul.data.StudyRequest;
 import de.velcommuta.denul.data.TokenPair;
 import de.velcommuta.denul.networking.protobuf.c2s.C2S;
 import de.velcommuta.denul.networking.protobuf.meta.MetaMessage;
+import de.velcommuta.denul.networking.protobuf.study.StudyMessage;
 import de.velcommuta.denul.util.FormatHelper;
 import de.velcommuta.libvicbf.VICBF;
 
@@ -341,6 +344,36 @@ public class ProtobufProtocol implements Protocol {
         return rv;
     }
 
+
+    @Override
+    public List<StudyRequest> listRegisteredStudies() {
+        // Prepare return list
+        List<StudyRequest> rv = new LinkedList<>();
+        // Get a Wrapper message
+        MetaMessage.Wrapper.Builder wrapper = MetaMessage.Wrapper.newBuilder();
+        // Get a StudyListRequest
+        StudyMessage.StudyListQuery query = StudyMessage.StudyListQuery.newBuilder().build();
+        // Add the query to the wrapper
+        wrapper.setStudyListQuery(query);
+        // Transceive
+        MetaMessage.Wrapper reply = transceiveWrapper(wrapper.build());
+        if (reply == null) {
+            Log.e(TAG, "listRegisteredStudies: Reply is null, something is wrong");
+            return null;
+        }
+        StudyMessage.StudyListReply slr = toStudyListReply(reply);
+        if (slr == null) {
+            Log.e(TAG, "listRegisteredStudies: Wrapper did not contain StudyListReply");
+            return null;
+        }
+        // Read in the provided studies
+        for (StudyMessage.StudyWrapper swr : slr.getStudylistList()) {
+            rv.add(StudyRequest.fromStudyWrapper(swr));
+        }
+        // Return result
+        return rv;
+    }
+
     // Helper functions
     /**
      * Send a wrapper message to the server and receive and parse a wrapper message in return
@@ -495,6 +528,21 @@ public class ProtobufProtocol implements Protocol {
             return wrapper.getDeleteReply();
         } else {
             Log.e(TAG, "toDeleteReply: Wrapper message did not contain a StoreReply message");
+            return null;
+        }
+    }
+
+
+    /**
+     * Extract a StudyListReply message from a wrapper
+     * @param wrapper The wrapper containing a StudyListReply message
+     * @return The StudyListReply, or null, if the bytes did not represent a StudyListReply message
+     */
+    private StudyMessage.StudyListReply toStudyListReply(MetaMessage.Wrapper wrapper) {
+        if (wrapper.hasStudyListReply()) {
+            return wrapper.getStudyListReply();
+        } else {
+            Log.e(TAG, "toStudyListReply: Wrapper message did not contain a StudyListReply message");
             return null;
         }
     }
