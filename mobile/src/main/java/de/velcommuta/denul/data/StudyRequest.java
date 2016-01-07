@@ -304,8 +304,9 @@ public class StudyRequest {
         if (o == null) return false;
         if (!(o instanceof StudyRequest)) return false;
         StudyRequest other = (StudyRequest) o;
-        return (other.id == id) &&
-                (other.name.equals(name)) &&
+        // We do not check the ID for equality, as that would prevent using equals to determine if a
+        // StudyRequest retrieved from the server matches a StudyRequest saved in the database
+        return (other.name.equals(name)) &&
                 (other.institution.equals(institution)) &&
                 (other.webpage.equals(webpage)) &&
                 (other.description.equals(description)) &&
