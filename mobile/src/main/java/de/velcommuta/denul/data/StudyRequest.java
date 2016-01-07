@@ -299,8 +299,6 @@ public class StudyRequest {
 
     @Override
     public boolean equals(Object o) {
-        // Reminder: This code will return false when comparing a local StudyRequest with its deserialized StudyCreate
-        // message, as the StudyCreate does not contain the private key
         if (o == null) return false;
         if (!(o instanceof StudyRequest)) return false;
         StudyRequest other = (StudyRequest) o;
