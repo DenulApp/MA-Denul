@@ -2,16 +2,12 @@ package de.velcommuta.denul.data;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 
-import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
-
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
 
 import de.velcommuta.denul.crypto.KexStub;
 import de.velcommuta.denul.crypto.KeyExchange;
@@ -76,7 +72,6 @@ public class StudyRequest {
 
     // Cryptographic material
     public PublicKey pubkey;
-    public PrivateKey privkey;
     public KeyExchange exchange;
 
     // Queue identifier on the server
@@ -169,36 +164,6 @@ public class StudyRequest {
         }
 
         return builder.toString();
-    }
-
-    /**
-     * Authenticate data using the private key associated with this StudyRequest. Used to authenticate StudyJoinQueries
-     * and other related stuff
-     * @param data The data to be authenticated
-     * @return The authenticator, as byte[]
-     */
-    public byte[] authenticate(byte[] data) {
-        assert data != null;
-        assert privkey != null;
-        byte[] signature = RSA.sign(data, privkey);
-        assert signature != null;
-        return signature;
-    }
-
-
-    /**
-     * Decrypt some asymmetrically encrypted data with the private key associated with this StudyRequest
-     * @param data The data to decrypt
-     * @return The decrypted data
-     * @throws IllegalBlockSizeException If the decryption throws it
-     * @throws BadPaddingException If the decryption throws it
-     */
-    public byte[] decrypt(byte[] data) throws IllegalBlockSizeException, BadPaddingException {
-        assert data != null;
-        assert privkey != null;
-        byte[] decrypted = RSA.decryptRSA(data, privkey);
-        assert decrypted != null;
-        return decrypted;
     }
 
     /**
@@ -355,7 +320,6 @@ public class StudyRequest {
                 (other.rights.equals(rights)) &&
                 (other.verification == verification) &&
                 (other.pubkey.equals(pubkey)) &&
-                (other.privkey.equals(privkey)) &&
                 (Arrays.equals(other.exchange.getPublicKexData(), exchange.getPublicKexData())) &&
                 (other.exchange.equals(exchange)) &&
                 (Arrays.equals(other.queue, queue)) &&

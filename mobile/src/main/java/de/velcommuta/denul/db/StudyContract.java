@@ -23,7 +23,6 @@ public class StudyContract {
         public static final String COLUMN_PARTICIPATION = "participationAndWithdrawal";
         public static final String COLUMN_RIGHTS = "rights";
         public static final String COLUMN_VERIFICATION = "verification";
-        public static final String COLUMN_PRIVKEY = "privkey";
         public static final String COLUMN_PUBKEY = "pubkey";
         public static final String COLUMN_KEYALGO = "keyalgo";
         public static final String COLUMN_KEX = "kex";
