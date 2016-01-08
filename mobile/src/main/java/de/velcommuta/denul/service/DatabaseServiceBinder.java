@@ -328,4 +328,11 @@ public interface DatabaseServiceBinder {
      * @param req The StudyRequest with the updated data
      */
     void updateStudy(StudyRequest req);
+
+    /**
+     * Get a List of all DataRequests that are currently active (i.e. the DataRequests of all
+     * studies the user is participating in)
+     * @return A List of DataRequests, or an empty List if no studies are active
+     */
+    List<StudyRequest.DataRequest> getActiveDataRequests();
 }

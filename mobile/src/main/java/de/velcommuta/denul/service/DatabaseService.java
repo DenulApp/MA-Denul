@@ -1424,10 +1424,10 @@ public class DatabaseService extends Service {
         @Override
         public void updateStudy(StudyRequest req) {
             assertOpen();
-            if (req == null || !req.participating) throw new IllegalArgumentException("Bad StudyRequest");
+            if (req == null) throw new IllegalArgumentException("Bad StudyRequest");
             // Set values
             ContentValues update = new ContentValues();
-            update.put(StudyContract.Studies.COLUMN_PARTICIPATING, 1);
+            update.put(StudyContract.Studies.COLUMN_PARTICIPATING, req.participating ? 1 : 0);
             update.put(StudyContract.Studies.COLUMN_KEY_IN, req.key_in);
             update.put(StudyContract.Studies.COLUMN_CTR_IN, req.ctr_in);
             update.put(StudyContract.Studies.COLUMN_KEY_OUT, req.key_out);
@@ -1441,6 +1441,27 @@ public class DatabaseService extends Service {
                     StudyContract.Studies._ID + " LIKE ?",
                     whereArgs);
             commit();
+        }
+
+
+        @Override
+        public List<StudyRequest.DataRequest> getActiveDataRequests() {
+            assertOpen();
+            // Prepare return value
+            List<StudyRequest.DataRequest> rv = new LinkedList<>();
+            // Prepare query
+            String query = "SELECT " + StudyContract.DataRequests.TABLE_NAME + ".* FROM " +
+                    StudyContract.DataRequests.TABLE_NAME + ", " + StudyContract.Studies.TABLE_NAME +
+                    " WHERE " + StudyContract.DataRequests.TABLE_NAME + "." + StudyContract.DataRequests.COLUMN_STUDY +
+                    " = " + StudyContract.Studies.TABLE_NAME + "." + StudyContract.Studies._ID +
+                    " AND " + StudyContract.Studies.TABLE_NAME + "." + StudyContract.Studies.COLUMN_PARTICIPATING +
+                    " = 1;";
+            // Perform query
+            Cursor c = mSQLiteHandler.rawQuery(query, null);
+            while (c.moveToNext()) {
+                rv.add(dataRequestFromCursor(c));
+            }
+            return rv;
         }
 
 
