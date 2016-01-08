@@ -153,7 +153,12 @@ public class SecureDbHelper extends SQLiteOpenHelper {
             StudyContract.Studies.COLUMN_KEYALGO + TYPE_INT + COMMA_SEP +
             StudyContract.Studies.COLUMN_KEX + TYPE_BLOB + COMMA_SEP +
             StudyContract.Studies.COLUMN_KEXALGO + TYPE_INT + COMMA_SEP +
-            StudyContract.Studies.COLUMN_QUEUE + TYPE_BLOB +
+            StudyContract.Studies.COLUMN_QUEUE + TYPE_BLOB + COMMA_SEP +
+            StudyContract.Studies.COLUMN_PARTICIPATING + TYPE_INT + OPT_DEFAULT_ZERO + COMMA_SEP +
+            StudyContract.Studies.COLUMN_KEY_IN + TYPE_BLOB + COMMA_SEP +
+            StudyContract.Studies.COLUMN_CTR_IN + TYPE_BLOB + COMMA_SEP +
+            StudyContract.Studies.COLUMN_KEY_OUT + TYPE_BLOB + COMMA_SEP +
+            StudyContract.Studies.COLUMN_CTR_OUT + TYPE_BLOB +
             ");";
 
     private static final String SQL_CREATE_ENTRIES_INVESTIGATORS
@@ -217,7 +222,7 @@ public class SecureDbHelper extends SQLiteOpenHelper {
 
     public static final String DATABASE_NAME = "location.db"; // TODO Update
 
-    public static final int DATABASE_VERSION = 18;
+    public static final int DATABASE_VERSION = 19;
 
 
     /**
@@ -256,12 +261,24 @@ public class SecureDbHelper extends SQLiteOpenHelper {
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         Log.d(TAG, "onUpgrade: Old = " + oldVersion + " new = " + newVersion);
-        if (oldVersion == 16 && newVersion == 18) {
+        if (oldVersion == 16 && newVersion == 19) {
             onUpgrade(db, 16, 17);
             onUpgrade(db, 17, 18);
+            onUpgrade(db, 18, 19);
+        } else if (oldVersion == 18 && newVersion == 19) {
+            db.execSQL(SQL_DROP_STUDIES);
+            db.execSQL(SQL_DROP_INVESTIGATORS);
+            db.execSQL(SQL_DROP_DATAREQUESTS);
+            db.execSQL(SQL_CREATE_ENTRIES_STUDIES);
+            db.execSQL(SQL_CREATE_ENTRIES_INVESTIGATORS);
+            db.execSQL(SQL_CREATE_ENTRIES_DATAREQUESTS);
         } else if (oldVersion == 17 && newVersion == 18) {
             db.execSQL(SQL_DROP_STUDIES);
+            db.execSQL(SQL_DROP_INVESTIGATORS);
+            db.execSQL(SQL_DROP_DATAREQUESTS);
             db.execSQL(SQL_CREATE_ENTRIES_STUDIES);
+            db.execSQL(SQL_CREATE_ENTRIES_INVESTIGATORS);
+            db.execSQL(SQL_CREATE_ENTRIES_DATAREQUESTS);
         } else if (oldVersion == 16 && newVersion == 17) {
             db.execSQL(SQL_CREATE_ENTRIES_STUDIES);
             db.execSQL(SQL_CREATE_ENTRIES_INVESTIGATORS);

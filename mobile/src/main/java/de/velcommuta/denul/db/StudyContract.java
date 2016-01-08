@@ -28,6 +28,11 @@ public class StudyContract {
         public static final String COLUMN_KEX = "kex";
         public static final String COLUMN_KEXALGO = "kexalgo";
         public static final String COLUMN_QUEUE = "queue";
+        public static final String COLUMN_PARTICIPATING = "participating";
+        public static final String COLUMN_KEY_IN = "key_in";
+        public static final String COLUMN_CTR_IN = "ctr_in";
+        public static final String COLUMN_KEY_OUT = "key_out";
+        public static final String COLUMN_CTR_OUT = "ctr_out";
     }
 
     public static abstract class Investigators implements BaseColumns{

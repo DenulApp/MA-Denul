@@ -1,9 +1,5 @@
 package de.velcommuta.denul.service;
 
-import android.content.ContentValues;
-
-import net.sqlcipher.Cursor;
-
 import org.joda.time.DateTime;
 
 import java.util.Hashtable;
