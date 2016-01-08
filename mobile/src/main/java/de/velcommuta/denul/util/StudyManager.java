@@ -6,6 +6,11 @@ import android.util.Log;
 import java.io.IOException;
 import java.util.List;
 
+import de.velcommuta.denul.crypto.ECDHKeyExchange;
+import de.velcommuta.denul.crypto.HKDFKeyExpansion;
+import de.velcommuta.denul.crypto.KeyExchange;
+import de.velcommuta.denul.crypto.KeyExpansion;
+import de.velcommuta.denul.data.KeySet;
 import de.velcommuta.denul.data.StudyRequest;
 import de.velcommuta.denul.networking.Connection;
 import de.velcommuta.denul.networking.ProtobufProtocol;
@@ -89,6 +94,88 @@ public class StudyManager {
             if (mCallback != null) mCallback.onUpdateFinished();
         }
     }
+
+    public class JoinStudy extends AsyncTask<StudyRequest, Void, Void> {
+        private static final String TAG = "JoinStudy";
+
+        private DatabaseServiceBinder mBinder;
+        private StudyManagerCallback mCallback;
+
+
+        /**
+         * Constructor
+         * @param binder An open DatabaseServiceBinder
+         * @param callback The callback to notify once the operation finished
+         */
+        public JoinStudy(DatabaseServiceBinder binder, StudyManagerCallback callback) {
+            if (!mBinder.isDatabaseOpen()) throw new IllegalArgumentException("Database binder must be open");
+            mBinder = binder;
+            mCallback = callback;
+        }
+
+
+        /**
+         * Constructor
+         * @param binder An open DatabaseServiceBinder
+         */
+        public JoinStudy(DatabaseServiceBinder binder) {
+            this(binder, null);
+        }
+
+
+        @Override
+        protected Void doInBackground(StudyRequest... studyRequests) {
+            for (StudyRequest req : studyRequests) {
+                // Check if we are already participating in this study
+                if (req.participating) {
+                    Log.w(TAG, "doInBackground: Already participating in study - skipping");
+                    continue;
+                }
+                // Perform key exchange
+                // TODO Add switch for KEX algo
+                KeyExchange kex = new ECDHKeyExchange();
+                kex.putPartnerKexData(req.exchange.getPublicKexData());
+                KeyExpansion kexp = new HKDFKeyExpansion(kex.getAgreedKey());
+                // Expand keys
+                KeySet studykeys = kexp.expand(false);
+                // Set values on studyRequest
+                req.key_in = studykeys.getInboundKey();
+                req.ctr_in = studykeys.getInboundCtr();
+                req.key_out = studykeys.getOutboundKey();
+                req.ctr_out = studykeys.getOutboundCtr();
+                req.participating = true;
+                // Send join message
+                try {
+                    // Establish connection
+                    Connection conn = new TLSConnection(host, port);
+                    // Attach protocol
+                    Protocol p = new ProtobufProtocol();
+                    // Connect
+                    p.connect(conn);
+                    // Send join
+                    int rv = p.joinStudy(req, kex);
+                    // Check return
+                    if (rv != Protocol.JOIN_OK) {
+                        Log.e(TAG, "Join failed - Code " + rv);
+                        continue;
+                    }
+                    mBinder.updateStudy(req);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            return null;
+        }
+
+
+        @Override
+        protected void onPostExecute(Void v) {
+            if (mCallback != null) mCallback.onUpdateFinished();
+        }
+    }
+
+
+
 
     public interface StudyManagerCallback {
         /**
