@@ -13,3 +13,5 @@ Denul is using the following libraries:
 - [libvicbf](https://github.com/malexmave/libvicbf) (Apache License v2)
 - [Google Protocol Buffers](https://github.com/google/protobuf) (BSD 3-Clause License)
 - [Google Play Services](https://developers.google.com/android/guides/overview) (Proprietary)
+
+Some of the assets are [provided by Google](https://design.google.com/icons/index.html) under the [CC BY license](https://creativecommons.org/licenses/by/4.0/)
