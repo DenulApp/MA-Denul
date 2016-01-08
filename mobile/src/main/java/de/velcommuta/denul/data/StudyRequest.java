@@ -242,6 +242,22 @@ public class StudyRequest {
         public Integer granularity;
         public Integer frequency;
 
+
+        /**
+         * Check if the provided Shareable is covered by the DataRequest
+         * @param sh The shareable to consider
+         * @return true if the DataRequest covers the Shareable, false otherwise
+         */
+        public boolean matches(Shareable sh) {
+            if (sh == null) return false;
+            switch (sh.getType()) {
+                case Shareable.SHAREABLE_TRACK:
+                    return type == TYPE_GPS;
+                default: // TODO Add further shareable / request types here
+                    return false;
+            }
+        }
+
         public String toString() {
             StringBuilder builder = new StringBuilder();
             builder.append("Data type: ");
