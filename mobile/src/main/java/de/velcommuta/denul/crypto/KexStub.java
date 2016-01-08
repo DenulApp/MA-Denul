@@ -1,9 +1,10 @@
 package de.velcommuta.denul.crypto;
 
 import java.security.KeyPair;
+import java.util.Arrays;
 
 /**
- * Created by max on 07.01.16.
+ * Stub data holder for key exchange data
  */
 public class KexStub implements KeyExchange {
     private byte[] mKexData;
@@ -35,5 +36,13 @@ public class KexStub implements KeyExchange {
     @Override
     public KeyPair getKeypair() {
         throw new IllegalArgumentException("Not implemented");
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null) return false;
+        if (!(o instanceof KexStub)) return false;
+        KexStub other = (KexStub) o;
+        return Arrays.equals(other.getPublicKexData(), getPublicKexData());
     }
 }
