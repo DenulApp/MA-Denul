@@ -1309,7 +1309,6 @@ public class DatabaseService extends Service {
             assertOpen();
             if (req == null) throw new SQLiteException("StudyRequest cannot be null");
             // Insert the study itself
-            beginTransaction();
             ContentValues study = new ContentValues();
             study.put(StudyContract.Studies.COLUMN_NAME, req.name);
             study.put(StudyContract.Studies.COLUMN_INSTITUTION, req.institution);

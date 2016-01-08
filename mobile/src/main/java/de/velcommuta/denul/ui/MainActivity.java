@@ -177,6 +177,8 @@ public class MainActivity extends AppCompatActivity
             loadExerciseHistoryFragment();
         } else if (id == R.id.nav_menu) {
             // TODO implement
+        } else if (id == R.id.nav_studies) {
+            loadStudyFragment();
         }
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
@@ -232,6 +234,17 @@ public class MainActivity extends AppCompatActivity
     private void loadFriendlistFragment() {
         FragmentManager fragmentManager = getFragmentManager();
         Fragment fragment = FriendListFragment.newInstance();
+        fragmentManager.beginTransaction()
+                .replace(R.id.content_frame, fragment)
+                .commit();
+    }
+
+    /**
+     * Load the study overview fragment
+     */
+    private void loadStudyFragment() {
+        FragmentManager fragmentManager = getFragmentManager();
+        Fragment fragment = StudyListFragment.newInstance();
         fragmentManager.beginTransaction()
                 .replace(R.id.content_frame, fragment)
                 .commit();
