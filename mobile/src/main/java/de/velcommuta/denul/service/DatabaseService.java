@@ -1421,12 +1421,6 @@ public class DatabaseService extends Service {
         }
 
 
-        @Override
-        public boolean isParticipatingInStudy(StudyRequest req) {
-            return false; // FIXME Add actual, useful code
-        }
-
-
         /**
          * Private helper function to update the description of a GPS track in the database
          * @param track The updated GPS track
@@ -1487,6 +1481,14 @@ public class DatabaseService extends Service {
             rv.pubkey = RSA.decodePublicKey(c.getString(c.getColumnIndexOrThrow(StudyContract.Studies.COLUMN_PUBKEY)));
             rv.exchange = new KexStub(c.getBlob(c.getColumnIndexOrThrow(StudyContract.Studies.COLUMN_KEX)));
             rv.queue = c.getBlob(c.getColumnIndexOrThrow(StudyContract.Studies.COLUMN_QUEUE));
+            // Check if the user is participating
+            rv.participating = c.getInt(c.getColumnIndexOrThrow(StudyContract.Studies.COLUMN_PARTICIPATING)) == 1;
+            if (rv.participating) {
+                rv.key_in = c.getBlob(c.getColumnIndexOrThrow(StudyContract.Studies.COLUMN_KEY_IN));
+                rv.ctr_in = c.getBlob(c.getColumnIndexOrThrow(StudyContract.Studies.COLUMN_CTR_IN));
+                rv.key_out = c.getBlob(c.getColumnIndexOrThrow(StudyContract.Studies.COLUMN_KEY_OUT));
+                rv.ctr_out = c.getBlob(c.getColumnIndexOrThrow(StudyContract.Studies.COLUMN_CTR_OUT));
+            }
             // Retrieve Investigators
             rv.investigators = getInvestigatorsForStudy(rv.id);
             // Retrieve DataRequests

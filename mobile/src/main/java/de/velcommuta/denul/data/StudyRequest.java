@@ -70,9 +70,16 @@ public class StudyRequest {
     public List<DataRequest> requests = new LinkedList<>();
     public int verification = VERIFY_UNKNOWN;
 
+    public boolean participating;
+
     // Cryptographic material
     public PublicKey pubkey;
     public KeyExchange exchange;
+
+    public byte[] key_in;
+    public byte[] ctr_in;
+    public byte[] key_out;
+    public byte[] ctr_out;
 
     // Queue identifier on the server
     public byte[] queue;

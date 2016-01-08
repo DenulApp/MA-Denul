@@ -73,7 +73,7 @@ public class StudyManager {
                 Log.d(TAG, "doInBackground: Deleting removed studies");
                 // Remove studies that are no longer active and that the user is not participating in
                 for (StudyRequest sreq : local) {
-                    if (!reqs.contains(sreq) && !mBinder.isParticipatingInStudy(sreq)) {
+                    if (!reqs.contains(sreq) && !sreq.participating) {
                         mBinder.deleteStudy(sreq);
                     }
                 }
