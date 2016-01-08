@@ -292,7 +292,8 @@ public interface DatabaseServiceBinder {
 
     /**
      * Update the description of a shareable in the database
-     * @param shareable The shareable object with the new description returned by {@link Shareable#getDescription()}
+     * @param shareable The shareable object with the new description returned by
+     * {@link Shareable#getDescription()}
      */
     void updateShareableDescription(Shareable shareable);
 
@@ -321,4 +322,10 @@ public interface DatabaseServiceBinder {
      * @return A List of study requests
      */
     List<StudyRequest> getStudyRequests();
+
+    /**
+     * Update a study in the database with a new participation status and keys
+     * @param req The StudyRequest with the updated data
+     */
+    void updateStudy(StudyRequest req);
 }

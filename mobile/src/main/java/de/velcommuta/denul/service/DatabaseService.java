@@ -1421,6 +1421,29 @@ public class DatabaseService extends Service {
         }
 
 
+        @Override
+        public void updateStudy(StudyRequest req) {
+            assertOpen();
+            if (req == null || !req.participating) throw new IllegalArgumentException("Bad StudyRequest");
+            // Set values
+            ContentValues update = new ContentValues();
+            update.put(StudyContract.Studies.COLUMN_PARTICIPATING, 1);
+            update.put(StudyContract.Studies.COLUMN_KEY_IN, req.key_in);
+            update.put(StudyContract.Studies.COLUMN_CTR_IN, req.ctr_in);
+            update.put(StudyContract.Studies.COLUMN_KEY_OUT, req.key_out);
+            update.put(StudyContract.Studies.COLUMN_CTR_OUT, req.ctr_out);
+
+            // Prepare and perform update
+            String[] whereArgs = {String.valueOf(req.id)};
+            beginTransaction();
+            update(StudyContract.Studies.TABLE_NAME,
+                    update,
+                    StudyContract.Studies._ID + " LIKE ?",
+                    whereArgs);
+            commit();
+        }
+
+
         /**
          * Private helper function to update the description of a GPS track in the database
          * @param track The updated GPS track
