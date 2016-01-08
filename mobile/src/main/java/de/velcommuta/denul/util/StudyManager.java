@@ -13,6 +13,8 @@ import de.velcommuta.denul.crypto.KeyExpansion;
 import de.velcommuta.denul.data.KeySet;
 import de.velcommuta.denul.data.StudyRequest;
 import de.velcommuta.denul.networking.Connection;
+import de.velcommuta.denul.networking.DNSVerifier;
+import de.velcommuta.denul.networking.HttpsVerifier;
 import de.velcommuta.denul.networking.ProtobufProtocol;
 import de.velcommuta.denul.networking.Protocol;
 import de.velcommuta.denul.networking.TLSConnection;
@@ -175,6 +177,41 @@ public class StudyManager {
     }
 
 
+    public class VerifyStudy extends AsyncTask<StudyRequest, Void, Boolean> {
+        private static final String TAG = "VerifyStudy";
+        private VerificationCallback mCallback;
+
+
+        /**
+         * Constructor
+         * @param callback The callback to notify when the verification is finished
+         */
+        public VerifyStudy(VerificationCallback callback) {
+            mCallback = callback;
+        }
+
+        @Override
+        protected Boolean doInBackground(StudyRequest... studyRequests) {
+            StudyRequest req = studyRequests[0];
+            switch (req.verification) {
+                case StudyRequest.VERIFY_DNS:
+                    return DNSVerifier.verify(req);
+                case StudyRequest.VERIFY_FILE:
+                    return HttpsVerifier.verifyFile(req);
+                case StudyRequest.VERIFY_META:
+                    return HttpsVerifier.verifyMeta(req);
+                default:
+                    Log.e(TAG, "doInBackground: Unknown verification system");
+                    return false;
+            }
+        }
+
+        protected void onPostExecute(Boolean ok) {
+            if (mCallback != null) mCallback.onVerificationFinished(ok);
+        }
+    }
+
+
 
 
     public interface StudyManagerCallback {
@@ -182,5 +219,13 @@ public class StudyManager {
          * Called when an update with the server is finished
          */
         void onUpdateFinished();
+    }
+
+    public interface VerificationCallback {
+        /**
+         * Called when a verification task is finished
+         * @param ok true if the verification was successful, false otherwise
+         */
+        void onVerificationFinished(boolean ok);
     }
 }
