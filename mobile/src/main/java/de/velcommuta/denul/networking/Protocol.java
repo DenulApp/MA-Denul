@@ -5,6 +5,7 @@ import android.support.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 
+import de.velcommuta.denul.crypto.KeyExchange;
 import de.velcommuta.denul.data.DataBlock;
 import de.velcommuta.denul.data.StudyRequest;
 import de.velcommuta.denul.data.TokenPair;
@@ -72,6 +73,17 @@ public interface Protocol {
     byte[] GET_FAIL_PROTOCOL_ERROR = new byte[] {0x01};
     // Get failed, bad key format
     byte[] GET_FAIL_KEY_FMT = new byte[] {0x02};
+
+    // Return values for the studyJoin function
+    // Join suceeded
+    int JOIN_OK = 0;
+    // Join failed, no connection
+    int JOIN_FAIL_NO_CONNECTION = 1;
+    // Join failed, no such study
+    int JOIN_FAIL_NO_STUDY = 2;
+    // Join failed, protocol error
+    int JOIN_FAIL_PROTOCOL_ERROR = 3;
+
 
     /**
      * Establish a connection using this protocol, via the provided Connection
@@ -163,4 +175,13 @@ public interface Protocol {
      * if an error occured
      */
     List<StudyRequest> listRegisteredStudies();
+
+    /**
+     * Join a study
+     * @param req The Study to join. The Key Exchange should already have happened.
+     * @param kex The used KeyExchange
+     * @return One of the JOIN_* constants defined by the interface, indicating the result of the
+     * operation.
+     */
+    int joinStudy(StudyRequest req, KeyExchange kex);
 }
