@@ -260,14 +260,13 @@ public class StudyRequest {
 
         public String toString() {
             StringBuilder builder = new StringBuilder();
-            builder.append("Data type: ");
             if (type != null) {
                 builder.append(TYPES[type]);
             } else {
                 builder.append("unset");
             }
 
-            builder.append("\nGranularity: ");
+            builder.append(" (");
             if (granularity != null) {
                 if (type == TYPE_GPS) {
                     builder.append(GRANULARITIES_GPS[granularity]);
@@ -275,13 +274,12 @@ public class StudyRequest {
             } else {
                 builder.append("unset");
             }
+            builder.append(")");
 
-            if (frequency != null) {
-                builder.append("\nFrequency: Updated every ");
+            if (frequency != null && frequency != 0) {
+                builder.append(" - updated every ");
                 builder.append(frequency);
                 builder.append(" hour(s)");
-            } else {
-                builder.append("\nFrequency: unset");
             }
 
             return builder.toString();

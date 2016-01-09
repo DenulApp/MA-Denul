@@ -34,7 +34,7 @@ import de.velcommuta.denul.util.StudyManager;
 public class StudyListFragment extends Fragment implements ServiceConnection,
                                                            StudyListAdapter.OnItemClickListener,
                                                            StudyManager.StudyManagerCallback {
-    private static final String TAG = "ExercHist";
+    private static final String TAG = "StudyListF";
 
     private EmptyRecyclerView mRecyclerView;
     private DatabaseServiceBinder mDbBinder;
@@ -183,9 +183,9 @@ public class StudyListFragment extends Fragment implements ServiceConnection,
     @Override
     public void onItemClicked(int position) {
         // TODO
-        //Intent i = new Intent(getActivity(), ExerciseViewActivity.class);
-        //i.putExtra("study-id", mAdapter.getStudyAt(position).id);
-        //startActivity(i);
+        Intent i = new Intent(getActivity(), StudyViewActivity.class);
+        i.putExtra("study-id", mAdapter.getStudyAt(position).id);
+        startActivity(i);
     }
 
 

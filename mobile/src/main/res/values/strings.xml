@@ -94,6 +94,21 @@
     <!-- Status messages -->
     <string name="save_success">Saved</string>
 
+    <!-- Studies -->
+    <string name="study_institution">Institution:</string>
+    <string name="study_description">Description:\r\n</string>
+    <string name="study_purpose">Purpose:\r\n</string>
+    <string name="study_procedures">Procedures:\r\n</string>
+    <string name="study_benefits">Benefits:\r\n</string>
+    <string name="study_risks">Risks:\r\n</string>
+    <string name="study_conflicts">Conflicts of interest:\r\n</string>
+    <string name="study_confidentiality">Confidentiality of data:\r\n</string>
+    <string name="study_participation">Participation:\r\n</string>
+    <string name="study_rights">Participant\'s rights:\r\n</string>
+    <string name="study_url">Website:</string>
+    <string name="study_investigators">Team:\r\n</string>
+    <string name="study_datarequests">Requested data:\r\n</string>
+
     <!-- Shareable granularity descriptions -->
     <string name="shareable_granularity_unknown">Unknown</string>
     <string name="shareable_track_granularity_fine">Full location and time data</string>
