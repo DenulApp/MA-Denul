@@ -110,7 +110,7 @@ public class StudyManager {
          * @param callback The callback to notify once the operation finished
          */
         public JoinStudy(DatabaseServiceBinder binder, StudyManagerCallback callback) {
-            if (!mBinder.isDatabaseOpen()) throw new IllegalArgumentException("Database binder must be open");
+            if (binder == null || !binder.isDatabaseOpen()) throw new IllegalArgumentException("Database binder must be open");
             mBinder = binder;
             mCallback = callback;
         }

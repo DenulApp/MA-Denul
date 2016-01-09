@@ -109,6 +109,9 @@
     <string name="study_investigators">Team:\r\n</string>
     <string name="study_datarequests">Requested data:\r\n</string>
 
+    <!-- Study Menu-->
+    <string name="study_menu_join">Join</string>
+
     <!-- Shareable granularity descriptions -->
     <string name="shareable_granularity_unknown">Unknown</string>
     <string name="shareable_track_granularity_fine">Full location and time data</string>

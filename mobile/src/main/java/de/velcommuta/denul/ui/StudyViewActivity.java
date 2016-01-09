@@ -22,6 +22,7 @@ import de.velcommuta.denul.R;
 import de.velcommuta.denul.data.StudyRequest;
 import de.velcommuta.denul.service.DatabaseService;
 import de.velcommuta.denul.service.DatabaseServiceBinder;
+import de.velcommuta.denul.ui.dialog.JoinDialog;
 import de.velcommuta.denul.util.StudyManager;
 
 /**
@@ -89,8 +90,7 @@ public class StudyViewActivity extends AppCompatActivity implements ServiceConne
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
-        // getMenuInflater().inflate(R.menu.activity_friend_view, menu);
-        // TODO
+        getMenuInflater().inflate(R.menu.activity_study_view, menu);
         return true;
     }
 
@@ -135,6 +135,26 @@ public class StudyViewActivity extends AppCompatActivity implements ServiceConne
 
 
     /**
+     * Join the currently displayed study
+     */
+    private void joinStudy() {
+        // TODO Check if the study was already joined
+        if (mDbBinder == null) throw new IllegalArgumentException("DB Binder == null");
+        JoinDialog.showJoinDialog(this, new JoinDialog.OnJoinCallback() {
+            @Override
+            public void onJoinConfirmed() {
+                new StudyManager().new JoinStudy(mDbBinder, new StudyManager.StudyManagerCallback() {
+                    @Override
+                    public void onUpdateFinished() {
+                        Toast.makeText(StudyViewActivity.this, "Study joined", Toast.LENGTH_SHORT).show();
+                    }
+                }).execute(mStudy);
+            }
+        });
+    }
+
+
+    /**
      * Helper function to format two strings to show the first one in bold, the second one as regular text
      * @param bold The bold part
      * @param normal the normal part
@@ -150,6 +170,7 @@ public class StudyViewActivity extends AppCompatActivity implements ServiceConne
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        Log.d(TAG, "onDestroy: Called");
         unbindService(this);
     }
 
@@ -188,11 +209,12 @@ public class StudyViewActivity extends AppCompatActivity implements ServiceConne
     }
 
     public boolean onOptionsItemSelected(MenuItem item) {
-        // TODO
         switch (item.getItemId()) {
+            case R.id.action_join:
+                joinStudy();
+                return true;
             default:
-                break;
+                return false;
         }
-        return false;
     }
 }
