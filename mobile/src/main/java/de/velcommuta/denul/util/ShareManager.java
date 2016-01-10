@@ -32,6 +32,7 @@ public class ShareManager {
     protected String host = "denul.velcommuta.de";
     protected int port = 5566;
     // TODO Move definitions somewhere sensible
+    // TODO Convert AsyncTask instantiations to static functions for API
 
     public class ShareWithProgress extends AsyncTask<List<Friend>, Integer, Boolean> {
         private static final String TAG = "ShareWP";

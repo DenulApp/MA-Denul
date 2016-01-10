@@ -150,7 +150,7 @@ public class StudyViewActivity extends AppCompatActivity implements ServiceConne
             @Override
             public void onActionConfirmed() {
                 // Verify the authenticity of the StudyRequest
-                new StudyManager().new VerifyStudy(new StudyManager.VerificationCallback() {
+                StudyManager.verifyStudy(new StudyManager.VerificationCallback() {
                     @Override
                     public void onVerificationFinished(boolean ok) {
                         if (ok) {
@@ -161,7 +161,7 @@ public class StudyViewActivity extends AppCompatActivity implements ServiceConne
                             confirmJoinUnverified();
                         }
                     }
-                }).execute(mStudy);
+                }, mStudy);
 
             }
         });
@@ -172,13 +172,13 @@ public class StudyViewActivity extends AppCompatActivity implements ServiceConne
      * Join the study
      */
     private void performStudyJoin() {
-        new StudyManager().new JoinStudy(mDbBinder, new StudyManager.StudyManagerCallback() {
+        StudyManager.joinStudy(mDbBinder, new StudyManager.StudyManagerCallback() {
             @Override
             public void onUpdateFinished() {
                 Toast.makeText(StudyViewActivity.this, "Study joined", Toast.LENGTH_SHORT).show();
                 loadStudyInformation();
             }
-        }).execute(mStudy);
+        }, mStudy);
     }
 
 

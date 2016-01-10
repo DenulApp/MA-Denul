@@ -28,7 +28,7 @@ public class StudyManager {
     protected int port = 5566;
     // TODO Move definitions somewhere sensible
 
-    public class RetrieveStudies extends AsyncTask<Void, Void, Void> {
+    private class RetrieveStudies extends AsyncTask<Void, Void, Void> {
         private static final String TAG = "RetrieveStudies";
 
         private DatabaseServiceBinder mBinder;
@@ -97,7 +97,7 @@ public class StudyManager {
         }
     }
 
-    public class JoinStudy extends AsyncTask<StudyRequest, Void, Void> {
+    private class JoinStudy extends AsyncTask<StudyRequest, Void, Void> {
         private static final String TAG = "JoinStudy";
 
         private DatabaseServiceBinder mBinder;
@@ -177,7 +177,7 @@ public class StudyManager {
     }
 
 
-    public class VerifyStudy extends AsyncTask<StudyRequest, Void, Boolean> {
+    private class VerifyStudy extends AsyncTask<StudyRequest, Void, Boolean> {
         private static final String TAG = "VerifyStudy";
         private VerificationCallback mCallback;
 
@@ -209,6 +209,37 @@ public class StudyManager {
         protected void onPostExecute(Boolean ok) {
             if (mCallback != null) mCallback.onVerificationFinished(ok);
         }
+    }
+
+
+    /**
+     * Verify the authenticity of a study
+     * @param callback The callback to notify about the result
+     * @param request The StudyRequest to test
+     */
+    public static void verifyStudy(VerificationCallback callback, StudyRequest request) {
+        new StudyManager().new VerifyStudy(callback).execute(request);
+    }
+
+
+    /**
+     * Join a study
+     * @param binder An open DatabaseServiceBinder
+     * @param callback The callback to notify on completion
+     * @param req The StudyRequest to join
+     */
+    public static void joinStudy(DatabaseServiceBinder binder, StudyManagerCallback callback, StudyRequest req) {
+        new StudyManager().new JoinStudy(binder, callback).execute(req);
+    }
+
+
+    /**
+     * Retrieve the List of Studies from the server
+     * @param binder An open DatabaseServiceBinder
+     * @param callback The callback to notify on completion
+     */
+    public static void retrieveStudies(DatabaseServiceBinder binder, StudyManagerCallback callback) {
+        new StudyManager().new RetrieveStudies(binder, callback).execute();
     }
 
 

@@ -10,6 +10,7 @@ import de.velcommuta.denul.data.Friend;
  * anyway.
  */
 public class FriendManager {
+    // TODO Convert AsyncTask instantiations to static functions for API
     private static final String TAG = "FriendManager";
 
 

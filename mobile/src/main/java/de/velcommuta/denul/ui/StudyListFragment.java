@@ -98,8 +98,7 @@ public class StudyListFragment extends Fragment implements ServiceConnection,
             case R.id.action_refresh:
                 // The "add friend" button was clicked
                 Log.d(TAG, "onOptionsItemSelected: Refresh requested");
-                StudyManager.RetrieveStudies update = new StudyManager().new RetrieveStudies(mDbBinder, this);
-                update.execute();
+                StudyManager.retrieveStudies(mDbBinder, this);
                 return true;
             default:
                 // The clicked button was not our responsibility
