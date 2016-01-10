@@ -7,13 +7,13 @@ import android.content.DialogInterface;
 /**
  * Helper class to display a dialog for joining studies
  */
-public class JoinDialog {
+public class StudyDialog {
     /**
      * Show a dialog to ask if something should really be joined
      * @param act Calling activity
      * @param callback Callback to be notified if the join was confirmed
      */
-    public static void showJoinDialog(final Activity act, final OnJoinCallback callback) {
+    public static void showJoinDialog(final Activity act, final StudyCallback callback) {
         // Prepare a builder
         AlertDialog.Builder builder = new AlertDialog.Builder(act);
         // Set the values, build and show the dialog
@@ -22,7 +22,7 @@ public class JoinDialog {
                 .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialogInterface, int i) {
-                        callback.onJoinConfirmed();
+                        callback.onActionConfirmed();
                     }
                 })
                 .setNegativeButton("No", null)
@@ -35,7 +35,7 @@ public class JoinDialog {
      * @param act The calling activity
      * @param callback The callback to notify if the join was confirmed
      */
-    public static void showConfirmUnverifiedDialog(final Activity act, final OnJoinCallback callback) {
+    public static void showConfirmUnverifiedDialog(final Activity act, final StudyCallback callback) {
         // Prepare a builder
         AlertDialog.Builder builder = new AlertDialog.Builder(act);
         // Set the values, build and show the dialog
@@ -45,7 +45,7 @@ public class JoinDialog {
                 .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialogInterface, int i) {
-                        callback.onJoinConfirmed();
+                        callback.onActionConfirmed();
                     }
                 })
                 .setNegativeButton("No", null)
@@ -53,10 +53,34 @@ public class JoinDialog {
                 .create().show();
     }
 
-    public interface OnJoinCallback {
+
+    /**
+     * Show a dialog to confirm leaving a study
+     * @param act the calling Activity
+     * @param callback The callback to notify if the leave was confirmed
+     */
+    public static void showLeaveDialog(final Activity act, final StudyCallback callback) {
+        // Prepare a builder
+        AlertDialog.Builder builder = new AlertDialog.Builder(act);
+        // Set the values, build and show the dialog
+        builder.setTitle("Leave study?")
+                // TODO Improve wording of the message
+                .setMessage("If you leave the study, you will stop submitting data. However, previously submitted data will not be removed from the stuy. Do you want to leave the study?")
+                .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        callback.onActionConfirmed();
+                    }
+                })
+                .setNegativeButton("No", null)
+                .create().show();
+    }
+
+
+    public interface StudyCallback {
         /**
-         * Called to notify the callback that the join was confirmed
+         * Called to notify the callback that the action was confirmed
          */
-        void onJoinConfirmed();
+        void onActionConfirmed();
     }
 }

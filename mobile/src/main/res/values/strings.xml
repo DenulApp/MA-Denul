@@ -111,6 +111,7 @@
 
     <!-- Study Menu-->
     <string name="study_menu_join">Join</string>
+    <string name="study_menu_leave">Leave</string>
 
     <!-- Shareable granularity descriptions -->
     <string name="shareable_granularity_unknown">Unknown</string>

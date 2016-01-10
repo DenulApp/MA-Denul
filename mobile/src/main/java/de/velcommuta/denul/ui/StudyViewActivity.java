@@ -22,7 +22,7 @@ import de.velcommuta.denul.R;
 import de.velcommuta.denul.data.StudyRequest;
 import de.velcommuta.denul.service.DatabaseService;
 import de.velcommuta.denul.service.DatabaseServiceBinder;
-import de.velcommuta.denul.ui.dialog.JoinDialog;
+import de.velcommuta.denul.ui.dialog.StudyDialog;
 import de.velcommuta.denul.util.StudyManager;
 
 /**
@@ -90,7 +90,12 @@ public class StudyViewActivity extends AppCompatActivity implements ServiceConne
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.activity_study_view, menu);
+        if (mStudy == null) return true;
+        if (mStudy.participating) {
+            getMenuInflater().inflate(R.menu.activity_study_view_participating, menu);
+        } else {
+            getMenuInflater().inflate(R.menu.activity_study_view, menu);
+        }
         return true;
     }
 
@@ -131,6 +136,8 @@ public class StudyViewActivity extends AppCompatActivity implements ServiceConne
             datarequests.append(req.toString());
         }
         mStudyDataRequests.setText(format(getString(R.string.study_datarequests), datarequests.toString()));
+        // Invalidate options menu to redraw
+        invalidateOptionsMenu();
     }
 
 
@@ -138,11 +145,10 @@ public class StudyViewActivity extends AppCompatActivity implements ServiceConne
      * Display a confirmation dialog to join the displayed study
      */
     private void joinStudy() {
-        // TODO Check if the study was already joined
         if (mDbBinder == null) throw new IllegalArgumentException("DB Binder == null");
-        JoinDialog.showJoinDialog(this, new JoinDialog.OnJoinCallback() {
+        StudyDialog.showJoinDialog(this, new StudyDialog.StudyCallback() {
             @Override
-            public void onJoinConfirmed() {
+            public void onActionConfirmed() {
                 // Verify the authenticity of the StudyRequest
                 new StudyManager().new VerifyStudy(new StudyManager.VerificationCallback() {
                     @Override
@@ -170,6 +176,7 @@ public class StudyViewActivity extends AppCompatActivity implements ServiceConne
             @Override
             public void onUpdateFinished() {
                 Toast.makeText(StudyViewActivity.this, "Study joined", Toast.LENGTH_SHORT).show();
+                loadStudyInformation();
             }
         }).execute(mStudy);
     }
@@ -180,10 +187,24 @@ public class StudyViewActivity extends AppCompatActivity implements ServiceConne
      * failed
      */
     private void confirmJoinUnverified() {
-        JoinDialog.showConfirmUnverifiedDialog(this, new JoinDialog.OnJoinCallback() {
+        StudyDialog.showConfirmUnverifiedDialog(this, new StudyDialog.StudyCallback() {
             @Override
-            public void onJoinConfirmed() {
+            public void onActionConfirmed() {
                 performStudyJoin();
+            }
+        });
+    }
+
+
+    /**
+     * Leave a previously joined study
+     */
+    private void leaveStudy() {
+        StudyDialog.showLeaveDialog(this, new StudyDialog.StudyCallback() {
+            @Override
+            public void onActionConfirmed() {
+                StudyManager.leaveStudy(mDbBinder, mStudy);
+                loadStudyInformation();
             }
         });
     }
@@ -247,6 +268,9 @@ public class StudyViewActivity extends AppCompatActivity implements ServiceConne
         switch (item.getItemId()) {
             case R.id.action_join:
                 joinStudy();
+                return true;
+            case R.id.action_leave:
+                leaveStudy();
                 return true;
             case android.R.id.home:
                 finish();

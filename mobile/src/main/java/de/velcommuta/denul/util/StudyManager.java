@@ -212,6 +212,21 @@ public class StudyManager {
     }
 
 
+    /**
+     * Leave a previously joined study
+     * @param binder An open DatabaseServiceBinder
+     * @param req The Study to leave
+     */
+    public static void leaveStudy(DatabaseServiceBinder binder, StudyRequest req) {
+        req.participating = false;
+        req.key_in = null;
+        req.ctr_in = null;
+        req.key_out = null;
+        req.ctr_out = null;
+        binder.updateStudy(req);
+    }
+
+
 
 
     public interface StudyManagerCallback {
