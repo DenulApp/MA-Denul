@@ -135,7 +135,7 @@ public class StudyViewActivity extends AppCompatActivity implements ServiceConne
 
 
     /**
-     * Join the currently displayed study
+     * Display a confirmation dialog to join the displayed study
      */
     private void joinStudy() {
         // TODO Check if the study was already joined
@@ -143,12 +143,47 @@ public class StudyViewActivity extends AppCompatActivity implements ServiceConne
         JoinDialog.showJoinDialog(this, new JoinDialog.OnJoinCallback() {
             @Override
             public void onJoinConfirmed() {
-                new StudyManager().new JoinStudy(mDbBinder, new StudyManager.StudyManagerCallback() {
+                // Verify the authenticity of the StudyRequest
+                new StudyManager().new VerifyStudy(new StudyManager.VerificationCallback() {
                     @Override
-                    public void onUpdateFinished() {
-                        Toast.makeText(StudyViewActivity.this, "Study joined", Toast.LENGTH_SHORT).show();
+                    public void onVerificationFinished(boolean ok) {
+                        if (ok) {
+                            // If the verification succeeded, join the study
+                            performStudyJoin();
+                        } else {
+                            // Verification failed, ask if user wants to join anyway
+                            confirmJoinUnverified();
+                        }
                     }
                 }).execute(mStudy);
+
+            }
+        });
+    }
+
+
+    /**
+     * Join the study
+     */
+    private void performStudyJoin() {
+        new StudyManager().new JoinStudy(mDbBinder, new StudyManager.StudyManagerCallback() {
+            @Override
+            public void onUpdateFinished() {
+                Toast.makeText(StudyViewActivity.this, "Study joined", Toast.LENGTH_SHORT).show();
+            }
+        }).execute(mStudy);
+    }
+
+
+    /**
+     * Ask for confirmation if the study should really be joined, even though the verification
+     * failed
+     */
+    private void confirmJoinUnverified() {
+        JoinDialog.showConfirmUnverifiedDialog(this, new JoinDialog.OnJoinCallback() {
+            @Override
+            public void onJoinConfirmed() {
+                performStudyJoin();
             }
         });
     }
@@ -212,6 +247,9 @@ public class StudyViewActivity extends AppCompatActivity implements ServiceConne
         switch (item.getItemId()) {
             case R.id.action_join:
                 joinStudy();
+                return true;
+            case android.R.id.home:
+                finish();
                 return true;
             default:
                 return false;

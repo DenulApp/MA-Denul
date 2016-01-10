@@ -4,8 +4,6 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 
-import de.velcommuta.denul.service.DatabaseServiceBinder;
-
 /**
  * Helper class to display a dialog for joining studies
  */
@@ -31,9 +29,33 @@ public class JoinDialog {
                 .create().show();
     }
 
+
+    /**
+     * Show a dialog to confirm joining a study that could not be verified
+     * @param act The calling activity
+     * @param callback The callback to notify if the join was confirmed
+     */
+    public static void showConfirmUnverifiedDialog(final Activity act, final OnJoinCallback callback) {
+        // Prepare a builder
+        AlertDialog.Builder builder = new AlertDialog.Builder(act);
+        // Set the values, build and show the dialog
+        builder.setTitle("Verification failed")
+                // TODO Improve wording of the message
+                .setMessage("The study could not be verified - this means that it may not have been created by the claimed authors. Do you want to join it anyway?")
+                .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        callback.onJoinConfirmed();
+                    }
+                })
+                .setNegativeButton("No", null)
+                // TODO addNeutralButton with more information
+                .create().show();
+    }
+
     public interface OnJoinCallback {
         /**
-         * Called to notify the callback that the requested deletion was confirmed and performed
+         * Called to notify the callback that the join was confirmed
          */
         void onJoinConfirmed();
     }
