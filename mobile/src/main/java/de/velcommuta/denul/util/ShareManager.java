@@ -479,6 +479,23 @@ public class ShareManager {
 
 
     /**
+     * Save a Shareable to the database, and do any operations that should be performed on all new
+     * shareables (e.g. check if they should be uploaded to any active studies, ...)
+     * @param binder An open DatabaseServiceBinder
+     * @param sh The Shareable(s)
+     */
+    public static void saveShareableToDatabase(DatabaseServiceBinder binder, Shareable... sh) {
+        if (binder == null || !binder.isDatabaseOpen()) throw new IllegalArgumentException("Bad binder");
+        // Save to database
+        for (Shareable share : sh) {
+            binder.addShareable(share);
+        }
+        // Check studies
+        StudyManager.checkShareable(binder, sh);
+    }
+
+
+    /**
      * Callback interface for receiving status updates
      */
     public interface ShareManagerCallback {

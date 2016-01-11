@@ -1460,6 +1460,7 @@ public class DatabaseService extends Service {
             while (c.moveToNext()) {
                 rv.add(dataRequestFromCursor(c));
             }
+            c.close();
             return rv;
         }
 

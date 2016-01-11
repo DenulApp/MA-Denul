@@ -4,6 +4,8 @@ import android.os.AsyncTask;
 import android.util.Log;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 
 import de.velcommuta.denul.crypto.ECDHKeyExchange;
@@ -11,6 +13,7 @@ import de.velcommuta.denul.crypto.HKDFKeyExpansion;
 import de.velcommuta.denul.crypto.KeyExchange;
 import de.velcommuta.denul.crypto.KeyExpansion;
 import de.velcommuta.denul.data.KeySet;
+import de.velcommuta.denul.data.Shareable;
 import de.velcommuta.denul.data.StudyRequest;
 import de.velcommuta.denul.networking.Connection;
 import de.velcommuta.denul.networking.DNSVerifier;
@@ -18,6 +21,7 @@ import de.velcommuta.denul.networking.HttpsVerifier;
 import de.velcommuta.denul.networking.ProtobufProtocol;
 import de.velcommuta.denul.networking.Protocol;
 import de.velcommuta.denul.networking.TLSConnection;
+import de.velcommuta.denul.networking.protobuf.study.StudyMessage;
 import de.velcommuta.denul.service.DatabaseServiceBinder;
 
 /**
@@ -212,6 +216,49 @@ public class StudyManager {
     }
 
 
+    private class CheckShareable extends AsyncTask<Shareable, Void, Void> {
+        private static final String TAG = "CheckShareable";
+
+        private DatabaseServiceBinder mBinder;
+
+        /**
+         * Constructor
+         * @param binder An open DatabaseServiceBinder
+         */
+        public CheckShareable(DatabaseServiceBinder binder) {
+            if (binder == null) throw new IllegalArgumentException("Binder must not be null");
+            if (!binder.isDatabaseOpen()) throw new IllegalArgumentException("Binder must be open");
+            mBinder = binder;
+        }
+
+        @Override
+        protected Void doInBackground(Shareable... shareables) {
+            HashMap<Shareable, List<StudyRequest.DataRequest>> matching = new HashMap<>();
+            List<StudyRequest.DataRequest> reqs = mBinder.getActiveDataRequests();
+            // Check all DataRequests...
+            for (StudyRequest.DataRequest req : reqs) {
+                // ...against all Shareables...
+                for (Shareable sh : shareables) {
+                    // ...and check if the DataRequest covers the Shareable...
+                    if (req.matches(sh)) {
+                        // ...and if it does, save it for later processing
+                        if (matching.containsKey(sh)) {
+                            matching.get(sh).add(req);
+                        } else {
+                            List<StudyRequest.DataRequest> l = new LinkedList<>();
+                            l.add(req);
+                            matching.put(sh, l);
+                        }
+                    }
+                }
+            }
+            // All Shareables that should be uploaded have been saved in the "matching" HashMap
+            Log.d(TAG, "doInBackground: Found " + matching.size() + " matched Shareables");
+            return null;
+        }
+    }
+
+
     /**
      * Verify the authenticity of a study
      * @param callback The callback to notify about the result
@@ -255,6 +302,18 @@ public class StudyManager {
         req.key_out = null;
         req.ctr_out = null;
         binder.updateStudy(req);
+    }
+
+
+    /**
+     * Check a Shareable against the DataRequests of active Studies to see if it matches any
+     * DataRequests. If it matches, it will be uploaded automatically.
+     * TODO Maybe just add it to a queue to upload once the next regular connection is established?
+     * @param binder An open DatabaseServiceBinder
+     * @param sh The Shareable(s) to check
+     */
+    public static void checkShareable(DatabaseServiceBinder binder, Shareable... sh) {
+        new StudyManager().new CheckShareable(binder).execute(sh);
     }
 
 
