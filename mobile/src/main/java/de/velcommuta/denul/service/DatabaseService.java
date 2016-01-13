@@ -1582,6 +1582,7 @@ public class DatabaseService extends Service {
             rv.group = c.getString(c.getColumnIndexOrThrow(StudyContract.Investigators.COLUMN_GROUP));
             rv.institution = c.getString(c.getColumnIndexOrThrow(StudyContract.Investigators.COLUMN_INSTITUTION));
             rv.position = c.getString(c.getColumnIndexOrThrow(StudyContract.Investigators.COLUMN_POSITION));
+            rv.id = c.getLong(c.getColumnIndexOrThrow(StudyContract.Investigators._ID));
             // Return
             return rv;
         }
@@ -1627,6 +1628,7 @@ public class DatabaseService extends Service {
             rv.frequency = c.getInt(c.getColumnIndexOrThrow(StudyContract.DataRequests.COLUMN_FREQUENCY));
             rv.granularity = c.getInt(c.getColumnIndexOrThrow(StudyContract.DataRequests.COLUMN_GRANULARITY));
             rv.type = c.getInt(c.getColumnIndexOrThrow(StudyContract.DataRequests.COLUMN_DATATYPE));
+            rv.id = c.getLong(c.getColumnIndexOrThrow(StudyContract.DataRequests._ID));
             // Return
             return rv;
         }

@@ -177,6 +177,7 @@ public class StudyRequest {
      * Data holder class for Investigators associated with a study
      */
     public static class Investigator {
+        public long id;
         public String name;
         public String institution;
         public String group;
@@ -238,6 +239,7 @@ public class StudyRequest {
         public static final int GRANULARITY_COARSE = 1;
         public static final int GRANULARITY_VERY_COARSE = 2;
 
+        public long id;
         public Integer type;
         public Integer granularity;
         public Integer frequency;
