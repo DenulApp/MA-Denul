@@ -12,9 +12,11 @@ public class DataBlock {
 
     private byte[] mKey;
     private byte[] mIdentifier;
+    private byte[] mRevoke;
     private byte[] mCiphertext;
     private Friend mOwner;
     private int mGranularity;
+    private long share_id;
 
 
     /**
@@ -130,6 +132,43 @@ public class DataBlock {
     public Friend getOwner() {
         return mOwner;
     }
+
+
+    /**
+     * Setter for the database ID of a DataBlock
+     * @param id The Database ID
+     */
+    public void setDatabaseID(long id) {
+        share_id = id;
+    }
+
+
+    /**
+     * Getter for the database ID of a DataBlock
+     * @return The Database ID
+     */
+    public long getDatabaseID() {
+        return share_id;
+    }
+
+
+    /**
+     * Setter for the revocation token
+     * @param revoke The revocation token
+     */
+    public void setRevocationToken(byte[] revoke) {
+        mRevoke = Arrays.copyOf(revoke, revoke.length);
+    }
+
+
+    /**
+     * Getter for the revocation token
+     * @return The revocation token
+     */
+    public byte[] getRevocationToken() {
+        return mRevoke;
+    }
+
 
     public boolean equals(Object o) {
         if (!(o instanceof DataBlock)) return false;

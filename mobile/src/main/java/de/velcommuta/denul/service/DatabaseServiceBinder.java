@@ -335,4 +335,38 @@ public interface DatabaseServiceBinder {
      * @return A List of DataRequests, or an empty List if no studies are active
      */
     List<StudyRequest.DataRequest> getActiveDataRequests();
+
+    /**
+     * Retrieve the DataBlock representing the Shareable with a certain granularity from the database
+     * @param shr The Shareable
+     * @param granularity The granularity, as one of the GRANULARITY_* constants from the Shareable
+     *                    interface
+     * @return The DataBlock
+     */
+    DataBlock getStudyShareForShareable(Shareable shr, int granularity);
+
+    /**
+     * Add a DataBlock for a certain Shareable to the database
+     * @param shr The Shareable
+     * @param data The DataBlock
+     * @param granularity The granularity, as one of the GRANULARITY_* constants from the Shareable
+     *                    interface
+     * @return The database ID of the created entry
+     */
+    long addStudyShare(Shareable shr, DataBlock data, int granularity);
+
+    /**
+     * Add a recipient to a Study share
+     * @param shareid The ID of the StudyShare (as returned by {@link #addStudyShare(Shareable, DataBlock, int)})
+     * @param request The StudyRequest the data was shared to
+     * @param tokens The tokens used on the server
+     */
+    void addStudyShareRecipient(long shareid, StudyRequest request, TokenPair tokens);
+
+    /**
+     * Get the database ID of a StudyRequest based on a DataRequest associated with it
+     * @param req The DataRequest
+     * @return The database ID of the StudyRequest associated with the DataRequest
+     */
+    long getStudyRequestIDByDataRequest(StudyRequest.DataRequest req);
 }

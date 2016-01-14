@@ -1465,6 +1465,102 @@ public class DatabaseService extends Service {
         }
 
 
+        @Override
+        public DataBlock getStudyShareForShareable(Shareable shr, int granularity) {
+            assertOpen();
+            // Ensure granularity is sane
+            if (granularity < 0 || granularity > Shareable.GRANULARITY_VERY_COARSE) {
+                Log.e(TAG, "getStudyShareForShareable: Granularity must be one of the GRANULARITY_* constants");
+                return null;
+            }
+            // Prepare query
+            String[] whereArgs = { "" + shr.getID(), "" + granularity, "" + shr.getType()};
+            Cursor c = query(StudyContract.DataShare.TABLE_NAME,
+                    null,
+                    StudyContract.DataShare.COLUMN_SHAREABLE_ID + " LIKE ? AND "
+                            + StudyContract.DataShare.COLUMN_GRANULARITY + " LIKE ? AND "
+                            + StudyContract.DataShare.COLUMN_DATATYPE + " LIKE ?",
+                    whereArgs,
+                    null,
+                    null,
+                    null);
+            // Prepare return value
+            DataBlock rv = null;
+            // Read data, if available
+            if (c.moveToFirst()) {
+                rv = new DataBlock(c.getBlob(c.getColumnIndexOrThrow(StudyContract.DataShare.COLUMN_KEY)),
+                                   c.getBlob(c.getColumnIndexOrThrow(StudyContract.DataShare.COLUMN_IDENT)));
+                rv.setDatabaseID(c.getLong(c.getColumnIndexOrThrow(StudyContract.DataShare._ID)));
+            }
+            // Close cursor
+            c.close();
+            // return (doh)
+            return rv;
+        }
+
+
+        @Override
+        public long addStudyShare(Shareable shr, DataBlock data, int granularity) {
+            assertOpen();
+            if (granularity < 0 || granularity > Shareable.GRANULARITY_VERY_COARSE) {
+                Log.e(TAG, "getStudyShareForShareable: Granularity must be one of the GRANULARITY_* constants");
+                return -1;
+            }
+            // Prepare insert
+            ContentValues insert = new ContentValues();
+            insert.put(StudyContract.DataShare.COLUMN_DATATYPE, shr.getType());
+            insert.put(StudyContract.DataShare.COLUMN_GRANULARITY, granularity);
+            insert.put(StudyContract.DataShare.COLUMN_SHAREABLE_ID, shr.getID());
+            insert.put(StudyContract.DataShare.COLUMN_KEY, data.getKey());
+            insert.put(StudyContract.DataShare.COLUMN_REVOKE, data.getRevocationToken());
+            insert.put(StudyContract.DataShare.COLUMN_IDENT, data.getIdentifier());
+            // Run insert
+            return insert(StudyContract.DataShare.TABLE_NAME, null, insert);
+        }
+
+
+        @Override
+        public void addStudyShareRecipient(long shareid, StudyRequest request, TokenPair tokens) {
+            assertOpen();
+            if (shareid < 0 || request == null || tokens == null) {
+                throw new IllegalArgumentException("addStudyShareRecipient: Bad parameters");
+            }
+            ContentValues insert = new ContentValues();
+            insert.put(StudyContract.StudyShare.COLUMN_DATASHARE, shareid);
+            insert.put(StudyContract.StudyShare.COLUMN_STUDYID, request.id);
+            insert.put(StudyContract.StudyShare.COLUMN_IDENTIFIER, tokens.getIdentifier());
+            insert.put(StudyContract.StudyShare.COLUMN_REVOCATION, tokens.getRevocation());
+            insert(StudyContract.StudyShare.TABLE_NAME, null, insert);
+        }
+
+
+        @Override
+        public long getStudyRequestIDByDataRequest(StudyRequest.DataRequest req) {
+            assertOpen();
+            if (req.id == -1) {
+                Log.e(TAG, "getStudyRequestIDByDataRequest: id cannot be -1");
+                return -1;
+            }
+            long rv;
+            String[] whereArgs = { "" + req.id };
+            Cursor c = query(StudyContract.DataRequests.TABLE_NAME,
+                    new String[] {StudyContract.DataRequests.COLUMN_STUDY},
+                    StudyContract.DataRequests._ID + " LIKE ?",
+                    whereArgs,
+                    null,
+                    null,
+                    null);
+            if (c.moveToFirst()) {
+                rv = c.getLong(c.getColumnIndexOrThrow(StudyContract.DataRequests.COLUMN_STUDY));
+            } else {
+                Log.e(TAG, "getStudyRequestIDByDataRequest: No results for ID " + req.id);
+                rv = -1;
+            }
+            c.close();
+            return rv;
+        }
+
+
         /**
          * Private helper function to update the description of a GPS track in the database
          * @param track The updated GPS track
