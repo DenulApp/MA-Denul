@@ -53,4 +53,24 @@ public class StudyContract {
         public static final String COLUMN_GRANULARITY = "granularity";
         public static final String COLUMN_FREQUENCY = "frequency";
     }
+
+    public static abstract class DataShare implements BaseColumns {
+        public static final String TABLE_NAME = "StudyDataShare";
+
+        public static final String COLUMN_DATATYPE = "datatype";
+        public static final String COLUMN_GRANULARITY = "granularity";
+        public static final String COLUMN_SHAREABLE_ID = "shr_id";
+        public static final String COLUMN_KEY = "key";
+        public static final String COLUMN_IDENT = "identifier";
+        public static final String COLUMN_REVOKE = "revocation";
+    }
+
+    public static abstract class StudyShare implements BaseColumns {
+        public static final String TABLE_NAME = "StudyKeyShare";
+
+        public static final String COLUMN_DATASHARE = "datashare_id";
+        public static final String COLUMN_STUDYID = "study_id";
+        public static final String COLUMN_IDENTIFIER = "ident";
+        public static final String COLUMN_REVOCATION = "revoke";
+    }
 }

@@ -184,6 +184,30 @@ public class SecureDbHelper extends SQLiteOpenHelper {
             "(" + StudyContract.Studies._ID + ")" + FKEY_ONDELETE_CASCADE +
             ");";
 
+    private static final String SQL_CREATE_ENTRIES_STUDYDATASHARE
+            = "CREATE TABLE " + StudyContract.DataShare.TABLE_NAME + " (" +
+            StudyContract.DataShare._ID + TYPE_INT + OPT_PRIMARY_KEY + COMMA_SEP +
+            StudyContract.DataShare.COLUMN_DATATYPE + TYPE_INT + OPT_NOT_NULL + COMMA_SEP +
+            StudyContract.DataShare.COLUMN_GRANULARITY + TYPE_INT + OPT_NOT_NULL + COMMA_SEP +
+            StudyContract.DataShare.COLUMN_SHAREABLE_ID + TYPE_INT + OPT_NOT_NULL + COMMA_SEP +
+            StudyContract.DataShare.COLUMN_IDENT + TYPE_BLOB + OPT_NOT_NULL + COMMA_SEP +
+            StudyContract.DataShare.COLUMN_KEY + TYPE_BLOB + OPT_NOT_NULL + COMMA_SEP +
+            StudyContract.DataShare.COLUMN_REVOKE + TYPE_BLOB + OPT_NOT_NULL +
+            ");";
+
+    private static final String SQL_CREATE_ENTRIES_STUDYKEYSHARE
+            = "CREATE TABLE " + StudyContract.StudyShare.TABLE_NAME + " (" +
+            StudyContract.StudyShare._ID + TYPE_INT + OPT_PRIMARY_KEY + COMMA_SEP +
+            StudyContract.StudyShare.COLUMN_DATASHARE + TYPE_INT + OPT_NOT_NULL + COMMA_SEP +
+            StudyContract.StudyShare.COLUMN_STUDYID + TYPE_INT + OPT_NOT_NULL + COMMA_SEP +
+            StudyContract.StudyShare.COLUMN_IDENTIFIER + TYPE_BLOB + OPT_NOT_NULL + COMMA_SEP +
+            StudyContract.StudyShare.COLUMN_REVOCATION + TYPE_BLOB + OPT_NOT_NULL + COMMA_SEP +
+            FKEY_DECL + StudyContract.StudyShare.COLUMN_STUDYID + FKEY_REFS + StudyContract.Studies.TABLE_NAME +
+            "(" + StudyContract.Studies._ID + ")" + FKEY_ONDELETE_CASCADE + COMMA_SEP +
+            FKEY_DECL + StudyContract.StudyShare.COLUMN_DATASHARE + FKEY_REFS + StudyContract.DataShare.TABLE_NAME +
+            "(" + StudyContract.DataShare._ID + ")" + FKEY_ONDELETE_CASCADE +
+            ");";
+
     private static final String SQL_DROP_LOCATIONLOG =
             "DROP TABLE " + LocationLoggingContract.LocationLog.TABLE_NAME + ";";
 
@@ -220,9 +244,15 @@ public class SecureDbHelper extends SQLiteOpenHelper {
     private static final String SQL_DROP_DATAREQUESTS =
             "DROP TABLE " + StudyContract.DataRequests.TABLE_NAME + ";";
 
+    private static final String SQL_DROP_STUDYDATASHARE =
+            "DROP TABLE " + StudyContract.DataShare.TABLE_NAME + ";";
+
+    private static final String SQL_DROP_STUDYKEYSHARE =
+            "DROP TABLE " + StudyContract.StudyShare.TABLE_NAME + ";";
+
     public static final String DATABASE_NAME = "location.db"; // TODO Update
 
-    public static final int DATABASE_VERSION = 19;
+    public static final int DATABASE_VERSION = 20;
 
 
     /**
@@ -256,15 +286,21 @@ public class SecureDbHelper extends SQLiteOpenHelper {
         db.execSQL(SQL_CREATE_ENTRIES_STUDIES);
         db.execSQL(SQL_CREATE_ENTRIES_INVESTIGATORS);
         db.execSQL(SQL_CREATE_ENTRIES_DATAREQUESTS);
+        db.execSQL(SQL_CREATE_ENTRIES_STUDYDATASHARE);
+        db.execSQL(SQL_CREATE_ENTRIES_STUDYKEYSHARE);
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         Log.d(TAG, "onUpgrade: Old = " + oldVersion + " new = " + newVersion);
-        if (oldVersion == 16 && newVersion == 19) {
+        if (oldVersion == 16 && newVersion == 20) {
             onUpgrade(db, 16, 17);
             onUpgrade(db, 17, 18);
             onUpgrade(db, 18, 19);
+            onUpgrade(db, 19, 20);
+        } else if (oldVersion == 19 && newVersion == 20) {
+            db.execSQL(SQL_CREATE_ENTRIES_STUDYDATASHARE);
+            db.execSQL(SQL_CREATE_ENTRIES_STUDYKEYSHARE);
         } else if (oldVersion == 18 && newVersion == 19) {
             db.execSQL(SQL_DROP_STUDIES);
             db.execSQL(SQL_DROP_INVESTIGATORS);
@@ -312,6 +348,8 @@ public class SecureDbHelper extends SQLiteOpenHelper {
             db.execSQL(SQL_DROP_STUDIES);
             db.execSQL(SQL_DROP_INVESTIGATORS);
             db.execSQL(SQL_DROP_DATAREQUESTS);
+            db.execSQL(SQL_DROP_STUDYDATASHARE);
+            db.execSQL(SQL_DROP_STUDYKEYSHARE);
             onCreate(db);
         }
     }
