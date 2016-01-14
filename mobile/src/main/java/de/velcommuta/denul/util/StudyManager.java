@@ -7,21 +7,28 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
+import de.velcommuta.denul.crypto.AESSharingEncryption;
 import de.velcommuta.denul.crypto.ECDHKeyExchange;
 import de.velcommuta.denul.crypto.HKDFKeyExpansion;
+import de.velcommuta.denul.crypto.IdentifierDerivation;
 import de.velcommuta.denul.crypto.KeyExchange;
 import de.velcommuta.denul.crypto.KeyExpansion;
+import de.velcommuta.denul.crypto.SHA256IdentifierDerivation;
+import de.velcommuta.denul.crypto.SharingEncryption;
+import de.velcommuta.denul.data.DataBlock;
+import de.velcommuta.denul.data.Friend;
 import de.velcommuta.denul.data.KeySet;
 import de.velcommuta.denul.data.Shareable;
 import de.velcommuta.denul.data.StudyRequest;
+import de.velcommuta.denul.data.TokenPair;
 import de.velcommuta.denul.networking.Connection;
 import de.velcommuta.denul.networking.DNSVerifier;
 import de.velcommuta.denul.networking.HttpsVerifier;
 import de.velcommuta.denul.networking.ProtobufProtocol;
 import de.velcommuta.denul.networking.Protocol;
 import de.velcommuta.denul.networking.TLSConnection;
-import de.velcommuta.denul.networking.protobuf.study.StudyMessage;
 import de.velcommuta.denul.service.DatabaseServiceBinder;
 
 /**
@@ -221,6 +228,9 @@ public class StudyManager {
 
         private DatabaseServiceBinder mBinder;
 
+        private Map<DataBlock, DeferDB> mDeferred;
+        private Map<Long, StudyRequest> mStudyCache;
+
         /**
          * Constructor
          * @param binder An open DatabaseServiceBinder
@@ -229,6 +239,8 @@ public class StudyManager {
             if (binder == null) throw new IllegalArgumentException("Binder must not be null");
             if (!binder.isDatabaseOpen()) throw new IllegalArgumentException("Binder must be open");
             mBinder = binder;
+            mDeferred = new HashMap<>();
+            mStudyCache = new HashMap<>();
         }
 
         @Override
@@ -254,7 +266,184 @@ public class StudyManager {
             }
             // All Shareables that should be uploaded have been saved in the "matching" HashMap
             Log.d(TAG, "doInBackground: Found " + matching.size() + " matched Shareables");
+            uploadStudyData(matching);
             return null;
+        }
+
+
+        /**
+         * Upload data for matched studies
+         * @param upload A Hashmap mapping Shareables to a List of DataRequests matching them
+         */
+        private void uploadStudyData(HashMap<Shareable, List<StudyRequest.DataRequest>> upload) {
+            // Establish connection to server
+            Protocol proto;
+            try {
+                Connection conn = new TLSConnection(host, port);
+                proto = new ProtobufProtocol();
+                proto.connect(conn);
+            } catch (IOException e) {
+                e.printStackTrace();
+                Log.e(TAG, "uploadStudyData: Connection failed");
+                return;
+            }
+            // Prepare List of DataBlocks to upload
+            List<DataBlock> toUpload = new LinkedList<>();
+            for (Shareable shr : upload.keySet()) {
+                DataBlock data_granularity_very_coarse = mBinder.getStudyShareForShareable(shr, Shareable.GRANULARITY_VERY_COARSE); // TODO Remember to set Database ID
+                DataBlock data_granularity_coarse = mBinder.getStudyShareForShareable(shr, Shareable.GRANULARITY_COARSE);
+                DataBlock data_granularity_fine = mBinder.getStudyShareForShareable(shr, Shareable.GRANULARITY_FINE);
+                for (StudyRequest.DataRequest req : upload.get(shr)) {
+                    long share_id;
+                    if (req.granularity == Shareable.GRANULARITY_VERY_COARSE) {
+                        if (data_granularity_very_coarse == null) {
+                            data_granularity_very_coarse = prepareShareable(shr, req.granularity);
+                            int rv = proto.put(data_granularity_very_coarse);
+                            if (rv == Protocol.PUT_OK) {
+                                share_id = mBinder.addStudyShare(shr, data_granularity_very_coarse, req.granularity);
+                                data_granularity_very_coarse.setDatabaseID(share_id);
+                            } else {
+                                Log.e(TAG, "uploadStudyData: Upload failed!");
+                                // TODO Find a better solution
+                                continue;
+                            }
+                        }
+                        DataBlock keyblock = keyBlockForRequest(req, data_granularity_very_coarse);
+                        toUpload.add(keyblock);
+                    } else if (req.granularity == Shareable.GRANULARITY_COARSE) {
+                        if (data_granularity_coarse == null) {
+                            data_granularity_coarse = prepareShareable(shr, req.granularity);
+                            int rv = proto.put(data_granularity_coarse);
+                            if (rv == Protocol.PUT_OK) {
+                                share_id = mBinder.addStudyShare(shr, data_granularity_coarse, req.granularity);
+                                data_granularity_coarse.setDatabaseID(share_id);
+                            } else {
+                                Log.e(TAG, "uploadStudyData: Upload failed!");
+                                // TODO Find a better solution
+                                continue;
+                            }
+                        }
+                        DataBlock keyblock = keyBlockForRequest(req, data_granularity_coarse);
+                        toUpload.add(keyblock);
+                    } else if (req.granularity == Shareable.GRANULARITY_FINE) {
+                        if (data_granularity_fine == null) {
+                            data_granularity_fine = prepareShareable(shr, req.granularity);
+                            int rv = proto.put(data_granularity_fine);
+                            if (rv == Protocol.PUT_OK) {
+                                share_id = mBinder.addStudyShare(shr, data_granularity_fine, req.granularity);
+                                data_granularity_fine.setDatabaseID(share_id);
+                            } else {
+                                Log.e(TAG, "uploadStudyData: Upload failed!");
+                                // TODO Find a better solution
+                                continue;
+                            }
+                        }
+                        DataBlock keyblock = keyBlockForRequest(req, data_granularity_fine);
+                        toUpload.add(keyblock);
+                    }
+                }
+            }
+            Map<DataBlock, Integer> rv = proto.putMany(toUpload);
+            for (DataBlock block : rv.keySet()) {
+                switch (rv.get(block)) {
+                    case Protocol.PUT_OK:
+                        DeferDB deferred = mDeferred.get(block);
+                        mBinder.addStudyShareRecipient(deferred.share_id, deferred.request, deferred.tokens);
+                        mBinder.updateStudy(deferred.request);
+                        break;
+                    case Protocol.PUT_FAIL_NO_CONNECTION:
+                        Log.e(TAG, "uploadStudyData: ERR NO CONNECTION");
+                        break;
+                    case Protocol.PUT_FAIL_PROTOCOL_ERROR:
+                        Log.e(TAG, "uploadStudyData: ERR PROTO FAILURE");
+                        break;
+                    case Protocol.PUT_FAIL_KEY_FMT:
+                        Log.e(TAG, "uploadStudyData: ERR KEY FMT");
+                        break;
+                    case Protocol.PUT_FAIL_KEY_TAKEN:
+                        Log.e(TAG, "uploadStudyData: ERR KEY TAKEN");
+                        break;
+                }
+            }
+        }
+
+
+        /**
+         * Prepare a DataBlock representing a Shareable with a certain Granularity
+         * @param shr The Shareable
+         * @param granularity The granularity
+         * @return The DataBlock
+         */
+        private DataBlock prepareShareable(Shareable shr, int granularity) {
+            IdentifierDerivation deriv = new SHA256IdentifierDerivation();
+            SharingEncryption enc = new AESSharingEncryption();
+            // Generate a random identifier and revocation token
+            TokenPair data_identifier = deriv.generateRandomIdentifier();
+            // Encrypt the shareable and return the result
+            DataBlock rv = enc.encryptShareable(shr, granularity, data_identifier);
+            rv.setRevocationToken(data_identifier.getRevocation());
+            return rv;
+        }
+
+
+        /**
+         * Create a DataBlock with key information for a provided DataBlock
+         * @param req The DataRequest
+         * @param data The DataBlock to reference
+         * @return A Datablock referencing the provided DataBlock
+         */
+        private DataBlock keyBlockForRequest(StudyRequest.DataRequest req, DataBlock data) {
+            IdentifierDerivation deriv = new SHA256IdentifierDerivation();
+            SharingEncryption enc = new AESSharingEncryption();
+            // Retrieve keys
+            // We have to use a cache, as multiple DataRequests from the same study may match
+            // Shareables, in which case the same keys would be re-used if they were loaded from the
+            // database every time without updating the database. However, if we were to update the
+            // database instantly, a failed insert on the server could desync the clients, which
+            // would prevent them from ever communicating again. So, we have to use this slightly
+            // weird solution.
+            long dbid = mBinder.getStudyRequestIDByDataRequest(req);
+            StudyRequest sreq = mStudyCache.get(dbid);
+            if (sreq == null) {
+                sreq = mBinder.getStudyRequestByID(dbid);
+            }
+            KeySet keys = new KeySet(sreq.key_in, sreq.key_out, sreq.ctr_in, sreq.ctr_out, false);
+            // Generate identifier
+            TokenPair ident = deriv.generateOutboundIdentifier(keys);
+            // Create matching DataBlock
+            byte[] ciphertext = enc.encryptKeysAndIdentifier(data, keys);
+            DataBlock keyblock = new DataBlock(ident.getIdentifier(), ciphertext, ident.getIdentifier());
+            // Mark the counter value as used
+            keys = deriv.notifyOutboundIdentifierUsed(keys);
+            mDeferred.put(keyblock, new DeferDB(ident, sreq, data.getDatabaseID()));
+            // Update keys and cache the StudyRequest
+            sreq.key_in = keys.getInboundKey();
+            sreq.key_out = keys.getOutboundKey();
+            sreq.ctr_in = keys.getInboundCtr();
+            sreq.ctr_out = keys.getOutboundCtr();
+            mStudyCache.put(sreq.id, sreq);
+            // Return
+            return keyblock;
+        }
+
+        // Nested data container class, used to defer database updates until the upload has succeeded
+        private class DeferDB {
+            protected long share_id;
+            protected StudyRequest request;
+            protected TokenPair tokens;
+
+
+            /**
+             * Constructor for DeferDB object
+             * @param ident Identifier
+             * @param req StudyRequest
+             * @param sid share_id
+             */
+            public DeferDB(TokenPair ident, StudyRequest req, long sid) {
+                tokens = ident;
+                request = req;
+                share_id = sid;
+            }
         }
     }
 
