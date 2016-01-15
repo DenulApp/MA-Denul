@@ -8,20 +8,18 @@
             android:title="@string/menu_track_run" />
         <item android:id="@+id/nav_exc_history" android:icon="@android:drawable/ic_menu_recent_history"
             android:title="@string/menu_old_tracks" />
-        <!-- <item android:id="@+id/nav_slideshow" android:icon="@android:drawable/ic_menu_slideshow"
-            android:title="Slideshow" />
-        <item android:id="@+id/nav_manage" android:icon="@android:drawable/ic_menu_manage"
-            android:title="Tools" /> -->
+        <item android:id="@+id/nav_friends" android:icon="@drawable/ic_menu_allfriends"
+              android:title="@string/menu_friends" />
+        <item android:id="@+id/nav_studies" android:icon="@drawable/ic_school_24dp"
+              android:title="@string/menu_research" />
     </group>
 
     <item android:title="@string/menu_title_2">
         <menu>
-            <item android:id="@+id/nav_friends" android:icon="@drawable/ic_menu_allfriends"
-                android:title="@string/menu_friends" />
-            <item android:id="@+id/nav_studies" android:icon="@drawable/ic_school_24dp"
-                  android:title="@string/menu_research" />
             <item android:id="@+id/nav_menu" android:icon="@android:drawable/ic_menu_preferences"
                 android:title="@string/menu_prefs" />
+            <item android:id="@+id/nav_imprint" android:icon="@android:drawable/ic_menu_info_details"
+                  android:title="@string/menu_imprint" />
         </menu>
     </item>
 

@@ -12,11 +12,11 @@
     <string name="menu_home">Home</string>
     <string name="menu_track_run">Track</string>
     <string name="menu_old_tracks">Exercise History</string>
-    <string name="menu_title_2">Communicate</string>
-    <!-- TODO This title sucks -->
+    <string name="menu_title_2">Extras</string>
     <string name="menu_friends">Friends</string>
     <string name="menu_research">Research</string>
     <string name="menu_prefs">Settings</string>
+    <string name="menu_imprint">Imprint</string>
 
     <!-- Action bar menu -->
     <string name="abarmenu_friends_add">Add Friend</string>
