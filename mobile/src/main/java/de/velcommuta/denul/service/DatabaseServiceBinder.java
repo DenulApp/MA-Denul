@@ -1,9 +1,5 @@
 package de.velcommuta.denul.service;
 
-import android.content.ContentValues;
-
-import net.sqlcipher.Cursor;
-
 import org.joda.time.DateTime;
 
 import java.util.Hashtable;
@@ -14,6 +10,7 @@ import de.velcommuta.denul.data.GPSTrack;
 import de.velcommuta.denul.data.KeySet;
 import de.velcommuta.denul.data.Friend;
 import de.velcommuta.denul.data.Shareable;
+import de.velcommuta.denul.data.StudyRequest;
 import de.velcommuta.denul.data.TokenPair;
 
 /**
@@ -295,7 +292,81 @@ public interface DatabaseServiceBinder {
 
     /**
      * Update the description of a shareable in the database
-     * @param shareable The shareable object with the new description returned by {@link Shareable#getDescription()}
+     * @param shareable The shareable object with the new description returned by
+     * {@link Shareable#getDescription()}
      */
     void updateShareableDescription(Shareable shareable);
+
+    /**
+     * Add a {@link StudyRequest} to the database
+     * @param studyRequest The study request
+     * @return The ID of the inserted record, or -1 in case of an error
+     */
+    long addStudyRequest(StudyRequest studyRequest);
+
+    /**
+     * Delete a study from the database
+     * @param req The study
+     */
+    void deleteStudy(StudyRequest req);
+
+    /**
+     * Retrieve a specific {@link StudyRequest} by its ID
+     * @param id The ID
+     * @return The study request
+     */
+    StudyRequest getStudyRequestByID(long id);
+
+    /**
+     * Retrieve all {@link StudyRequest}s from the database
+     * @return A List of study requests
+     */
+    List<StudyRequest> getStudyRequests();
+
+    /**
+     * Update a study in the database with a new participation status and keys
+     * @param req The StudyRequest with the updated data
+     */
+    void updateStudy(StudyRequest req);
+
+    /**
+     * Get a List of all DataRequests that are currently active (i.e. the DataRequests of all
+     * studies the user is participating in)
+     * @return A List of DataRequests, or an empty List if no studies are active
+     */
+    List<StudyRequest.DataRequest> getActiveDataRequests();
+
+    /**
+     * Retrieve the DataBlock representing the Shareable with a certain granularity from the database
+     * @param shr The Shareable
+     * @param granularity The granularity, as one of the GRANULARITY_* constants from the Shareable
+     *                    interface
+     * @return The DataBlock
+     */
+    DataBlock getStudyShareForShareable(Shareable shr, int granularity);
+
+    /**
+     * Add a DataBlock for a certain Shareable to the database
+     * @param shr The Shareable
+     * @param data The DataBlock
+     * @param granularity The granularity, as one of the GRANULARITY_* constants from the Shareable
+     *                    interface
+     * @return The database ID of the created entry
+     */
+    long addStudyShare(Shareable shr, DataBlock data, int granularity);
+
+    /**
+     * Add a recipient to a Study share
+     * @param shareid The ID of the StudyShare (as returned by {@link #addStudyShare(Shareable, DataBlock, int)})
+     * @param request The StudyRequest the data was shared to
+     * @param tokens The tokens used on the server
+     */
+    void addStudyShareRecipient(long shareid, StudyRequest request, TokenPair tokens);
+
+    /**
+     * Get the database ID of a StudyRequest based on a DataRequest associated with it
+     * @param req The DataRequest
+     * @return The database ID of the StudyRequest associated with the DataRequest
+     */
+    long getStudyRequestIDByDataRequest(StudyRequest.DataRequest req);
 }

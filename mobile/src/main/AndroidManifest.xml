@@ -72,6 +72,8 @@
         </activity>
         <activity android:name=".ui.ExerciseViewActivity" android:theme="@style/AppTheme.NoActionBar">
         </activity>
+        <activity android:name=".ui.StudyViewActivity" android:theme="@style/AppTheme.NoActionBar">
+        </activity>
     </application>
 
 </manifest>

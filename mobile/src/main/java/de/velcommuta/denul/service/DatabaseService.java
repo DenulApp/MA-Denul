@@ -27,16 +27,20 @@ import java.util.LinkedList;
 import java.util.List;
 
 import de.greenrobot.event.EventBus;
+import de.velcommuta.denul.crypto.KexStub;
+import de.velcommuta.denul.crypto.RSA;
 import de.velcommuta.denul.data.DataBlock;
 import de.velcommuta.denul.data.GPSTrack;
 import de.velcommuta.denul.data.KeySet;
 import de.velcommuta.denul.data.Shareable;
+import de.velcommuta.denul.data.StudyRequest;
 import de.velcommuta.denul.data.TokenPair;
 import de.velcommuta.denul.db.FriendContract;
 import de.velcommuta.denul.db.LocationLoggingContract;
 import de.velcommuta.denul.db.SecureDbHelper;
 import de.velcommuta.denul.db.SharingContract;
 import de.velcommuta.denul.db.StepLoggingContract;
+import de.velcommuta.denul.db.StudyContract;
 import de.velcommuta.denul.db.VaultContract;
 import de.velcommuta.denul.event.DatabaseAvailabilityEvent;
 import de.velcommuta.denul.data.Friend;
@@ -1296,6 +1300,267 @@ public class DatabaseService extends Service {
         }
 
 
+        @Override
+        public long addStudyRequest(StudyRequest req) {
+            // When the study reaches this place, the signature will have already been verified -
+            // signature verification happens on deserialization.  Thus, it is not important that
+            // we are saving the signature nowhere, working under the assumption that the database
+            // is secure.
+            assertOpen();
+            if (req == null) throw new SQLiteException("StudyRequest cannot be null");
+            // Insert the study itself
+            ContentValues study = new ContentValues();
+            study.put(StudyContract.Studies.COLUMN_NAME, req.name);
+            study.put(StudyContract.Studies.COLUMN_INSTITUTION, req.institution);
+            study.put(StudyContract.Studies.COLUMN_WEB, req.webpage);
+            study.put(StudyContract.Studies.COLUMN_DESCRIPTION, req.description);
+            study.put(StudyContract.Studies.COLUMN_PURPOSE, req.purpose);
+            study.put(StudyContract.Studies.COLUMN_PROCEDURES, req.procedures);
+            study.put(StudyContract.Studies.COLUMN_RISKS, req.risks);
+            study.put(StudyContract.Studies.COLUMN_BENEFITS, req.benefits);
+            study.put(StudyContract.Studies.COLUMN_PAYMENT, req.payment);
+            study.put(StudyContract.Studies.COLUMN_CONFLICTS,req.conflicts);
+            study.put(StudyContract.Studies.COLUMN_CONFIDENTIALITY, req.confidentiality);
+            study.put(StudyContract.Studies.COLUMN_PARTICIPATION, req.participationAndWithdrawal);
+            study.put(StudyContract.Studies.COLUMN_RIGHTS, req.rights);
+            study.put(StudyContract.Studies.COLUMN_VERIFICATION, req.verification);
+            // TODO Change once more algorithms are added
+            study.put(StudyContract.Studies.COLUMN_PUBKEY, RSA.encodeKey(req.pubkey));
+            // TODO Change constants
+            study.put(StudyContract.Studies.COLUMN_KEYALGO, 1);
+            study.put(StudyContract.Studies.COLUMN_KEX, req.exchange.getPublicKexData());
+            // TODO Change constants
+            study.put(StudyContract.Studies.COLUMN_KEXALGO, 1);
+            study.put(StudyContract.Studies.COLUMN_QUEUE, req.queue);
+            // Perform insert
+            beginTransaction();
+            long rv = insert(StudyContract.Studies.TABLE_NAME, null, study);
+            // Insert Investigators
+            for (StudyRequest.Investigator inv : req.investigators) {
+                ContentValues investigator = new ContentValues();
+                investigator.put(StudyContract.Investigators.COLUMN_NAME, inv.name);
+                investigator.put(StudyContract.Investigators.COLUMN_GROUP, inv.group);
+                investigator.put(StudyContract.Investigators.COLUMN_INSTITUTION, inv.institution);
+                investigator.put(StudyContract.Investigators.COLUMN_POSITION, inv.position);
+                investigator.put(StudyContract.Investigators.COLUMN_STUDY, rv);
+                insert(StudyContract.Investigators.TABLE_NAME, null, investigator);
+            }
+            // Insert DataRequests
+            for (StudyRequest.DataRequest dreq : req.requests) {
+                ContentValues requests = new ContentValues();
+                requests.put(StudyContract.DataRequests.COLUMN_DATATYPE, dreq.type);
+                requests.put(StudyContract.DataRequests.COLUMN_FREQUENCY, dreq.frequency);
+                requests.put(StudyContract.DataRequests.COLUMN_GRANULARITY, dreq.granularity);
+                requests.put(StudyContract.DataRequests.COLUMN_STUDY, rv);
+                insert(StudyContract.DataRequests.TABLE_NAME, null, requests);
+            }
+            // Commit transaction
+            commit();
+            return rv;
+        }
+
+
+        @Override
+        public void deleteStudy(StudyRequest req) {
+            assertOpen();
+            if (req == null) throw new SQLiteException("Friend cannot be null");
+            String[] whereArgs = { "" + req.id};
+            int deleted = delete(StudyContract.Studies.TABLE_NAME,
+                    StudyContract.Studies._ID + " LIKE ?",
+                    whereArgs);
+            if (deleted != 1) {
+                throw new SQLiteException("Wanted to delete 1 row, but deleted " + deleted);
+            }
+        }
+
+
+        @Override
+        public StudyRequest getStudyRequestByID(long id) {
+            assertOpen();
+            if (id == -1) {
+                Log.e(TAG, "getStudyRequestByID: id cannot be -1");
+                return null;
+            }
+            String[] whereArgs = { "" + id };
+            Cursor c = query(StudyContract.Studies.TABLE_NAME,
+                    null,
+                    StudyContract.Studies._ID + " LIKE ?",
+                    whereArgs,
+                    null,
+                    null,
+                    null);
+            StudyRequest rv;
+            if (c.moveToFirst()) {
+                rv = studyRequestFromCursor(c);
+            } else {
+                Log.e(TAG, "getStudyRequestByID: No results for ID " + id);
+                rv = null;
+            }
+            c.close();
+            return rv;
+        }
+
+
+        @Override
+        public List<StudyRequest> getStudyRequests() {
+            assertOpen();
+            List<StudyRequest> rv = new LinkedList<>();
+            Cursor c = query(StudyContract.Studies.TABLE_NAME,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    StudyContract.Studies._ID + " ASC");
+            while (c.moveToNext()) {
+                rv.add(studyRequestFromCursor(c));
+            }
+            c.close();
+            return rv;
+        }
+
+
+        @Override
+        public void updateStudy(StudyRequest req) {
+            assertOpen();
+            if (req == null) throw new IllegalArgumentException("Bad StudyRequest");
+            // Set values
+            ContentValues update = new ContentValues();
+            update.put(StudyContract.Studies.COLUMN_PARTICIPATING, req.participating ? 1 : 0);
+            update.put(StudyContract.Studies.COLUMN_KEY_IN, req.key_in);
+            update.put(StudyContract.Studies.COLUMN_CTR_IN, req.ctr_in);
+            update.put(StudyContract.Studies.COLUMN_KEY_OUT, req.key_out);
+            update.put(StudyContract.Studies.COLUMN_CTR_OUT, req.ctr_out);
+
+            // Prepare and perform update
+            String[] whereArgs = {String.valueOf(req.id)};
+            beginTransaction();
+            update(StudyContract.Studies.TABLE_NAME,
+                    update,
+                    StudyContract.Studies._ID + " LIKE ?",
+                    whereArgs);
+            commit();
+        }
+
+
+        @Override
+        public List<StudyRequest.DataRequest> getActiveDataRequests() {
+            assertOpen();
+            // Prepare return value
+            List<StudyRequest.DataRequest> rv = new LinkedList<>();
+            // Prepare query
+            String query = "SELECT " + StudyContract.DataRequests.TABLE_NAME + ".* FROM " +
+                    StudyContract.DataRequests.TABLE_NAME + ", " + StudyContract.Studies.TABLE_NAME +
+                    " WHERE " + StudyContract.DataRequests.TABLE_NAME + "." + StudyContract.DataRequests.COLUMN_STUDY +
+                    " = " + StudyContract.Studies.TABLE_NAME + "." + StudyContract.Studies._ID +
+                    " AND " + StudyContract.Studies.TABLE_NAME + "." + StudyContract.Studies.COLUMN_PARTICIPATING +
+                    " = 1;";
+            // Perform query
+            Cursor c = mSQLiteHandler.rawQuery(query, null);
+            while (c.moveToNext()) {
+                rv.add(dataRequestFromCursor(c));
+            }
+            c.close();
+            return rv;
+        }
+
+
+        @Override
+        public DataBlock getStudyShareForShareable(Shareable shr, int granularity) {
+            assertOpen();
+            // Ensure granularity is sane
+            if (granularity < 0 || granularity > Shareable.GRANULARITY_VERY_COARSE) {
+                Log.e(TAG, "getStudyShareForShareable: Granularity must be one of the GRANULARITY_* constants");
+                return null;
+            }
+            // Prepare query
+            String[] whereArgs = { "" + shr.getID(), "" + granularity, "" + shr.getType()};
+            Cursor c = query(StudyContract.DataShare.TABLE_NAME,
+                    null,
+                    StudyContract.DataShare.COLUMN_SHAREABLE_ID + " LIKE ? AND "
+                            + StudyContract.DataShare.COLUMN_GRANULARITY + " LIKE ? AND "
+                            + StudyContract.DataShare.COLUMN_DATATYPE + " LIKE ?",
+                    whereArgs,
+                    null,
+                    null,
+                    null);
+            // Prepare return value
+            DataBlock rv = null;
+            // Read data, if available
+            if (c.moveToFirst()) {
+                rv = new DataBlock(c.getBlob(c.getColumnIndexOrThrow(StudyContract.DataShare.COLUMN_KEY)),
+                                   c.getBlob(c.getColumnIndexOrThrow(StudyContract.DataShare.COLUMN_IDENT)));
+                rv.setDatabaseID(c.getLong(c.getColumnIndexOrThrow(StudyContract.DataShare._ID)));
+            }
+            // Close cursor
+            c.close();
+            // return (doh)
+            return rv;
+        }
+
+
+        @Override
+        public long addStudyShare(Shareable shr, DataBlock data, int granularity) {
+            assertOpen();
+            if (granularity < 0 || granularity > Shareable.GRANULARITY_VERY_COARSE) {
+                Log.e(TAG, "getStudyShareForShareable: Granularity must be one of the GRANULARITY_* constants");
+                return -1;
+            }
+            // Prepare insert
+            ContentValues insert = new ContentValues();
+            insert.put(StudyContract.DataShare.COLUMN_DATATYPE, shr.getType());
+            insert.put(StudyContract.DataShare.COLUMN_GRANULARITY, granularity);
+            insert.put(StudyContract.DataShare.COLUMN_SHAREABLE_ID, shr.getID());
+            insert.put(StudyContract.DataShare.COLUMN_KEY, data.getKey());
+            insert.put(StudyContract.DataShare.COLUMN_REVOKE, data.getRevocationToken());
+            insert.put(StudyContract.DataShare.COLUMN_IDENT, data.getIdentifier());
+            // Run insert
+            return insert(StudyContract.DataShare.TABLE_NAME, null, insert);
+        }
+
+
+        @Override
+        public void addStudyShareRecipient(long shareid, StudyRequest request, TokenPair tokens) {
+            assertOpen();
+            if (shareid < 0 || request == null || tokens == null) {
+                throw new IllegalArgumentException("addStudyShareRecipient: Bad parameters");
+            }
+            ContentValues insert = new ContentValues();
+            insert.put(StudyContract.StudyShare.COLUMN_DATASHARE, shareid);
+            insert.put(StudyContract.StudyShare.COLUMN_STUDYID, request.id);
+            insert.put(StudyContract.StudyShare.COLUMN_IDENTIFIER, tokens.getIdentifier());
+            insert.put(StudyContract.StudyShare.COLUMN_REVOCATION, tokens.getRevocation());
+            insert(StudyContract.StudyShare.TABLE_NAME, null, insert);
+        }
+
+
+        @Override
+        public long getStudyRequestIDByDataRequest(StudyRequest.DataRequest req) {
+            assertOpen();
+            if (req.id == -1) {
+                Log.e(TAG, "getStudyRequestIDByDataRequest: id cannot be -1");
+                return -1;
+            }
+            long rv;
+            String[] whereArgs = { "" + req.id };
+            Cursor c = query(StudyContract.DataRequests.TABLE_NAME,
+                    new String[] {StudyContract.DataRequests.COLUMN_STUDY},
+                    StudyContract.DataRequests._ID + " LIKE ?",
+                    whereArgs,
+                    null,
+                    null,
+                    null);
+            if (c.moveToFirst()) {
+                rv = c.getLong(c.getColumnIndexOrThrow(StudyContract.DataRequests.COLUMN_STUDY));
+            } else {
+                Log.e(TAG, "getStudyRequestIDByDataRequest: No results for ID " + req.id);
+                rv = -1;
+            }
+            c.close();
+            return rv;
+        }
+
+
         /**
          * Private helper function to update the description of a GPS track in the database
          * @param track The updated GPS track
@@ -1328,6 +1593,141 @@ public class DatabaseService extends Service {
                 throw new SQLiteException("Database is not open");
         }
 
+
+        /**
+         * Read a StudyRequest from a cursor, querying the database for Investigators and Data Requests.
+         * @param c The cursor, containing results for a StudyRequest
+         * @return The StudyRequest
+         */
+        private StudyRequest studyRequestFromCursor(Cursor c) {
+            // Create studyRequest
+            StudyRequest rv = new StudyRequest();
+            // Set fields
+            rv.id = c.getLong(c.getColumnIndexOrThrow(StudyContract.Studies._ID));
+            rv.name = c.getString(c.getColumnIndexOrThrow(StudyContract.Studies.COLUMN_NAME));
+            rv.institution = c.getString(c.getColumnIndexOrThrow(StudyContract.Studies.COLUMN_INSTITUTION));
+            rv.webpage = c.getString(c.getColumnIndexOrThrow(StudyContract.Studies.COLUMN_WEB));
+            rv.description = c.getString(c.getColumnIndexOrThrow(StudyContract.Studies.COLUMN_DESCRIPTION));
+            rv.purpose = c.getString(c.getColumnIndexOrThrow(StudyContract.Studies.COLUMN_PURPOSE));
+            rv.procedures = c.getString(c.getColumnIndexOrThrow(StudyContract.Studies.COLUMN_PROCEDURES));
+            rv.risks = c.getString(c.getColumnIndexOrThrow(StudyContract.Studies.COLUMN_RISKS));
+            rv.benefits = c.getString(c.getColumnIndexOrThrow(StudyContract.Studies.COLUMN_BENEFITS));
+            rv.payment = c.getString(c.getColumnIndexOrThrow(StudyContract.Studies.COLUMN_PAYMENT));
+            rv.conflicts = c.getString(c.getColumnIndexOrThrow(StudyContract.Studies.COLUMN_CONFLICTS));
+            rv.confidentiality = c.getString(c.getColumnIndexOrThrow(StudyContract.Studies.COLUMN_CONFIDENTIALITY));
+            rv.participationAndWithdrawal = c.getString(c.getColumnIndexOrThrow(StudyContract.Studies.COLUMN_PARTICIPATION));
+            rv.rights = c.getString(c.getColumnIndexOrThrow(StudyContract.Studies.COLUMN_RIGHTS));
+            rv.verification = c.getInt(c.getColumnIndexOrThrow(StudyContract.Studies.COLUMN_VERIFICATION));
+            rv.pubkey = RSA.decodePublicKey(c.getString(c.getColumnIndexOrThrow(StudyContract.Studies.COLUMN_PUBKEY)));
+            rv.exchange = new KexStub(c.getBlob(c.getColumnIndexOrThrow(StudyContract.Studies.COLUMN_KEX)));
+            rv.queue = c.getBlob(c.getColumnIndexOrThrow(StudyContract.Studies.COLUMN_QUEUE));
+            // Check if the user is participating
+            rv.participating = c.getInt(c.getColumnIndexOrThrow(StudyContract.Studies.COLUMN_PARTICIPATING)) == 1;
+            if (rv.participating) {
+                rv.key_in = c.getBlob(c.getColumnIndexOrThrow(StudyContract.Studies.COLUMN_KEY_IN));
+                rv.ctr_in = c.getBlob(c.getColumnIndexOrThrow(StudyContract.Studies.COLUMN_CTR_IN));
+                rv.key_out = c.getBlob(c.getColumnIndexOrThrow(StudyContract.Studies.COLUMN_KEY_OUT));
+                rv.ctr_out = c.getBlob(c.getColumnIndexOrThrow(StudyContract.Studies.COLUMN_CTR_OUT));
+            }
+            // Retrieve Investigators
+            rv.investigators = getInvestigatorsForStudy(rv.id);
+            // Retrieve DataRequests
+            rv.requests = getDataRequestsForStudy(rv.id);
+            return rv;
+        }
+
+
+        /**
+         * Retrieve all Investigators related to a StudyRequest from the database
+         * @param studyid The database ID of the study
+         * @return A List of Investigators
+         */
+        private List<StudyRequest.Investigator> getInvestigatorsForStudy(long studyid) {
+            List<StudyRequest.Investigator> rv = new LinkedList<>();
+            assertOpen();
+            if (studyid < 0) {
+                Log.e(TAG, "getInvestigatorsForStudy: id cannot be -1");
+                return null;
+            }
+            String[] whereArgs = { "" + studyid };
+            Cursor c = query(StudyContract.Investigators.TABLE_NAME,
+                    null,
+                    StudyContract.Investigators.COLUMN_STUDY + " LIKE ?",
+                    whereArgs,
+                    null,
+                    null,
+                    null);
+            while (c.moveToNext()) {
+                rv.add(investigatorFromCursor(c));
+            }
+            c.close();
+            return rv;
+        }
+
+
+        /**
+         * Extract an investigator from a Cursor object
+         * @param c The cursor
+         * @return An investigator
+         */
+        private StudyRequest.Investigator investigatorFromCursor(Cursor c) {
+            // Prepare investigator
+            StudyRequest.Investigator rv = new StudyRequest.Investigator();
+            // Fill fields
+            rv.name = c.getString(c.getColumnIndexOrThrow(StudyContract.Investigators.COLUMN_NAME));
+            rv.group = c.getString(c.getColumnIndexOrThrow(StudyContract.Investigators.COLUMN_GROUP));
+            rv.institution = c.getString(c.getColumnIndexOrThrow(StudyContract.Investigators.COLUMN_INSTITUTION));
+            rv.position = c.getString(c.getColumnIndexOrThrow(StudyContract.Investigators.COLUMN_POSITION));
+            rv.id = c.getLong(c.getColumnIndexOrThrow(StudyContract.Investigators._ID));
+            // Return
+            return rv;
+        }
+
+
+        /**
+         * Retrieve all DataRequests related to a StudyRequest from the database
+         * @param studyid The database ID of the study
+         * @return A List of DataRequests
+         */
+        private List<StudyRequest.DataRequest> getDataRequestsForStudy(long studyid) {
+            List<StudyRequest.DataRequest> rv = new LinkedList<>();
+            assertOpen();
+            if (studyid < 0) {
+                Log.e(TAG, "getDataRequestsForStudy: id cannot be -1");
+                return null;
+            }
+            String[] whereArgs = { "" + studyid };
+            Cursor c = query(StudyContract.DataRequests.TABLE_NAME,
+                    null,
+                    StudyContract.DataRequests.COLUMN_STUDY + " LIKE ?",
+                    whereArgs,
+                    null,
+                    null,
+                    null);
+            while (c.moveToNext()) {
+                rv.add(dataRequestFromCursor(c));
+            }
+            c.close();
+            return rv;
+        }
+
+
+        /**
+         * Extract a DataRequest from a Cursor
+         * @param c A cursor containing a DataRequest
+         * @return The DataRequest
+         */
+        private StudyRequest.DataRequest dataRequestFromCursor(Cursor c) {
+            // Prepare DataRequest
+            StudyRequest.DataRequest rv = new StudyRequest.DataRequest();
+            // Fill fields
+            rv.frequency = c.getInt(c.getColumnIndexOrThrow(StudyContract.DataRequests.COLUMN_FREQUENCY));
+            rv.granularity = c.getInt(c.getColumnIndexOrThrow(StudyContract.DataRequests.COLUMN_GRANULARITY));
+            rv.type = c.getInt(c.getColumnIndexOrThrow(StudyContract.DataRequests.COLUMN_DATATYPE));
+            rv.id = c.getLong(c.getColumnIndexOrThrow(StudyContract.DataRequests._ID));
+            // Return
+            return rv;
+        }
 
         //// Shareable helper functions
         // TODO Add new shareables here

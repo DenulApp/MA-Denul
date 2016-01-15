@@ -53,6 +53,7 @@ import de.velcommuta.denul.event.GPSLocationEvent;
 import de.velcommuta.denul.data.GPSTrack;
 import de.velcommuta.denul.service.DatabaseServiceBinder;
 import de.velcommuta.denul.service.GPSTrackingService;
+import de.velcommuta.denul.util.ShareManager;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -882,7 +883,6 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
     /**
      * EventBus function to perform Database interactions in an AsyncThread (in the background)
      * TODO Refactor to regular asyncTask and stop using eventbus here?
-     * TODO Move database insert code into DatabaseService
      * @param ev Event containing the track and other information that should be saved to the database
      */
     @SuppressWarnings("unused")
@@ -894,7 +894,7 @@ public class TrackRunFragment extends Fragment implements OnMapReadyCallback, Vi
             return;
         }
         // Add to database
-        db.addGPSTrack(ev);
+        ShareManager.saveShareableToDatabase(db, ev);
         // Notify main thread
         EventBus.getDefault().post(new DatabaseResultEvent(getString(R.string.save_success)));
     }

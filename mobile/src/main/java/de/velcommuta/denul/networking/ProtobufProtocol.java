@@ -12,15 +12,24 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
+import javax.crypto.IllegalBlockSizeException;
+
+import de.velcommuta.denul.crypto.ECDHKeyExchange;
+import de.velcommuta.denul.crypto.KeyExchange;
+import de.velcommuta.denul.crypto.RSA;
 import de.velcommuta.denul.data.DataBlock;
+import de.velcommuta.denul.data.StudyRequest;
 import de.velcommuta.denul.data.TokenPair;
+import de.velcommuta.denul.data.proto.DataContainer;
 import de.velcommuta.denul.networking.protobuf.c2s.C2S;
 import de.velcommuta.denul.networking.protobuf.meta.MetaMessage;
+import de.velcommuta.denul.networking.protobuf.study.StudyMessage;
 import de.velcommuta.denul.util.FormatHelper;
 import de.velcommuta.libvicbf.VICBF;
 
@@ -341,6 +350,95 @@ public class ProtobufProtocol implements Protocol {
         return rv;
     }
 
+
+    @Override
+    public List<StudyRequest> listRegisteredStudies() {
+        // Prepare return list
+        List<StudyRequest> rv = new LinkedList<>();
+        // Get a Wrapper message
+        MetaMessage.Wrapper.Builder wrapper = MetaMessage.Wrapper.newBuilder();
+        // Get a StudyListRequest
+        StudyMessage.StudyListQuery query = StudyMessage.StudyListQuery.newBuilder().build();
+        // Add the query to the wrapper
+        wrapper.setStudyListQuery(query);
+        // Transceive
+        MetaMessage.Wrapper reply = transceiveWrapper(wrapper.build());
+        if (reply == null) {
+            Log.e(TAG, "listRegisteredStudies: Reply is null, something is wrong");
+            return null;
+        }
+        StudyMessage.StudyListReply slr = toStudyListReply(reply);
+        if (slr == null) {
+            Log.e(TAG, "listRegisteredStudies: Wrapper did not contain StudyListReply");
+            return null;
+        }
+        // Read in the provided studies
+        for (StudyMessage.StudyWrapper swr : slr.getStudylistList()) {
+            rv.add(StudyRequest.fromStudyWrapper(swr));
+        }
+        // Return result
+        return rv;
+    }
+
+
+    @Override
+    public int joinStudy(StudyRequest req, KeyExchange kex) {
+        // Get a wrapper
+        MetaMessage.Wrapper.Builder wrapper = MetaMessage.Wrapper.newBuilder();
+        // Get a studyJoinMessage
+        StudyMessage.StudyJoin.Builder sjoin = StudyMessage.StudyJoin.newBuilder();
+        // Set the used Kex algorithm
+        // TODO Find nicer solution than instanceof
+        if (kex instanceof ECDHKeyExchange) {
+            sjoin.setKexAlgorithm(StudyMessage.StudyJoin.KexAlgo.KEX_ECDH_CURVE25519);
+        } else { // TODO Add new KEx algos here
+            Log.e(TAG, "joinStudy: Unknown key exchange algorithm");
+            return JOIN_FAIL_PROTOCOL_ERROR;
+        }
+        // Set public kex data
+        sjoin.setKexData(ByteString.copyFrom(kex.getPublicKexData()));
+        // Set queue identifier
+        sjoin.setQueueIdentifier(ByteString.copyFrom(req.queue));
+        byte[] message = sjoin.build().toByteArray();
+        // TODO Add switch for asym. algorithm in request
+        byte[] encrypted;
+        try {
+            encrypted = RSA.encryptRSA(message, req.pubkey);
+            if (encrypted == null) {
+                return JOIN_FAIL_PROTOCOL_ERROR;
+            }
+        } catch (IllegalBlockSizeException e) {
+            e.printStackTrace();
+            return JOIN_FAIL_PROTOCOL_ERROR;
+        }
+        // Create Store message
+        C2S.Store.Builder store = C2S.Store.newBuilder();
+        store.setKey(ByteString.copyFrom(req.queue));
+        store.setValue(ByteString.copyFrom(encrypted));
+        // Wrap in wrapper
+        wrapper.setStore(store);
+        // Transceive
+        MetaMessage.Wrapper reply = transceiveWrapper(wrapper.build());
+        if (reply == null) {
+            Log.e(TAG, "joinStudy: reply == null => No connection?");
+            return JOIN_FAIL_NO_CONNECTION;
+        }
+        // Convert to StoreReply
+        C2S.StoreReply sreply = toStoreReply(reply);
+        if (sreply == null) {
+            Log.e(TAG, "joinStudy: Reply did not contain StoreReply");
+            return JOIN_FAIL_PROTOCOL_ERROR;
+        }
+        // Check status
+        if (sreply.getOpcode() == C2S.StoreReply.StoreReplyCode.STORE_OK) {
+            return JOIN_OK;
+        } else if (sreply.getOpcode() == C2S.StoreReply.StoreReplyCode.STORE_FAIL_KEY_FMT) {
+            return JOIN_FAIL_NO_STUDY;
+        } else {
+            return JOIN_FAIL_PROTOCOL_ERROR;
+        }
+    }
+
     // Helper functions
     /**
      * Send a wrapper message to the server and receive and parse a wrapper message in return
@@ -495,6 +593,21 @@ public class ProtobufProtocol implements Protocol {
             return wrapper.getDeleteReply();
         } else {
             Log.e(TAG, "toDeleteReply: Wrapper message did not contain a StoreReply message");
+            return null;
+        }
+    }
+
+
+    /**
+     * Extract a StudyListReply message from a wrapper
+     * @param wrapper The wrapper containing a StudyListReply message
+     * @return The StudyListReply, or null, if the bytes did not represent a StudyListReply message
+     */
+    private StudyMessage.StudyListReply toStudyListReply(MetaMessage.Wrapper wrapper) {
+        if (wrapper.hasStudyListReply()) {
+            return wrapper.getStudyListReply();
+        } else {
+            Log.e(TAG, "toStudyListReply: Wrapper message did not contain a StudyListReply message");
             return null;
         }
     }

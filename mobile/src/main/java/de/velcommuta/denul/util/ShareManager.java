@@ -32,6 +32,7 @@ public class ShareManager {
     protected String host = "denul.velcommuta.de";
     protected int port = 5566;
     // TODO Move definitions somewhere sensible
+    // TODO Convert AsyncTask instantiations to static functions for API
 
     public class ShareWithProgress extends AsyncTask<List<Friend>, Integer, Boolean> {
         private static final String TAG = "ShareWP";
@@ -474,6 +475,23 @@ public class ShareManager {
         List<TokenPair> tokens = new LinkedList<>();
         tokens.add(token);
         new ShareManager().new Revoke(binder).execute(tokens);
+    }
+
+
+    /**
+     * Save a Shareable to the database, and do any operations that should be performed on all new
+     * shareables (e.g. check if they should be uploaded to any active studies, ...)
+     * @param binder An open DatabaseServiceBinder
+     * @param sh The Shareable(s)
+     */
+    public static void saveShareableToDatabase(DatabaseServiceBinder binder, Shareable... sh) {
+        if (binder == null || !binder.isDatabaseOpen()) throw new IllegalArgumentException("Bad binder");
+        // Save to database
+        for (Shareable share : sh) {
+            binder.addShareable(share);
+        }
+        // Check studies
+        StudyManager.checkShareable(binder, sh);
     }
 
 
