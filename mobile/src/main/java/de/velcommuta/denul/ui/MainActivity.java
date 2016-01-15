@@ -179,6 +179,8 @@ public class MainActivity extends AppCompatActivity
             // TODO implement
         } else if (id == R.id.nav_studies) {
             loadStudyFragment();
+        } else if (id == R.id.nav_imprint) {
+            showImprintActivity();
         }
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
@@ -248,6 +250,14 @@ public class MainActivity extends AppCompatActivity
         fragmentManager.beginTransaction()
                 .replace(R.id.content_frame, fragment)
                 .commit();
+    }
+
+    /**
+     * Show the imprint activity
+     */
+    private void showImprintActivity() {
+        Intent i = new Intent(this, ImprintActivity.class);
+        startActivity(i);
     }
 
     ///// Service Management

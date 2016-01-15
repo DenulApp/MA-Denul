@@ -121,6 +121,26 @@
     <!-- Share Menu Strings -->
     <string name="share_menu_description_hint">Enter a description (optional)</string>
 
+    <!-- Imprint -->
+    <string name="imprint_header">Imprint</string>
+    <string name="imprint_text"><![CDATA[
+    Denul was developed for a Master Thesis at the Secure Mobile Networking Lab (Seemoo), TU Darmstadt.\r\n
+    Denul is licensed under the TBD License.\r\n\r\n
+    This app uses the following libraries:\r\n
+    - EventBus (Apache License v2) \r\n
+    - android-maps-utils (Apache License v2) \r\n
+    - SQLCipher for Android (BSD-Style License) \r\n
+    - DNSJava (BSD License) \r\n
+    - JodaTime (Apache License v2)\r\n
+    - SpongyCastle (Adapted MIT License)\r\n
+    - ZXing-Android-Embedded (Apache License v2)\r\n
+    - ZXing-Core (Apache License v2)\r\n
+    - libvicbf (Apache License v2)\r\n
+    - Protocol Buffers (BSD 3-Clause License)\r\n
+    - Google Play Services (Proprietary)\r\n\r\n
+    Some of the used assets are provided by Google under the CC BY license.
+    ]]></string>
+
     <!-- Unit strings -->
     <string name="distance_m">%1$d m</string>
     <string name="distance_km">%1$.02f km</string>

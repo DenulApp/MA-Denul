@@ -67,14 +67,11 @@
         </service>
 
         <activity android:name=".ui.FriendAddActivity" android:theme="@style/AppTheme.NoActionBar"
-                  android:screenOrientation="nosensor">
-        </activity>
-        <activity android:name=".ui.FriendViewActivity" android:theme="@style/AppTheme.NoActionBar">
-        </activity>
-        <activity android:name=".ui.ExerciseViewActivity" android:theme="@style/AppTheme.NoActionBar">
-        </activity>
-        <activity android:name=".ui.StudyViewActivity" android:theme="@style/AppTheme.NoActionBar">
-        </activity>
+                  android:screenOrientation="nosensor" />
+        <activity android:name=".ui.FriendViewActivity" android:theme="@style/AppTheme.NoActionBar" />
+        <activity android:name=".ui.ExerciseViewActivity" android:theme="@style/AppTheme.NoActionBar" />
+        <activity android:name=".ui.StudyViewActivity" android:theme="@style/AppTheme.NoActionBar" />
+        <activity android:name=".ui.ImprintActivity" android:theme="@style/AppTheme.NoActionBar" />
     </application>
 
 </manifest>
