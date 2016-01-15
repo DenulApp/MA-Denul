@@ -77,10 +77,13 @@ public class AESSharingEncryptionTest extends TestCase {
         // Encrypt Shareable with random identifier
         TokenPair rand = d.generateRandomIdentifier();
         DataBlock block = enc.encryptShareable(testtrack, Shareable.GRANULARITY_FINE, rand);
+        assertNotNull(block);
         // Encrypt identifier and key of the block for the second keyset
         byte[] encrypted = enc.encryptKeysAndIdentifier(block, ks1);
+        assertNotNull(encrypted);
         // Decrypt identifier and key of the block using the second keyset
         DataBlock decryptedBlock = enc.decryptKeysAndIdentifier(encrypted, ks2);
+        assertNotNull(decryptedBlock);
         // Verify that the blocks match
         assertTrue(Arrays.equals(decryptedBlock.getIdentifier(), block.getIdentifier()));
         assertTrue(Arrays.equals(decryptedBlock.getKey(), block.getKey()));

@@ -117,12 +117,12 @@ public class AESTest extends TestCase {
     }
 
     /**
-     * Test if the encryption and decryption works when explicitly specifying an IV
+     * Test if the encryption and decryption works when explicitly specifying an IV that is too short
      */
-    public void testEncryptionDecryptionWithSpecifiedBadIV() {
+    public void testEncryptionDecryptionWithTooShortIV() {
         byte[] key = AES.generateAES256Key();
         byte[] message = new byte[128];
-        byte[] iv = new byte[31];
+        byte[] iv = new byte[8];
         new Random().nextBytes(message);
         new Random().nextBytes(iv);
         byte[] ciphertext = AES.encryptAES(message, key, null, iv);

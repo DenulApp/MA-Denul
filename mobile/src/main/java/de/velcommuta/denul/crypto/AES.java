@@ -90,7 +90,7 @@ public class AES {
         try {
             boolean ivSpecified = iv != null;
             // Sanity check for IV length - we allow 16 byte (128 bit) and 32 byte (256 bit) IVs
-            if (ivSpecified && iv.length != 16 && iv.length != 32) {
+            if (ivSpecified && iv.length < 16) {
                 Log.e(TAG, "encryptAES: Bad IV length");
                 return null;
             }
