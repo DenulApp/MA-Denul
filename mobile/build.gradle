@@ -20,6 +20,10 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+
+    packagingOptions {
+        exclude 'META-INF/LICENSE.txt'
+    }
 }
 
 dependencies {
@@ -71,6 +75,7 @@ dependencies {
     androidTestCompile 'com.android.support.test:rules:0.4'
     androidTestCompile 'com.android.support.test.espresso:espresso-core:2.2.1'
     androidTestCompile 'com.android.support.test.espresso:espresso-contrib:2.2.1'
+    androidTestCompile 'org.apache.commons:commons-math3:3.6'
 
     androidTestCompile 'junit:junit:4.12'
 }
