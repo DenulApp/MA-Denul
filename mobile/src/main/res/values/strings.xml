@@ -124,8 +124,8 @@
     <!-- Imprint -->
     <string name="imprint_header">Imprint</string>
     <string name="imprint_text"><![CDATA[
-    Denul was developed for a Master Thesis at the Secure Mobile Networking Lab (Seemoo), TU Darmstadt.\r\n
-    Denul is licensed under the TBD License.\r\n\r\n
+    Denul was developed for a Master Thesis at the Secure Mobile Networking Lab (Seemoo), TU Darmstadt.\r\n\r\n
+    This application is Free Software and licensed under the GNU GPLv3. See gnu.org/licenses for details. You can find the source code at github.com/DenulApp\r\n\r\n
     This app uses the following libraries:\r\n
     - EventBus (Apache License v2) \r\n
     - android-maps-utils (Apache License v2) \r\n
